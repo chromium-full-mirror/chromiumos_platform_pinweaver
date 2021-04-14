@@ -5,8 +5,8 @@
 
 /* Shared types between Cr50 and the AP side code. */
 
-#ifndef __CROS_EC_INCLUDE_PINWEAVER_TYPES_H
-#define __CROS_EC_INCLUDE_PINWEAVER_TYPES_H
+#ifndef __PINWEAVER_PINWEAVER_TYPES_H
+#define __PINWEAVER_PINWEAVER_TYPES_H
 
 #include <stdint.h>
 
@@ -417,4 +417,4 @@ struct PW_PACKED pw_response_t {
 }
 #endif
 
-#endif  /* __CROS_EC_INCLUDE_PINWEAVER_TYPES_H */
+#endif  /* __PINWEAVER_PINWEAVER_TYPES_H */
