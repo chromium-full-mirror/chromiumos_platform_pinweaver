@@ -3,21 +3,27 @@
  * found in the LICENSE file.
  */
 
-#include <common.h>
-#include <compile_time_macros.h>
-#include <console.h>
-#include <dcrypto.h>
-#include <extension.h>
-#include <hooks.h>
-#include <nvmem_vars.h>
+#include <eal.h>
 #include <pinweaver.h>
-#include <pinweaver_tpm_imports.h>
-#include <pinweaver_types.h>
-#include <timer.h>
-#include <tpm_vendor_cmds.h>
-#include <trng.h>
-#include <tpm_registers.h>
-#include <util.h>
+#include <string.h>
+
+/* TODO(apronin): get rid of temporary #defines */
+
+#ifndef SHA256_DIGEST_SIZE
+#define SHA256_DIGEST_SIZE (256/8)
+#endif
+
+#ifndef AES256_BLOCK_CIPHER_KEY_SIZE
+#define AES256_BLOCK_CIPHER_KEY_SIZE (256/8)
+#endif
+
+#ifndef EC_SUCCESS
+#define EC_SUCCESS 0
+#endif
+
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 /* Compile time sanity checks. */
 /* Make sure the hash size is consistent with dcrypto. */
@@ -56,10 +62,6 @@ BUILD_ASSERT(PW_MAX_MESSAGE_SIZE >=
 		(sizeof(struct valid_pcr_value_t) * PW_MAX_PCR_CRITERIA_COUNT)
 /* Verify that the request structs will fit into the message. */
 BUILD_ASSERT(PW_MAX_MESSAGE_SIZE >= PW_MAX_RESPONSE_SIZE);
-/* Make sure the largest possible message would fit in
- * (struct tpm_register_file).data_fifo.
- */
-BUILD_ASSERT(PW_MAX_MESSAGE_SIZE + sizeof(struct tpm_cmd_header) <= 2048);
 
 /* PW_MAX_PATH_SIZE should not change unless PW_LEAF_MAJOR_VERSION changes too.
  * Update these statements whenever these constants are changed to remind future
@@ -83,7 +85,7 @@ BUILD_ASSERT(PW_MAX_PATH_SIZE == 1024);
  */
 BUILD_ASSERT(sizeof(struct leaf_sensitive_data_t) == 3 * PW_SECRET_SIZE);
 
-#define RESTART_TIMER_THRESHOLD (10 * SECOND)
+#define RESTART_TIMER_THRESHOLD (10 /* seconds */)
 
 /* This var caches the restart count so the nvram log structure doesn't need to
  * be walked every time try_auth request is made.
@@ -110,46 +112,6 @@ void import_leaf(const struct unimported_leaf_data_t *unimported,
 /* Basic operations required by the Merkle tree.
  */
 
-static int derive_keys(struct merkle_tree_t *merkle_tree)
-{
-	struct APPKEY_CTX ctx;
-	int ret = EC_SUCCESS;
-	const uint32_t KEY_TYPE_AES = 0x0;
-	const uint32_t KEY_TYPE_HMAC = 0xffffffff;
-	union {
-		uint32_t v[8];
-		uint8_t bytes[sizeof(uint32_t) * 8];
-	} input;
-	uint32_t type_field;
-	size_t seed_size = sizeof(input);
-	size_t x;
-
-	get_storage_seed(input.v, &seed_size);
-	for (x = 0; x < ARRAY_SIZE(input.bytes) &&
-		    x < ARRAY_SIZE(merkle_tree->key_derivation_nonce); ++x)
-		input.bytes[x] ^= merkle_tree->key_derivation_nonce[x];
-	type_field = input.v[6];
-
-	if (!DCRYPTO_appkey_init(PINWEAVER, &ctx))
-		return PW_ERR_CRYPTO_FAILURE;
-
-	input.v[6] = type_field ^ KEY_TYPE_AES;
-	if (!DCRYPTO_appkey_derive(PINWEAVER, input.v,
-				  (uint32_t *)merkle_tree->wrap_key)) {
-		ret = PW_ERR_CRYPTO_FAILURE;
-		goto cleanup;
-	}
-
-	input.v[6] = type_field ^ KEY_TYPE_HMAC;
-	if (!DCRYPTO_appkey_derive(PINWEAVER, input.v,
-				  (uint32_t *)merkle_tree->hmac_key)) {
-		ret = PW_ERR_CRYPTO_FAILURE;
-	}
-cleanup:
-	DCRYPTO_appkey_finish(&ctx);
-	return ret;
-}
-
 /* Creates an empty merkle_tree with the given parameters. */
 static int create_merkle_tree(struct bits_per_level_t bits_per_level,
 			      struct height_t height,
@@ -159,23 +121,24 @@ static int create_merkle_tree(struct bits_per_level_t bits_per_level,
 	uint8_t temp_hash[PW_HASH_SIZE] = {};
 	uint8_t hx;
 	uint16_t kx;
-	LITE_SHA256_CTX ctx;
+	pinweaver_eal_sha256_ctx_t ctx;
 
 	merkle_tree->bits_per_level = bits_per_level;
 	merkle_tree->height = height;
 
 	/* Initialize the root hash. */
 	for (hx = 0; hx < height.v; ++hx) {
-		DCRYPTO_SHA256_init(&ctx, 0);
+		pinweaver_eal_sha256_init(&ctx);
 		for (kx = 0; kx < fan_out; ++kx)
-			HASH_update(&ctx, temp_hash, PW_HASH_SIZE);
-		memcpy(temp_hash, HASH_final(&ctx), PW_HASH_SIZE);
+			pinweaver_eal_sha256_update(&ctx, temp_hash,
+						    PW_HASH_SIZE);
+		pinweaver_eal_sha256_final(&ctx, temp_hash);
 	}
 	memcpy(merkle_tree->root, temp_hash, PW_HASH_SIZE);
 
-	rand_bytes(merkle_tree->key_derivation_nonce,
-		   sizeof(merkle_tree->key_derivation_nonce));
-	return derive_keys(merkle_tree);
+	pinweaver_eal_rand_bytes(merkle_tree->key_derivation_nonce,
+				 sizeof(merkle_tree->key_derivation_nonce));
+	return pinweaver_eal_derive_keys(merkle_tree);
 }
 
 /* Computes the HMAC for an encrypted leaf using the key in the merkle_tree. */
@@ -184,19 +147,23 @@ static void compute_hmac(
 		const struct imported_leaf_data_t *imported_leaf_data,
 		uint8_t result[PW_HASH_SIZE])
 {
-	LITE_HMAC_CTX hmac;
+	pinweaver_eal_hmac_sha256_ctx_t hmac;
 
-	DCRYPTO_HMAC_SHA256_init(&hmac, merkle_tree->hmac_key,
-				 sizeof(merkle_tree->hmac_key));
-	HASH_update(&hmac.hash, imported_leaf_data->head,
-		    sizeof(*imported_leaf_data->head));
-	HASH_update(&hmac.hash, imported_leaf_data->iv,
-		    sizeof(PW_WRAP_BLOCK_SIZE));
-	HASH_update(&hmac.hash, imported_leaf_data->pub,
-		    imported_leaf_data->head->pub_len);
-	HASH_update(&hmac.hash, imported_leaf_data->cipher_text,
-		    imported_leaf_data->head->sec_len);
-	memcpy(result, DCRYPTO_HMAC_final(&hmac), PW_HASH_SIZE);
+	pinweaver_eal_hmac_sha256_init(&hmac, merkle_tree->hmac_key,
+				       sizeof(merkle_tree->hmac_key));
+	pinweaver_eal_hmac_sha256_update(&hmac,
+					 imported_leaf_data->head,
+					 sizeof(*imported_leaf_data->head));
+	pinweaver_eal_hmac_sha256_update(&hmac,
+					 imported_leaf_data->iv,
+					 sizeof(PW_WRAP_BLOCK_SIZE));
+	pinweaver_eal_hmac_sha256_update(&hmac,
+					 imported_leaf_data->pub,
+					 imported_leaf_data->head->pub_len);
+	pinweaver_eal_hmac_sha256_update(&hmac,
+					 imported_leaf_data->cipher_text,
+					 imported_leaf_data->head->sec_len);
+	pinweaver_eal_hmac_sha256_final(&hmac, result);
 }
 
 /* Computes the root hash for the specified path and child hash. */
@@ -269,14 +236,16 @@ static int encrypt_leaf_data(const struct merkle_tree_t *merkle_tree,
 	 * a new IV should be generated and stored as part of the log for a
 	 * replay to be possible.
 	 */
-	rand_bytes(wrapped_leaf_data->iv, sizeof(wrapped_leaf_data->iv));
+	pinweaver_eal_rand_bytes(wrapped_leaf_data->iv,
+				 sizeof(wrapped_leaf_data->iv));
 	memcpy(&wrapped_leaf_data->pub, &leaf_data->pub,
 	       sizeof(leaf_data->pub));
-	if (!DCRYPTO_aes_ctr(wrapped_leaf_data->cipher_text,
-			    merkle_tree->wrap_key,
-			    sizeof(merkle_tree->wrap_key) << 3,
-			    wrapped_leaf_data->iv, (uint8_t *)&leaf_data->sec,
-			    sizeof(leaf_data->sec))) {
+	if (!pinweaver_eal_aes256_ctr(merkle_tree->wrap_key,
+				      sizeof(merkle_tree->wrap_key),
+				      wrapped_leaf_data->iv,
+				      &leaf_data->sec,
+				      sizeof(leaf_data->sec),
+				      wrapped_leaf_data->cipher_text)) {
 		return PW_ERR_CRYPTO_FAILURE;
 	}
 	return EC_SUCCESS;
@@ -291,11 +260,12 @@ static int decrypt_leaf_data(
 	memcpy(&leaf_data->pub, imported_leaf_data->pub,
 	       MIN(imported_leaf_data->head->pub_len,
 		   sizeof(struct leaf_public_data_t)));
-	if (!DCRYPTO_aes_ctr((uint8_t *)&leaf_data->sec, merkle_tree->wrap_key,
-			    sizeof(merkle_tree->wrap_key) << 3,
-			    imported_leaf_data->iv,
-			    imported_leaf_data->cipher_text,
-			    sizeof(leaf_data->sec))) {
+	if (!pinweaver_eal_aes256_ctr(merkle_tree->wrap_key,
+				      sizeof(merkle_tree->wrap_key),
+				      imported_leaf_data->iv,
+				      imported_leaf_data->cipher_text,
+				      sizeof(leaf_data->sec),
+				      &leaf_data->sec)) {
 		return PW_ERR_CRYPTO_FAILURE;
 	}
 	return EC_SUCCESS;
@@ -430,9 +400,10 @@ static int validate_pcr_value(const struct valid_pcr_value_t
 			return PW_ERR_PCR_NOT_MATCH;
 		}
 
-		if (get_current_pcr_digest(valid_pcr_criteria[index].bitmask,
-					   sha256_of_selected_pcr)) {
-			cprints(CC_TASK,
+		if (pinweaver_eal_get_current_pcr_digest(
+				valid_pcr_criteria[index].bitmask,
+				sha256_of_selected_pcr)) {
+			PINWEAVER_EAL_INFO(
 				"PinWeaver: Read PCR error, bitmask: %d, %d",
 				valid_pcr_criteria[index].bitmask[0],
 				valid_pcr_criteria[index].bitmask[1]);
@@ -449,7 +420,7 @@ static int validate_pcr_value(const struct valid_pcr_value_t
 		}
 	}
 
-	cprints(CC_TASK, "PinWeaver: No criteria matches PCR values");
+	PINWEAVER_EAL_INFO("PinWeaver: No criteria matches PCR values");
 	return PW_ERR_PCR_NOT_MATCH;
 }
 
@@ -534,7 +505,8 @@ static int validate_request_with_wrapped_leaf(
 	 * memcmp provides an attacker a timing side-channel they can use to
 	 * determine how much of a prefix is correct.
 	 */
-	if (safe_memcmp(hmac, unimported_leaf_data->hmac, sizeof(hmac)))
+	if (pinweaver_eal_safe_memcmp(hmac, unimported_leaf_data->hmac,
+				      sizeof(hmac)))
 		return PW_ERR_HMAC_AUTH_FAILED;
 
 	ret = decrypt_leaf_data(merkle_tree, imported_leaf_data, leaf_data);
@@ -555,7 +527,7 @@ static int validate_request_with_wrapped_leaf(
 /* Sets the value of ts to the current notion of time. */
 static void update_timestamp(struct pw_timestamp_t *ts)
 {
-	ts->timer_value = get_time().val / SECOND;
+	ts->timer_value = pinweaver_eal_seconds_since_boot();
 	ts->boot_count = pw_restart_count;
 }
 
@@ -652,118 +624,51 @@ static int find_relevant_entry(const struct pw_log_storage_t *log,
 	return PW_ERR_ROOT_NOT_FOUND;
 }
 
+/* TODO(apronin): get rid of temporary redirect methods */
+
 static int load_log_data(struct pw_log_storage_t *log)
 {
-	const struct tuple *ptr;
-	const struct pw_log_storage_t *view;
-	int rv = EC_SUCCESS;
-
-	ptr = getvar(PW_LOG_VAR0, sizeof(PW_LOG_VAR0) - 1);
-	if (ptr == NULL)
-		return PW_ERR_NV_EMPTY;
-
-	view = (void *)tuple_val(ptr);
-	if (ptr->val_len != sizeof(struct pw_log_storage_t))
-		rv = PW_ERR_NV_LENGTH_MISMATCH;
-	else if (view->storage_version != PW_STORAGE_VERSION)
-		rv = PW_ERR_NV_VERSION_MISMATCH;
-	else
-		memcpy(log, view, ptr->val_len);
-
-	freevar(ptr);
-
-	return rv;
+	return pinweaver_eal_storage_get_log(log);
 }
 
 int store_log_data(const struct pw_log_storage_t *log)
 {
-	return setvar(PW_LOG_VAR0, sizeof(PW_LOG_VAR0) - 1, (uint8_t *)log,
-		      sizeof(struct pw_log_storage_t));
+	return pinweaver_eal_storage_set_log(log);
 }
 
 static int load_merkle_tree(struct merkle_tree_t *merkle_tree)
 {
 	int ret;
-	const struct tuple *ptr;
 
-	cprints(CC_TASK, "PinWeaver: Loading Tree!");
+	PINWEAVER_EAL_INFO("PinWeaver: Loading Tree!");
 
 	/* Handle the immutable data. */
 	{
-		const struct pw_long_term_storage_t *tree;
+		struct pw_long_term_storage_t tree;
 
-		ptr = getvar(PW_TREE_VAR, sizeof(PW_TREE_VAR) - 1);
-		if (!ptr)
-			return PW_ERR_NV_EMPTY;
+		ret = pinweaver_eal_storage_get_tree_data(&tree);
+		if (ret != EC_SUCCESS)
+			return ret;
 
-		tree = (void *)tuple_val(ptr);
-		/* Add storage format updates here. */
-		if (ptr->val_len != sizeof(*tree)) {
-			freevar(ptr);
-			return PW_ERR_NV_LENGTH_MISMATCH;
-		}
-		if (tree->storage_version != PW_STORAGE_VERSION) {
-			freevar(ptr);
-			return PW_ERR_NV_VERSION_MISMATCH;
-		}
-
-		merkle_tree->bits_per_level = tree->bits_per_level;
-		merkle_tree->height = tree->height;
+		merkle_tree->bits_per_level = tree.bits_per_level;
+		merkle_tree->height = tree.height;
 		memcpy(merkle_tree->key_derivation_nonce,
-		       tree->key_derivation_nonce,
-		       sizeof(tree->key_derivation_nonce));
-		ret = derive_keys(merkle_tree);
-		freevar(ptr);
+		       tree.key_derivation_nonce,
+		       sizeof(tree.key_derivation_nonce));
+		ret = pinweaver_eal_derive_keys(merkle_tree);
 		if (ret != EC_SUCCESS)
 			return ret;
 	}
 
 	/* Handle the root hash. */
 	{
-		struct pw_log_storage_t *log;
-
-		ptr = getvar(PW_LOG_VAR0, sizeof(PW_LOG_VAR0) - 1);
-		if (!ptr)
-			return PW_ERR_NV_EMPTY;
-
-		log = (void *)tuple_val(ptr);
-		/* Add storage format updates here. */
-		if (ptr->val_len != sizeof(struct pw_log_storage_t)) {
-			freevar(ptr);
-			return PW_ERR_NV_LENGTH_MISMATCH;
-		}
-		if (log->storage_version != PW_STORAGE_VERSION) {
-			freevar(ptr);
-			return PW_ERR_NV_VERSION_MISMATCH;
-		}
-
-		memcpy(merkle_tree->root, log->entries[0].root,
-		       sizeof(merkle_tree->root));
-
-		/* This forces an NVRAM write for hard reboots for which the
-		 * timer value gets reset. The TPM restart and reset counters
-		 * were not used because they do not track the state of the
-		 * counter.
-		 *
-		 * Pinweaver uses the restart_count to know when the time since
-		 * boot can be used as the elapsed time for the delay schedule,
-		 * versus when the elapsed time starts from a timestamp.
-		 */
-		if (get_time().val < RESTART_TIMER_THRESHOLD) {
-			++log->restart_count;
-			ret = setvar(PW_LOG_VAR0, sizeof(PW_LOG_VAR0) - 1,
-				     (uint8_t *)log,
-				     sizeof(struct pw_log_storage_t));
-			if (ret != EC_SUCCESS) {
-				freevar(ptr);
-				return ret;
-			}
-		}
-		pw_restart_count = log->restart_count;
-		freevar(ptr);
+		ret = pinweaver_eal_storage_init_state(merkle_tree->root,
+						       &pw_restart_count);
+		if (ret != EC_SUCCESS)
+			return ret;
 	}
 
-	cprints(CC_TASK, "PinWeaver: Loaded Tree. restart_count = %d",
+	PINWEAVER_EAL_INFO("PinWeaver: Loaded Tree. restart_count = %d",
 		pw_restart_count);
 
 	return EC_SUCCESS;
@@ -785,8 +690,7 @@ int store_merkle_tree(const struct merkle_tree_t *merkle_tree)
 		       merkle_tree->key_derivation_nonce,
 		       sizeof(data.key_derivation_nonce));
 
-		ret = setvar(PW_TREE_VAR, sizeof(PW_TREE_VAR) - 1,
-			     (uint8_t *)&data, sizeof(data));
+		ret = pinweaver_eal_storage_set_tree_data(&data);
 		if (ret != EC_SUCCESS)
 			return ret;
 	}
@@ -1077,9 +981,10 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 	 * 2) the runtime of the code paths for failed and successful
 	 *    authentication attempts should not diverge.
 	 */
-	auth_result = safe_memcmp(request->low_entropy_secret,
-				  leaf_data.sec.low_entropy_secret,
-				  sizeof(request->low_entropy_secret)) == 0;
+	auth_result = pinweaver_eal_safe_memcmp(
+			request->low_entropy_secret,
+			leaf_data.sec.low_entropy_secret,
+			sizeof(request->low_entropy_secret)) == 0;
 	leaf_data.pub.attempt_count.v = results_table[auth_result].attempts;
 
 	/* This has a non-constant time path, but it doesn't convey information
@@ -1148,9 +1053,9 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 	 * memcmp provides an attacker a timing side-channel they can use to
 	 * determine how much of a prefix is correct.
 	 */
-	if (safe_memcmp(request->reset_secret,
-			leaf_data.sec.reset_secret,
-			sizeof(request->reset_secret)) != 0)
+	if (pinweaver_eal_safe_memcmp(request->reset_secret,
+				      leaf_data.sec.reset_secret,
+				      sizeof(request->reset_secret)) != 0)
 		return PW_ERR_RESET_AUTH_FAILED;
 
 	leaf_data.pub.attempt_count.v = 0;
@@ -1280,7 +1185,9 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 		return PW_ERR_TYPE_INVALID;
 
 	compute_hmac(merkle_tree, &imported_leaf_data, hmac);
-	if (safe_memcmp(hmac, request->unimported_leaf_data.hmac, sizeof(hmac)))
+	if (pinweaver_eal_safe_memcmp(hmac,
+				      request->unimported_leaf_data.hmac,
+				      sizeof(hmac)))
 		return PW_ERR_HMAC_AUTH_FAILED;
 
 	ret = decrypt_leaf_data(merkle_tree, &imported_leaf_data, &leaf_data);
@@ -1317,47 +1224,6 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 
 struct merkle_tree_t pw_merkle_tree;
 
-/*
- * Handle the VENDOR_CC_PINWEAVER command.
- */
-static enum vendor_cmd_rc pw_vendor_specific_command(enum vendor_cmd_cc code,
-						     void *buf,
-						     size_t input_size,
-						     size_t *response_size)
-{
-	struct pw_request_t *request = buf;
-	struct pw_response_t *response = buf;
-
-	if (input_size < sizeof(request->header)) {
-		ccprintf("PinWeaver: message smaller than a header (%zd).\n",
-			 input_size);
-		return VENDOR_RC_INTERNAL_ERROR;
-	}
-
-	if (input_size != request->header.data_length +
-			  sizeof(request->header)) {
-		ccprintf("PinWeaver: header size mismatch %zd != %zd.\n",
-			 input_size, request->header.data_length +
-				     sizeof(request->header));
-		return VENDOR_RC_REQUEST_TOO_BIG;
-	}
-
-	/* The response_size is validated by compile time checks. */
-
-	/* The return value of this function call is intentionally unused. */
-	pw_handle_request(&pw_merkle_tree, request, response);
-
-	*response_size = response->header.data_length +
-			 sizeof(response->header);
-
-	/* The response is only sent for EC_SUCCESS so it is used even for
-	 * errors which are reported through header.return_code.
-	 */
-	return VENDOR_RC_SUCCESS;
-}
-DECLARE_VENDOR_COMMAND(VENDOR_CC_PINWEAVER,
-		pw_vendor_specific_command);
-
 /******************************************************************************/
 /* Non-static functions.
  */
@@ -1386,16 +1252,17 @@ void compute_hash(const uint8_t hashes[][PW_HASH_SIZE], uint16_t num_hashes,
 		  const uint8_t child_hash[PW_HASH_SIZE],
 		  uint8_t result[PW_HASH_SIZE])
 {
-	LITE_SHA256_CTX ctx;
+	pinweaver_eal_sha256_ctx_t ctx;
 
-	DCRYPTO_SHA256_init(&ctx, 0);
+	pinweaver_eal_sha256_init(&ctx);
 	if (location.v > 0)
-		HASH_update(&ctx, hashes[0], PW_HASH_SIZE * location.v);
-	HASH_update(&ctx, child_hash, PW_HASH_SIZE);
+		pinweaver_eal_sha256_update(&ctx, hashes[0],
+					    PW_HASH_SIZE * location.v);
+	pinweaver_eal_sha256_update(&ctx, child_hash, PW_HASH_SIZE);
 	if (location.v < num_hashes)
-		HASH_update(&ctx, hashes[location.v],
-			    PW_HASH_SIZE * (num_hashes - location.v));
-	memcpy(result, HASH_final(&ctx), PW_HASH_SIZE);
+		pinweaver_eal_sha256_update(&ctx, hashes[location.v],
+				PW_HASH_SIZE * (num_hashes - location.v));
+	pinweaver_eal_sha256_final(&ctx, result);
 }
 
 /* If a request from older protocol comes, this method should make it
@@ -1455,6 +1322,44 @@ void make_compatible_response(int version, int req_type,
 		}
 	}
 }
+
+enum pinweaver_command_res_t pinweaver_command(void *request_buf,
+					       size_t request_size,
+					       void *response_buf,
+					       size_t *response_size) {
+	struct pw_request_t *request = request_buf;
+	struct pw_response_t *response = response_buf;
+
+	if (request_size < sizeof(request->header)) {
+		PINWEAVER_EAL_INFO(
+			"PinWeaver: message smaller than a header (%zd).\n",
+			request_size);
+		return PW_CMD_RES_TOO_SMALL;
+	}
+
+	if (request_size != request->header.data_length +
+			    sizeof(request->header)) {
+		PINWEAVER_EAL_INFO(
+			"PinWeaver: header size mismatch %zd != %zd.\n",
+			request_size,
+			request->header.data_length + sizeof(request->header));
+		return PW_CMD_RES_SIZE;
+	}
+
+	/* The response_size is validated by compile time checks. */
+
+	/* The return value of this function call is intentionally unused. */
+	pw_handle_request(&pw_merkle_tree, request, response);
+
+	*response_size = response->header.data_length +
+			 sizeof(response->header);
+
+	/* The response is only sent for EC_SUCCESS so it is used even for
+	 * errors which are reported through header.return_code.
+	 */
+	return PW_CMD_RES_SUCCESS;
+}
+
 
 /* Handles the message in request using the context in merkle_tree and writes
  * the results to response. The return value captures any error conditions that
