@@ -3,15 +3,35 @@
  * found in the LICENSE file.
  */
 
-#ifndef __CROS_EC_INCLUDE_PINWEAVER_H
-#define __CROS_EC_INCLUDE_PINWEAVER_H
+#ifndef __PINWEAVER_PINWEAVER_H
+#define __PINWEAVER_PINWEAVER_H
 
 /* This is required before pinweaver_types.h to provide __packed and __aligned
  * while preserving the ability of pinweaver_types.h to be used in code outside
- * of src/platform/ec.
+ * of src/platform.
  */
-#include <common.h>
+#ifndef __aligned
+#define __aligned(n) __attribute__((aligned(n)))
+#endif
+
+#ifndef __packed
+#define __packed __attribute__((packed))
+#endif
+
 #include <pinweaver_types.h>
+
+#ifndef BUILD_ASSERT
+/* Test an important condition at compile time, not run time */
+#define _BA1_(cond, file, line, msg) \
+	_Static_assert(cond, file ":" #line ": " msg)
+#define _BA0_(c, f, l, msg) _BA1_(c, f, l, msg)
+/* Pass in an option message to display after condition */
+#define BUILD_ASSERT(cond, ...) _BA0_(cond, __FILE__, __LINE__, __VA_ARGS__)
+#endif
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -129,6 +149,21 @@ struct leaf_data_t {
  */
 void pinweaver_init(void);
 
+/* Handler for raw incoming messages.
+ *
+ * Supports the case when request_buf and response_buf point to the same
+ * memory location---are backed by the same buffer.
+ */
+enum pinweaver_command_res_t {
+	PW_CMD_RES_SUCCESS = 0,
+	PW_CMD_RES_TOO_SMALL,
+	PW_CMD_RES_SIZE,
+};
+enum pinweaver_command_res_t pinweaver_command(void *request_buf,
+					       size_t request_size,
+					       void *response_buf,
+					       size_t *response_size);
+
 /* Handler for incoming messages after they have been reconstructed.
  *
  * merkle_tree->root needs to be updated with new_root outside of this function.
@@ -185,4 +220,4 @@ int log_auth(struct label_t label, const uint8_t root[PW_HASH_SIZE], int code,
 }
 #endif
 
-#endif  /* __CROS_EC_INCLUDE_PINWEAVER_H */
+#endif  /* __PINWEAVER_PINWEAVER_H */
