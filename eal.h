@@ -1,0 +1,94 @@
+
+/* Copyright 2021 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+#ifndef __PINWEAVER_EAL_H
+#define __PINWEAVER_EAL_H
+
+#include <stddef.h>
+#include <eal_types.h>
+#include <pinweaver.h>
+
+#ifndef PINWEAVER_EAL_INFO
+#define PINWEAVER_EAL_INFO(...)
+#endif
+
+/*
+ * Functions for deriving wrap_key and hmac_key based on key_derivation_nonce.
+ * TODO: temporary, to be better abstracted.
+ */
+int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree);
+
+/*
+ * Functions for calculating SHA-256.
+ */
+int pinweaver_eal_sha256_init(pinweaver_eal_sha256_ctx_t *ctx);
+int pinweaver_eal_sha256_update(pinweaver_eal_sha256_ctx_t *ctx,
+				const void *data,
+				size_t size);
+int pinweaver_eal_sha256_final(pinweaver_eal_sha256_ctx_t *ctx,
+			       void *res);
+
+/*
+ * Functions for calculating HMAC SHA-256.
+ * Only 256 bit key size is used.
+ */
+int pinweaver_eal_hmac_sha256_init(pinweaver_eal_hmac_sha256_ctx_t *ctx,
+				   const void *key,
+				   size_t key_size /* in bytes */);
+int pinweaver_eal_hmac_sha256_update(pinweaver_eal_hmac_sha256_ctx_t *ctx,
+				     const void *data,
+				     size_t size);
+int pinweaver_eal_hmac_sha256_final(pinweaver_eal_hmac_sha256_ctx_t *ctx,
+				    unsigned char *res);
+
+/*
+ * Perform AES-256 CTR.
+ * Only 256 bit key size is used.
+ */
+int pinweaver_eal_aes256_ctr(const void *key,
+			     size_t key_size, /* in bytes */
+			     const void *iv,
+			     const void *data,
+			     size_t size,
+			     void *res);
+
+
+/*
+ * Constant time implementation of memcmp to avoid timing side channels.
+ */
+int pinweaver_eal_safe_memcmp(const void *s1, const void *s2, size_t len);
+
+/*
+ * Get random bytes.
+ */
+int pinweaver_eal_rand_bytes(void *buf, size_t size);
+
+/*
+ * Get number of seconds since cold boot.
+ */
+uint64_t pinweaver_eal_seconds_since_boot();
+
+/*
+ * Functions for working with PCRs.
+ */
+uint8_t pinweaver_eal_get_current_pcr_digest(
+		const uint8_t bitmask[2],
+		uint8_t sha256_of_selected_pcr[32]);
+
+/*
+ * Storage functions.
+ */
+int pinweaver_eal_storage_init_state(uint8_t *root_hash,
+				     uint32_t *restart_count);
+
+int pinweaver_eal_storage_get_log(struct pw_log_storage_t *dest);
+int pinweaver_eal_storage_set_log(const struct pw_log_storage_t *log);
+
+int pinweaver_eal_storage_get_tree_data(struct pw_long_term_storage_t *dest);
+int pinweaver_eal_storage_set_tree_data(
+		const struct pw_long_term_storage_t *data);
+
+#endif  /* __PINWEAVER_EAL_H */
