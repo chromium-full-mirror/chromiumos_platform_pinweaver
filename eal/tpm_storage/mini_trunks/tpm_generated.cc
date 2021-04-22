@@ -4,9 +4,10 @@
 
 #include "tpm_generated.h"
 
-#include <memory>
+#include <endian.h>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <string>
 
 #include "authorization_delegate.h"
@@ -475,13 +476,13 @@ TPM_RC Serialize_uint8_t(const uint8_t& value, std::string* buffer) {
   uint8_t value_net = value;
   switch (sizeof(uint8_t)) {
     case 2:
-      value_net = base::HostToNet16(value);
+      value_net = htobe16(value);
       break;
     case 4:
-      value_net = base::HostToNet32(value);
+      value_net = htobe32(value);
       break;
     case 8:
-      value_net = base::HostToNet64(value);
+      value_net = htobe64(value);
       break;
     default:
       break;
@@ -500,13 +501,13 @@ TPM_RC Parse_uint8_t(std::string* buffer,
   memcpy(&value_net, buffer->data(), sizeof(uint8_t));
   switch (sizeof(uint8_t)) {
     case 2:
-      *value = base::NetToHost16(value_net);
+      *value = be16toh(value_net);
       break;
     case 4:
-      *value = base::NetToHost32(value_net);
+      *value = be32toh(value_net);
       break;
     case 8:
-      *value = base::NetToHost64(value_net);
+      *value = be64toh(value_net);
       break;
     default:
       *value = value_net;
@@ -522,13 +523,13 @@ TPM_RC Serialize_int8_t(const int8_t& value, std::string* buffer) {
   int8_t value_net = value;
   switch (sizeof(int8_t)) {
     case 2:
-      value_net = base::HostToNet16(value);
+      value_net = htobe16(value);
       break;
     case 4:
-      value_net = base::HostToNet32(value);
+      value_net = htobe32(value);
       break;
     case 8:
-      value_net = base::HostToNet64(value);
+      value_net = htobe64(value);
       break;
     default:
       break;
@@ -547,13 +548,13 @@ TPM_RC Parse_int8_t(std::string* buffer,
   memcpy(&value_net, buffer->data(), sizeof(int8_t));
   switch (sizeof(int8_t)) {
     case 2:
-      *value = base::NetToHost16(value_net);
+      *value = be16toh(value_net);
       break;
     case 4:
-      *value = base::NetToHost32(value_net);
+      *value = be32toh(value_net);
       break;
     case 8:
-      *value = base::NetToHost64(value_net);
+      *value = be64toh(value_net);
       break;
     default:
       *value = value_net;
@@ -569,13 +570,13 @@ TPM_RC Serialize_int(const int& value, std::string* buffer) {
   int value_net = value;
   switch (sizeof(int)) {
     case 2:
-      value_net = base::HostToNet16(value);
+      value_net = htobe16(value);
       break;
     case 4:
-      value_net = base::HostToNet32(value);
+      value_net = htobe32(value);
       break;
     case 8:
-      value_net = base::HostToNet64(value);
+      value_net = htobe64(value);
       break;
     default:
       break;
@@ -592,13 +593,13 @@ TPM_RC Parse_int(std::string* buffer, int* value, std::string* value_bytes) {
   memcpy(&value_net, buffer->data(), sizeof(int));
   switch (sizeof(int)) {
     case 2:
-      *value = base::NetToHost16(value_net);
+      *value = be16toh(value_net);
       break;
     case 4:
-      *value = base::NetToHost32(value_net);
+      *value = be32toh(value_net);
       break;
     case 8:
-      *value = base::NetToHost64(value_net);
+      *value = be64toh(value_net);
       break;
     default:
       *value = value_net;
@@ -614,13 +615,13 @@ TPM_RC Serialize_uint16_t(const uint16_t& value, std::string* buffer) {
   uint16_t value_net = value;
   switch (sizeof(uint16_t)) {
     case 2:
-      value_net = base::HostToNet16(value);
+      value_net = htobe16(value);
       break;
     case 4:
-      value_net = base::HostToNet32(value);
+      value_net = htobe32(value);
       break;
     case 8:
-      value_net = base::HostToNet64(value);
+      value_net = htobe64(value);
       break;
     default:
       break;
@@ -639,13 +640,13 @@ TPM_RC Parse_uint16_t(std::string* buffer,
   memcpy(&value_net, buffer->data(), sizeof(uint16_t));
   switch (sizeof(uint16_t)) {
     case 2:
-      *value = base::NetToHost16(value_net);
+      *value = be16toh(value_net);
       break;
     case 4:
-      *value = base::NetToHost32(value_net);
+      *value = be32toh(value_net);
       break;
     case 8:
-      *value = base::NetToHost64(value_net);
+      *value = be64toh(value_net);
       break;
     default:
       *value = value_net;
@@ -661,13 +662,13 @@ TPM_RC Serialize_int16_t(const int16_t& value, std::string* buffer) {
   int16_t value_net = value;
   switch (sizeof(int16_t)) {
     case 2:
-      value_net = base::HostToNet16(value);
+      value_net = htobe16(value);
       break;
     case 4:
-      value_net = base::HostToNet32(value);
+      value_net = htobe32(value);
       break;
     case 8:
-      value_net = base::HostToNet64(value);
+      value_net = htobe64(value);
       break;
     default:
       break;
@@ -686,13 +687,13 @@ TPM_RC Parse_int16_t(std::string* buffer,
   memcpy(&value_net, buffer->data(), sizeof(int16_t));
   switch (sizeof(int16_t)) {
     case 2:
-      *value = base::NetToHost16(value_net);
+      *value = be16toh(value_net);
       break;
     case 4:
-      *value = base::NetToHost32(value_net);
+      *value = be32toh(value_net);
       break;
     case 8:
-      *value = base::NetToHost64(value_net);
+      *value = be64toh(value_net);
       break;
     default:
       *value = value_net;
@@ -708,13 +709,13 @@ TPM_RC Serialize_uint32_t(const uint32_t& value, std::string* buffer) {
   uint32_t value_net = value;
   switch (sizeof(uint32_t)) {
     case 2:
-      value_net = base::HostToNet16(value);
+      value_net = htobe16(value);
       break;
     case 4:
-      value_net = base::HostToNet32(value);
+      value_net = htobe32(value);
       break;
     case 8:
-      value_net = base::HostToNet64(value);
+      value_net = htobe64(value);
       break;
     default:
       break;
@@ -733,13 +734,13 @@ TPM_RC Parse_uint32_t(std::string* buffer,
   memcpy(&value_net, buffer->data(), sizeof(uint32_t));
   switch (sizeof(uint32_t)) {
     case 2:
-      *value = base::NetToHost16(value_net);
+      *value = be16toh(value_net);
       break;
     case 4:
-      *value = base::NetToHost32(value_net);
+      *value = be32toh(value_net);
       break;
     case 8:
-      *value = base::NetToHost64(value_net);
+      *value = be64toh(value_net);
       break;
     default:
       *value = value_net;
@@ -755,13 +756,13 @@ TPM_RC Serialize_int32_t(const int32_t& value, std::string* buffer) {
   int32_t value_net = value;
   switch (sizeof(int32_t)) {
     case 2:
-      value_net = base::HostToNet16(value);
+      value_net = htobe16(value);
       break;
     case 4:
-      value_net = base::HostToNet32(value);
+      value_net = htobe32(value);
       break;
     case 8:
-      value_net = base::HostToNet64(value);
+      value_net = htobe64(value);
       break;
     default:
       break;
@@ -780,13 +781,13 @@ TPM_RC Parse_int32_t(std::string* buffer,
   memcpy(&value_net, buffer->data(), sizeof(int32_t));
   switch (sizeof(int32_t)) {
     case 2:
-      *value = base::NetToHost16(value_net);
+      *value = be16toh(value_net);
       break;
     case 4:
-      *value = base::NetToHost32(value_net);
+      *value = be32toh(value_net);
       break;
     case 8:
-      *value = base::NetToHost64(value_net);
+      *value = be64toh(value_net);
       break;
     default:
       *value = value_net;
@@ -802,13 +803,13 @@ TPM_RC Serialize_uint64_t(const uint64_t& value, std::string* buffer) {
   uint64_t value_net = value;
   switch (sizeof(uint64_t)) {
     case 2:
-      value_net = base::HostToNet16(value);
+      value_net = htobe16(value);
       break;
     case 4:
-      value_net = base::HostToNet32(value);
+      value_net = htobe32(value);
       break;
     case 8:
-      value_net = base::HostToNet64(value);
+      value_net = htobe64(value);
       break;
     default:
       break;
@@ -827,13 +828,13 @@ TPM_RC Parse_uint64_t(std::string* buffer,
   memcpy(&value_net, buffer->data(), sizeof(uint64_t));
   switch (sizeof(uint64_t)) {
     case 2:
-      *value = base::NetToHost16(value_net);
+      *value = be16toh(value_net);
       break;
     case 4:
-      *value = base::NetToHost32(value_net);
+      *value = be32toh(value_net);
       break;
     case 8:
-      *value = base::NetToHost64(value_net);
+      *value = be64toh(value_net);
       break;
     default:
       *value = value_net;
@@ -849,13 +850,13 @@ TPM_RC Serialize_int64_t(const int64_t& value, std::string* buffer) {
   int64_t value_net = value;
   switch (sizeof(int64_t)) {
     case 2:
-      value_net = base::HostToNet16(value);
+      value_net = htobe16(value);
       break;
     case 4:
-      value_net = base::HostToNet32(value);
+      value_net = htobe32(value);
       break;
     case 8:
-      value_net = base::HostToNet64(value);
+      value_net = htobe64(value);
       break;
     default:
       break;
@@ -874,13 +875,13 @@ TPM_RC Parse_int64_t(std::string* buffer,
   memcpy(&value_net, buffer->data(), sizeof(int64_t));
   switch (sizeof(int64_t)) {
     case 2:
-      *value = base::NetToHost16(value_net);
+      *value = be16toh(value_net);
       break;
     case 4:
-      *value = base::NetToHost32(value_net);
+      *value = be32toh(value_net);
       break;
     case 8:
-      *value = base::NetToHost64(value_net);
+      *value = be64toh(value_net);
       break;
     default:
       *value = value_net;
@@ -1068,7 +1069,7 @@ TPM_RC Serialize_TPM2B_DIGEST(const TPM2B_DIGEST& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -1090,7 +1091,7 @@ TPM_RC Parse_TPM2B_DIGEST(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -1997,7 +1998,7 @@ TPM_RC Serialize_TPMU_HA(const TPMU_HA& value,
   TPM_RC result = TPM_RC_SUCCESS;
 
   if (selector == TPM_ALG_SHA384) {
-    if (base::size(value.sha384) < SHA384_DIGEST_SIZE) {
+    if (sizeof(value.sha384) < SHA384_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA384_DIGEST_SIZE; ++i) {
@@ -2009,7 +2010,7 @@ TPM_RC Serialize_TPMU_HA(const TPMU_HA& value,
   }
 
   if (selector == TPM_ALG_SHA1) {
-    if (base::size(value.sha1) < SHA1_DIGEST_SIZE) {
+    if (sizeof(value.sha1) < SHA1_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA1_DIGEST_SIZE; ++i) {
@@ -2021,7 +2022,7 @@ TPM_RC Serialize_TPMU_HA(const TPMU_HA& value,
   }
 
   if (selector == TPM_ALG_SM3_256) {
-    if (base::size(value.sm3_256) < SM3_256_DIGEST_SIZE) {
+    if (sizeof(value.sm3_256) < SM3_256_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SM3_256_DIGEST_SIZE; ++i) {
@@ -2037,7 +2038,7 @@ TPM_RC Serialize_TPMU_HA(const TPMU_HA& value,
   }
 
   if (selector == TPM_ALG_SHA256) {
-    if (base::size(value.sha256) < SHA256_DIGEST_SIZE) {
+    if (sizeof(value.sha256) < SHA256_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA256_DIGEST_SIZE; ++i) {
@@ -2049,7 +2050,7 @@ TPM_RC Serialize_TPMU_HA(const TPMU_HA& value,
   }
 
   if (selector == TPM_ALG_SHA512) {
-    if (base::size(value.sha512) < SHA512_DIGEST_SIZE) {
+    if (sizeof(value.sha512) < SHA512_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA512_DIGEST_SIZE; ++i) {
@@ -2069,7 +2070,7 @@ TPM_RC Parse_TPMU_HA(std::string* buffer,
   TPM_RC result = TPM_RC_SUCCESS;
 
   if (selector == TPM_ALG_SHA384) {
-    if (base::size(value->sha384) < SHA384_DIGEST_SIZE) {
+    if (sizeof(value->sha384) < SHA384_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA384_DIGEST_SIZE; ++i) {
@@ -2081,7 +2082,7 @@ TPM_RC Parse_TPMU_HA(std::string* buffer,
   }
 
   if (selector == TPM_ALG_SHA1) {
-    if (base::size(value->sha1) < SHA1_DIGEST_SIZE) {
+    if (sizeof(value->sha1) < SHA1_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA1_DIGEST_SIZE; ++i) {
@@ -2093,7 +2094,7 @@ TPM_RC Parse_TPMU_HA(std::string* buffer,
   }
 
   if (selector == TPM_ALG_SM3_256) {
-    if (base::size(value->sm3_256) < SM3_256_DIGEST_SIZE) {
+    if (sizeof(value->sm3_256) < SM3_256_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SM3_256_DIGEST_SIZE; ++i) {
@@ -2109,7 +2110,7 @@ TPM_RC Parse_TPMU_HA(std::string* buffer,
   }
 
   if (selector == TPM_ALG_SHA256) {
-    if (base::size(value->sha256) < SHA256_DIGEST_SIZE) {
+    if (sizeof(value->sha256) < SHA256_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA256_DIGEST_SIZE; ++i) {
@@ -2121,7 +2122,7 @@ TPM_RC Parse_TPMU_HA(std::string* buffer,
   }
 
   if (selector == TPM_ALG_SHA512) {
-    if (base::size(value->sha512) < SHA512_DIGEST_SIZE) {
+    if (sizeof(value->sha512) < SHA512_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA512_DIGEST_SIZE; ++i) {
@@ -2174,7 +2175,7 @@ TPM_RC Serialize_TPM2B_DATA(const TPM2B_DATA& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -2196,7 +2197,7 @@ TPM_RC Parse_TPM2B_DATA(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2230,7 +2231,7 @@ TPM_RC Serialize_TPM2B_EVENT(const TPM2B_EVENT& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -2252,7 +2253,7 @@ TPM_RC Parse_TPM2B_EVENT(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2287,7 +2288,7 @@ TPM_RC Serialize_TPM2B_MAX_BUFFER(const TPM2B_MAX_BUFFER& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -2309,7 +2310,7 @@ TPM_RC Parse_TPM2B_MAX_BUFFER(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2344,7 +2345,7 @@ TPM_RC Serialize_TPM2B_MAX_NV_BUFFER(const TPM2B_MAX_NV_BUFFER& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -2366,7 +2367,7 @@ TPM_RC Parse_TPM2B_MAX_NV_BUFFER(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2401,7 +2402,7 @@ TPM_RC Serialize_TPM2B_TIMEOUT(const TPM2B_TIMEOUT& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -2423,7 +2424,7 @@ TPM_RC Parse_TPM2B_TIMEOUT(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2457,7 +2458,7 @@ TPM_RC Serialize_TPM2B_IV(const TPM2B_IV& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -2479,7 +2480,7 @@ TPM_RC Parse_TPM2B_IV(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2513,7 +2514,7 @@ TPM_RC Serialize_TPM2B_NAME(const TPM2B_NAME& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.name) < value.size) {
+  if (sizeof(value.name) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -2535,7 +2536,7 @@ TPM_RC Parse_TPM2B_NAME(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->name) < value->size) {
+  if (sizeof(value->name) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2570,7 +2571,7 @@ TPM_RC Serialize_TPMS_PCR_SELECT(const TPMS_PCR_SELECT& value,
     return result;
   }
 
-  if (base::size(value.pcr_select) < value.sizeof_select) {
+  if (sizeof(value.pcr_select) < value.sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.sizeof_select; ++i) {
@@ -2592,7 +2593,7 @@ TPM_RC Parse_TPMS_PCR_SELECT(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->pcr_select) < value->sizeof_select) {
+  if (sizeof(value->pcr_select) < value->sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->sizeof_select; ++i) {
@@ -2618,7 +2619,7 @@ TPM_RC Serialize_TPMS_PCR_SELECTION(const TPMS_PCR_SELECTION& value,
     return result;
   }
 
-  if (base::size(value.pcr_select) < value.sizeof_select) {
+  if (sizeof(value.pcr_select) < value.sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.sizeof_select; ++i) {
@@ -2645,7 +2646,7 @@ TPM_RC Parse_TPMS_PCR_SELECTION(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->pcr_select) < value->sizeof_select) {
+  if (sizeof(value->pcr_select) < value->sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->sizeof_select; ++i) {
@@ -2908,7 +2909,7 @@ TPM_RC Serialize_TPMS_TAGGED_PCR_SELECT(const TPMS_TAGGED_PCR_SELECT& value,
     return result;
   }
 
-  if (base::size(value.pcr_select) < value.sizeof_select) {
+  if (sizeof(value.pcr_select) < value.sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.sizeof_select; ++i) {
@@ -2935,7 +2936,7 @@ TPM_RC Parse_TPMS_TAGGED_PCR_SELECT(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->pcr_select) < value->sizeof_select) {
+  if (sizeof(value->pcr_select) < value->sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->sizeof_select; ++i) {
@@ -2955,7 +2956,7 @@ TPM_RC Serialize_TPML_CC(const TPML_CC& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.command_codes) < value.count) {
+  if (sizeof(value.command_codes) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -2977,7 +2978,7 @@ TPM_RC Parse_TPML_CC(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->command_codes) < value->count) {
+  if (sizeof(value->command_codes) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -2997,7 +2998,7 @@ TPM_RC Serialize_TPML_CCA(const TPML_CCA& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.command_attributes) < value.count) {
+  if (sizeof(value.command_attributes) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -3019,7 +3020,7 @@ TPM_RC Parse_TPML_CCA(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->command_attributes) < value->count) {
+  if (sizeof(value->command_attributes) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3039,7 +3040,7 @@ TPM_RC Serialize_TPML_ALG(const TPML_ALG& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.algorithms) < value.count) {
+  if (sizeof(value.algorithms) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -3061,7 +3062,7 @@ TPM_RC Parse_TPML_ALG(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->algorithms) < value->count) {
+  if (sizeof(value->algorithms) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3081,7 +3082,7 @@ TPM_RC Serialize_TPML_HANDLE(const TPML_HANDLE& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.handle) < value.count) {
+  if (sizeof(value.handle) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -3103,7 +3104,7 @@ TPM_RC Parse_TPML_HANDLE(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->handle) < value->count) {
+  if (sizeof(value->handle) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3123,7 +3124,7 @@ TPM_RC Serialize_TPML_DIGEST(const TPML_DIGEST& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.digests) < value.count) {
+  if (sizeof(value.digests) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -3145,7 +3146,7 @@ TPM_RC Parse_TPML_DIGEST(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->digests) < value->count) {
+  if (sizeof(value->digests) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3166,7 +3167,7 @@ TPM_RC Serialize_TPML_DIGEST_VALUES(const TPML_DIGEST_VALUES& value,
     return result;
   }
 
-  if (base::size(value.digests) < value.count) {
+  if (sizeof(value.digests) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -3188,7 +3189,7 @@ TPM_RC Parse_TPML_DIGEST_VALUES(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->digests) < value->count) {
+  if (sizeof(value->digests) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3209,7 +3210,7 @@ TPM_RC Serialize_TPM2B_DIGEST_VALUES(const TPM2B_DIGEST_VALUES& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -3231,7 +3232,7 @@ TPM_RC Parse_TPM2B_DIGEST_VALUES(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -3266,7 +3267,7 @@ TPM_RC Serialize_TPML_PCR_SELECTION(const TPML_PCR_SELECTION& value,
     return result;
   }
 
-  if (base::size(value.pcr_selections) < value.count) {
+  if (sizeof(value.pcr_selections) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -3288,7 +3289,7 @@ TPM_RC Parse_TPML_PCR_SELECTION(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->pcr_selections) < value->count) {
+  if (sizeof(value->pcr_selections) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3310,7 +3311,7 @@ TPM_RC Serialize_TPML_ALG_PROPERTY(const TPML_ALG_PROPERTY& value,
     return result;
   }
 
-  if (base::size(value.alg_properties) < value.count) {
+  if (sizeof(value.alg_properties) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -3332,7 +3333,7 @@ TPM_RC Parse_TPML_ALG_PROPERTY(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->alg_properties) < value->count) {
+  if (sizeof(value->alg_properties) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3354,7 +3355,7 @@ TPM_RC Serialize_TPML_TAGGED_TPM_PROPERTY(const TPML_TAGGED_TPM_PROPERTY& value,
     return result;
   }
 
-  if (base::size(value.tpm_property) < value.count) {
+  if (sizeof(value.tpm_property) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -3376,7 +3377,7 @@ TPM_RC Parse_TPML_TAGGED_TPM_PROPERTY(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->tpm_property) < value->count) {
+  if (sizeof(value->tpm_property) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3398,7 +3399,7 @@ TPM_RC Serialize_TPML_TAGGED_PCR_PROPERTY(const TPML_TAGGED_PCR_PROPERTY& value,
     return result;
   }
 
-  if (base::size(value.pcr_property) < value.count) {
+  if (sizeof(value.pcr_property) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -3420,7 +3421,7 @@ TPM_RC Parse_TPML_TAGGED_PCR_PROPERTY(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->pcr_property) < value->count) {
+  if (sizeof(value->pcr_property) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3442,7 +3443,7 @@ TPM_RC Serialize_TPML_ECC_CURVE(const TPML_ECC_CURVE& value,
     return result;
   }
 
-  if (base::size(value.ecc_curves) < value.count) {
+  if (sizeof(value.ecc_curves) < value.count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.count; ++i) {
@@ -3464,7 +3465,7 @@ TPM_RC Parse_TPML_ECC_CURVE(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->ecc_curves) < value->count) {
+  if (sizeof(value->ecc_curves) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -4207,7 +4208,7 @@ TPM_RC Serialize_TPM2B_ATTEST(const TPM2B_ATTEST& value, std::string* buffer) {
     return result;
   }
 
-  if (base::size(value.attestation_data) < value.size) {
+  if (sizeof(value.attestation_data) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -4229,7 +4230,7 @@ TPM_RC Parse_TPM2B_ATTEST(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->attestation_data) < value->size) {
+  if (sizeof(value->attestation_data) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -4612,7 +4613,7 @@ TPM_RC Serialize_TPM2B_SYM_KEY(const TPM2B_SYM_KEY& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -4634,7 +4635,7 @@ TPM_RC Parse_TPM2B_SYM_KEY(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -4692,7 +4693,7 @@ TPM_RC Serialize_TPM2B_SENSITIVE_DATA(const TPM2B_SENSITIVE_DATA& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -4714,7 +4715,7 @@ TPM_RC Parse_TPM2B_SENSITIVE_DATA(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -5642,7 +5643,7 @@ TPM_RC Serialize_TPM2B_PUBLIC_KEY_RSA(const TPM2B_PUBLIC_KEY_RSA& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -5664,7 +5665,7 @@ TPM_RC Parse_TPM2B_PUBLIC_KEY_RSA(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -5699,7 +5700,7 @@ TPM_RC Serialize_TPM2B_PRIVATE_KEY_RSA(const TPM2B_PRIVATE_KEY_RSA& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -5721,7 +5722,7 @@ TPM_RC Parse_TPM2B_PRIVATE_KEY_RSA(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -5757,7 +5758,7 @@ TPM_RC Serialize_TPM2B_ECC_PARAMETER(const TPM2B_ECC_PARAMETER& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -5779,7 +5780,7 @@ TPM_RC Parse_TPM2B_ECC_PARAMETER(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -6320,7 +6321,7 @@ TPM_RC Serialize_TPM2B_ENCRYPTED_SECRET(const TPM2B_ENCRYPTED_SECRET& value,
     return result;
   }
 
-  if (base::size(value.secret) < value.size) {
+  if (sizeof(value.secret) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -6342,7 +6343,7 @@ TPM_RC Parse_TPM2B_ENCRYPTED_SECRET(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->secret) < value->size) {
+  if (sizeof(value->secret) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -6843,7 +6844,7 @@ TPM_RC Serialize_TPM2B_PRIVATE_VENDOR_SPECIFIC(
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -6865,7 +6866,7 @@ TPM_RC Parse_TPM2B_PRIVATE_VENDOR_SPECIFIC(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -7122,7 +7123,7 @@ TPM_RC Serialize_TPM2B_PRIVATE(const TPM2B_PRIVATE& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -7144,7 +7145,7 @@ TPM_RC Parse_TPM2B_PRIVATE(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -7211,7 +7212,7 @@ TPM_RC Serialize_TPM2B_ID_OBJECT(const TPM2B_ID_OBJECT& value,
     return result;
   }
 
-  if (base::size(value.credential) < value.size) {
+  if (sizeof(value.credential) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -7233,7 +7234,7 @@ TPM_RC Parse_TPM2B_ID_OBJECT(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->credential) < value->size) {
+  if (sizeof(value->credential) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -7383,7 +7384,7 @@ TPM_RC Serialize_TPM2B_CONTEXT_SENSITIVE(const TPM2B_CONTEXT_SENSITIVE& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -7405,7 +7406,7 @@ TPM_RC Parse_TPM2B_CONTEXT_SENSITIVE(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -7475,7 +7476,7 @@ TPM_RC Serialize_TPM2B_CONTEXT_DATA(const TPM2B_CONTEXT_DATA& value,
     return result;
   }
 
-  if (base::size(value.buffer) < value.size) {
+  if (sizeof(value.buffer) < value.size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value.size; ++i) {
@@ -7497,7 +7498,7 @@ TPM_RC Parse_TPM2B_CONTEXT_DATA(std::string* buffer,
     return result;
   }
 
-  if (base::size(value->buffer) < value->size) {
+  if (sizeof(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -7804,7 +7805,7 @@ TPM_RC Tpm::SerializeCommand_StartAuthSession(
   parameter_section_bytes += auth_hash_bytes;
   command_size += auth_hash_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(base::data(command_hash), command_hash.size());
+  hash->Finish(command_hash.data(), command_hash.size());
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -7906,7 +7907,7 @@ TPM_RC Tpm::ParseResponse_StartAuthSession(
   hash->Update(command_code_bytes.data(), command_code_bytes.size());
   hash->Update(buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(base::data(response_hash), response_hash.size());
+  hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
     CHECK(authorization_delegate);
     if (!authorization_delegate->CheckResponseAuthorization(
@@ -7991,7 +7992,7 @@ TPM_RC Tpm::SerializeCommand_ReadPublic(
   handle_section_bytes += object_handle_bytes;
   command_size += object_handle_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(base::data(command_hash), command_hash.size());
+  hash->Finish(command_hash.data(), command_hash.size());
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8088,7 +8089,7 @@ TPM_RC Tpm::ParseResponse_ReadPublic(
   hash->Update(command_code_bytes.data(), command_code_bytes.size());
   hash->Update(buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(base::data(response_hash), response_hash.size());
+  hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
     CHECK(authorization_delegate);
     if (!authorization_delegate->CheckResponseAuthorization(
@@ -8184,7 +8185,7 @@ TPM_RC Tpm::SerializeCommand_PolicyCommandCode(
   parameter_section_bytes += code_bytes;
   command_size += code_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(base::data(command_hash), command_hash.size());
+  hash->Finish(command_hash.data(), command_hash.size());
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8278,7 +8279,7 @@ TPM_RC Tpm::ParseResponse_PolicyCommandCode(
   hash->Update(command_code_bytes.data(), command_code_bytes.size());
   hash->Update(buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(base::data(response_hash), response_hash.size());
+  hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
     CHECK(authorization_delegate);
     if (!authorization_delegate->CheckResponseAuthorization(
@@ -8336,7 +8337,7 @@ TPM_RC Tpm::SerializeCommand_PolicyAuthValue(
   handle_section_bytes += policy_session_bytes;
   command_size += policy_session_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(base::data(command_hash), command_hash.size());
+  hash->Finish(command_hash.data(), command_hash.size());
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8430,7 +8431,7 @@ TPM_RC Tpm::ParseResponse_PolicyAuthValue(
   hash->Update(command_code_bytes.data(), command_code_bytes.size());
   hash->Update(buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(base::data(response_hash), response_hash.size());
+  hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
     CHECK(authorization_delegate);
     if (!authorization_delegate->CheckResponseAuthorization(
@@ -8484,7 +8485,7 @@ TPM_RC Tpm::SerializeCommand_FlushContext(
   parameter_section_bytes += flush_handle_bytes;
   command_size += flush_handle_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(base::data(command_hash), command_hash.size());
+  hash->Finish(command_hash.data(), command_hash.size());
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8578,7 +8579,7 @@ TPM_RC Tpm::ParseResponse_FlushContext(
   hash->Update(command_code_bytes.data(), command_code_bytes.size());
   hash->Update(buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(base::data(response_hash), response_hash.size());
+  hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
     CHECK(authorization_delegate);
     if (!authorization_delegate->CheckResponseAuthorization(
@@ -8658,7 +8659,7 @@ TPM_RC Tpm::SerializeCommand_NV_DefineSpace(
   parameter_section_bytes += public_info_bytes;
   command_size += public_info_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(base::data(command_hash), command_hash.size());
+  hash->Finish(command_hash.data(), command_hash.size());
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8752,7 +8753,7 @@ TPM_RC Tpm::ParseResponse_NV_DefineSpace(
   hash->Update(command_code_bytes.data(), command_code_bytes.size());
   hash->Update(buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(base::data(response_hash), response_hash.size());
+  hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
     CHECK(authorization_delegate);
     if (!authorization_delegate->CheckResponseAuthorization(
@@ -8810,7 +8811,7 @@ TPM_RC Tpm::SerializeCommand_NV_ReadPublic(
   handle_section_bytes += nv_index_bytes;
   command_size += nv_index_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(base::data(command_hash), command_hash.size());
+  hash->Finish(command_hash.data(), command_hash.size());
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8906,7 +8907,7 @@ TPM_RC Tpm::ParseResponse_NV_ReadPublic(
   hash->Update(command_code_bytes.data(), command_code_bytes.size());
   hash->Update(buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(base::data(response_hash), response_hash.size());
+  hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
     CHECK(authorization_delegate);
     if (!authorization_delegate->CheckResponseAuthorization(
@@ -9023,7 +9024,7 @@ TPM_RC Tpm::SerializeCommand_NV_Write(
   parameter_section_bytes += offset_bytes;
   command_size += offset_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(base::data(command_hash), command_hash.size());
+  hash->Finish(command_hash.data(), command_hash.size());
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -9117,7 +9118,7 @@ TPM_RC Tpm::ParseResponse_NV_Write(
   hash->Update(command_code_bytes.data(), command_code_bytes.size());
   hash->Update(buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(base::data(response_hash), response_hash.size());
+  hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
     CHECK(authorization_delegate);
     if (!authorization_delegate->CheckResponseAuthorization(
@@ -9205,7 +9206,7 @@ TPM_RC Tpm::SerializeCommand_NV_Read(
   parameter_section_bytes += offset_bytes;
   command_size += offset_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(base::data(command_hash), command_hash.size());
+  hash->Finish(command_hash.data(), command_hash.size());
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -9300,7 +9301,7 @@ TPM_RC Tpm::ParseResponse_NV_Read(
   hash->Update(command_code_bytes.data(), command_code_bytes.size());
   hash->Update(buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(base::data(response_hash), response_hash.size());
+  hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
     CHECK(authorization_delegate);
     if (!authorization_delegate->CheckResponseAuthorization(
@@ -9396,7 +9397,7 @@ TPM_RC Tpm::SerializeCommand_NV_ChangeAuth(
   parameter_section_bytes += new_auth_bytes;
   command_size += new_auth_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(base::data(command_hash), command_hash.size());
+  hash->Finish(command_hash.data(), command_hash.size());
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -9490,7 +9491,7 @@ TPM_RC Tpm::ParseResponse_NV_ChangeAuth(
   hash->Update(command_code_bytes.data(), command_code_bytes.size());
   hash->Update(buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(base::data(response_hash), response_hash.size());
+  hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
     CHECK(authorization_delegate);
     if (!authorization_delegate->CheckResponseAuthorization(
