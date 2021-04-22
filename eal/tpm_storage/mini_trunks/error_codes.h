@@ -1,16 +1,13 @@
-// Copyright 2014 The Chromium OS Authors. All rights reserved.
+// Copyright 2021 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef TRUNKS_ERROR_CODES_H_
-#define TRUNKS_ERROR_CODES_H_
+#ifndef MINI_TRUNKS_ERROR_CODES_H_
+#define MINI_TRUNKS_ERROR_CODES_H_
 
-#include <string>
+#include "tpm_generated.h"  // For TPM_RC.
 
-#include "trunks/tpm_generated.h"  // For TPM_RC.
-#include "trunks/trunks_export.h"
-
-namespace trunks {
+namespace mini_trunks {
 
 // Use the TPM_RC type but with different layer bits (12 - 15). Choose the layer
 // value arbitrarily. Currently TSS2 uses 9 for TCTI and 8 for SAPI.
@@ -61,18 +58,6 @@ const TPM_RC SAPI_RC_MALFORMED_RESPONSE = kSapiErrorBase + 14;
 const TPM_RC SAPI_RC_BAD_TCTI_STRUCTURE = kSapiErrorBase + 15;
 const TPM_RC SAPI_RC_NO_CONNECTION = kSapiErrorBase + 16;
 
-// Returns a description of |error|.
-TRUNKS_EXPORT std::string GetErrorString(TPM_RC error);
+}  // namespace mini_trunks
 
-// Strips the P and N bits from a 'format one' error. If the given error code
-// is not a format one error, it is returned as is. The error that is returned
-// can be compared to TPM_RC_* constant values. See TPM 2.0 Part 2 Section 6.6
-// for details on format one errors.
-TRUNKS_EXPORT TPM_RC GetFormatOneError(TPM_RC error);
-
-// Creates a well-formed response with the given |error_code|.
-TRUNKS_EXPORT std::string CreateErrorResponse(TPM_RC error_code);
-
-}  // namespace trunks
-
-#endif  // TRUNKS_ERROR_CODES_H_
+#endif  // MINI_TRUNKS_ERROR_CODES_H_

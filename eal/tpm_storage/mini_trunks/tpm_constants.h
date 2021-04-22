@@ -1,13 +1,13 @@
-// Copyright 2015 The Chromium OS Authors. All rights reserved.
+// Copyright 2021 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef TRUNKS_TPM_CONSTANTS_H_
-#define TRUNKS_TPM_CONSTANTS_H_
+#ifndef MINI_TRUNKS_TPM_CONSTANTS_H_
+#define MINI_TRUNKS_TPM_CONSTANTS_H_
 
-#include "trunks/tpm_generated.h"
+#include "tpm_generated.h"
 
-namespace trunks {
+namespace mini_trunks {
 
 // TPM Object Attributes.
 constexpr TPMA_OBJECT kFixedTPM = 1U << 1;
@@ -51,6 +51,6 @@ constexpr TPM_CC TPM_CC_VENDOR_SPECIFIC_MASK = 1U << 29;
 
 // This needs to be used to be backwards compatible with older Cr50 versions.
 constexpr TPM_CC TPM_CC_CR50_EXTENSION_COMMAND = 0xbaccd00a;
-}  // namespace trunks
+}  // namespace mini_trunks
 
-#endif  // TRUNKS_TPM_CONSTANTS_H_
+#endif  // MINI_TRUNKS_TPM_CONSTANTS_H_

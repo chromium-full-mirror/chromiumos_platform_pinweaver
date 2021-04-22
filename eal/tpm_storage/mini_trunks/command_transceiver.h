@@ -1,31 +1,21 @@
-// Copyright 2014 The Chromium OS Authors. All rights reserved.
+// Copyright 2021 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef TRUNKS_COMMAND_TRANSCEIVER_H_
-#define TRUNKS_COMMAND_TRANSCEIVER_H_
+#ifndef MINI_TRUNKS_COMMAND_TRANSCEIVER_H_
+#define MINI_TRUNKS_COMMAND_TRANSCEIVER_H_
 
 #include <string>
 
-#include <base/callback_forward.h>
-#include <trunks/tpm_constants.h>
+#include <tpm_constants.h>
 
-namespace trunks {
+namespace mini_trunks {
 
 // CommandTransceiver is an interface that sends commands to a TPM device and
 // receives responses. It can operate synchronously or asynchronously.
 class CommandTransceiver {
  public:
-  typedef base::Callback<void(const std::string& response)> ResponseCallback;
-
   virtual ~CommandTransceiver() {}
-
-  // Sends a TPM |command| asynchronously. When a |response| is received,
-  // |callback| will be called with the |response| data from the TPM. If a
-  // transmission error occurs |callback| will be called with a well-formed
-  // error |response|.
-  virtual void SendCommand(const std::string& command,
-                           const ResponseCallback& callback) = 0;
 
   // Sends a TPM |command| synchronously (i.e. waits for a response) and returns
   // the response. If a transmission error occurs the response will be populated
@@ -37,6 +27,6 @@ class CommandTransceiver {
   virtual bool Init() { return true; }
 };
 
-}  // namespace trunks
+}  // namespace mini_trunks
 
-#endif  // TRUNKS_COMMAND_TRANSCEIVER_H_
+#endif  // MINI_TRUNKS_COMMAND_TRANSCEIVER_H_

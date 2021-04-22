@@ -1,15 +1,13 @@
-// Copyright 2014 The Chromium OS Authors. All rights reserved.
+// Copyright 2021 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef TRUNKS_AUTHORIZATION_DELEGATE_H_
-#define TRUNKS_AUTHORIZATION_DELEGATE_H_
+#ifndef MINI_TRUNKS_AUTHORIZATION_DELEGATE_H_
+#define MINI_TRUNKS_AUTHORIZATION_DELEGATE_H_
 
 #include <string>
 
-#include <base/macros.h>
-
-namespace trunks {
+namespace mini_trunks {
 
 // AuthorizationDelegate is an interface passed to TPM commands. The delegate
 // takes care of providing the authorization data for commands and verifying
@@ -52,6 +50,6 @@ class AuthorizationDelegate {
   virtual bool GetTpmNonce(std::string* nonce) = 0;
 };
 
-}  // namespace trunks
+}  // namespace mini_trunks
 
-#endif  // TRUNKS_AUTHORIZATION_DELEGATE_H_
+#endif  // MINI_TRUNKS_AUTHORIZATION_DELEGATE_H_
