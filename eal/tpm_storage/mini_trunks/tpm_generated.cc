@@ -7840,7 +7840,9 @@ TPM_RC Tpm::SerializeCommand_StartAuthSession(
   *serialized_command = tag_bytes + command_size_bytes + command_code_bytes +
                         handle_section_bytes + authorization_size_bytes +
                         authorization_section_bytes + parameter_section_bytes;
-  CHECK(serialized_command->size() == command_size);
+  if (serialized_command->size() != command_size) {
+    return TRUNKS_RC_SERIALIZATION_ERROR;
+  }
   return TPM_RC_SUCCESS;
 }
 
@@ -7909,7 +7911,9 @@ TPM_RC Tpm::ParseResponse_StartAuthSession(
   std::string response_hash(32, 0);
   hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     if (!authorization_delegate->CheckResponseAuthorization(
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -7921,7 +7925,9 @@ TPM_RC Tpm::ParseResponse_StartAuthSession(
     return rc;
   }
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     // Decrypt just the parameter data, not the size.
     std::string tmp = nonce_tpm_bytes.substr(2);
     if (!authorization_delegate->DecryptResponseParameter(&tmp)) {
@@ -8027,7 +8033,9 @@ TPM_RC Tpm::SerializeCommand_ReadPublic(
   *serialized_command = tag_bytes + command_size_bytes + command_code_bytes +
                         handle_section_bytes + authorization_size_bytes +
                         authorization_section_bytes + parameter_section_bytes;
-  CHECK(serialized_command->size() == command_size);
+  if (serialized_command->size() != command_size) {
+    return TRUNKS_RC_SERIALIZATION_ERROR;
+  }
   return TPM_RC_SUCCESS;
 }
 
@@ -8091,7 +8099,9 @@ TPM_RC Tpm::ParseResponse_ReadPublic(
   std::string response_hash(32, 0);
   hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     if (!authorization_delegate->CheckResponseAuthorization(
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8113,7 +8123,9 @@ TPM_RC Tpm::ParseResponse_ReadPublic(
     return rc;
   }
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     // Decrypt just the parameter data, not the size.
     std::string tmp = out_public_bytes.substr(2);
     if (!authorization_delegate->DecryptResponseParameter(&tmp)) {
@@ -8220,7 +8232,9 @@ TPM_RC Tpm::SerializeCommand_PolicyCommandCode(
   *serialized_command = tag_bytes + command_size_bytes + command_code_bytes +
                         handle_section_bytes + authorization_size_bytes +
                         authorization_section_bytes + parameter_section_bytes;
-  CHECK(serialized_command->size() == command_size);
+  if (serialized_command->size() != command_size) {
+    return TRUNKS_RC_SERIALIZATION_ERROR;
+  }
   return TPM_RC_SUCCESS;
 }
 
@@ -8281,7 +8295,9 @@ TPM_RC Tpm::ParseResponse_PolicyCommandCode(
   std::string response_hash(32, 0);
   hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     if (!authorization_delegate->CheckResponseAuthorization(
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8372,7 +8388,9 @@ TPM_RC Tpm::SerializeCommand_PolicyAuthValue(
   *serialized_command = tag_bytes + command_size_bytes + command_code_bytes +
                         handle_section_bytes + authorization_size_bytes +
                         authorization_section_bytes + parameter_section_bytes;
-  CHECK(serialized_command->size() == command_size);
+  if (serialized_command->size() != command_size) {
+    return TRUNKS_RC_SERIALIZATION_ERROR;
+  }
   return TPM_RC_SUCCESS;
 }
 
@@ -8433,7 +8451,9 @@ TPM_RC Tpm::ParseResponse_PolicyAuthValue(
   std::string response_hash(32, 0);
   hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     if (!authorization_delegate->CheckResponseAuthorization(
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8520,7 +8540,9 @@ TPM_RC Tpm::SerializeCommand_FlushContext(
   *serialized_command = tag_bytes + command_size_bytes + command_code_bytes +
                         handle_section_bytes + authorization_size_bytes +
                         authorization_section_bytes + parameter_section_bytes;
-  CHECK(serialized_command->size() == command_size);
+  if (serialized_command->size() != command_size) {
+    return TRUNKS_RC_SERIALIZATION_ERROR;
+  }
   return TPM_RC_SUCCESS;
 }
 
@@ -8581,7 +8603,9 @@ TPM_RC Tpm::ParseResponse_FlushContext(
   std::string response_hash(32, 0);
   hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     if (!authorization_delegate->CheckResponseAuthorization(
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8694,7 +8718,9 @@ TPM_RC Tpm::SerializeCommand_NV_DefineSpace(
   *serialized_command = tag_bytes + command_size_bytes + command_code_bytes +
                         handle_section_bytes + authorization_size_bytes +
                         authorization_section_bytes + parameter_section_bytes;
-  CHECK(serialized_command->size() == command_size);
+  if (serialized_command->size() != command_size) {
+    return TRUNKS_RC_SERIALIZATION_ERROR;
+  }
   return TPM_RC_SUCCESS;
 }
 
@@ -8755,7 +8781,9 @@ TPM_RC Tpm::ParseResponse_NV_DefineSpace(
   std::string response_hash(32, 0);
   hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     if (!authorization_delegate->CheckResponseAuthorization(
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8846,7 +8874,9 @@ TPM_RC Tpm::SerializeCommand_NV_ReadPublic(
   *serialized_command = tag_bytes + command_size_bytes + command_code_bytes +
                         handle_section_bytes + authorization_size_bytes +
                         authorization_section_bytes + parameter_section_bytes;
-  CHECK(serialized_command->size() == command_size);
+  if (serialized_command->size() != command_size) {
+    return TRUNKS_RC_SERIALIZATION_ERROR;
+  }
   return TPM_RC_SUCCESS;
 }
 
@@ -8909,7 +8939,9 @@ TPM_RC Tpm::ParseResponse_NV_ReadPublic(
   std::string response_hash(32, 0);
   hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     if (!authorization_delegate->CheckResponseAuthorization(
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8926,7 +8958,9 @@ TPM_RC Tpm::ParseResponse_NV_ReadPublic(
     return rc;
   }
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     // Decrypt just the parameter data, not the size.
     std::string tmp = nv_public_bytes.substr(2);
     if (!authorization_delegate->DecryptResponseParameter(&tmp)) {
@@ -9059,7 +9093,9 @@ TPM_RC Tpm::SerializeCommand_NV_Write(
   *serialized_command = tag_bytes + command_size_bytes + command_code_bytes +
                         handle_section_bytes + authorization_size_bytes +
                         authorization_section_bytes + parameter_section_bytes;
-  CHECK(serialized_command->size() == command_size);
+  if (serialized_command->size() != command_size) {
+    return TRUNKS_RC_SERIALIZATION_ERROR;
+  }
   return TPM_RC_SUCCESS;
 }
 
@@ -9120,7 +9156,9 @@ TPM_RC Tpm::ParseResponse_NV_Write(
   std::string response_hash(32, 0);
   hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     if (!authorization_delegate->CheckResponseAuthorization(
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -9241,7 +9279,9 @@ TPM_RC Tpm::SerializeCommand_NV_Read(
   *serialized_command = tag_bytes + command_size_bytes + command_code_bytes +
                         handle_section_bytes + authorization_size_bytes +
                         authorization_section_bytes + parameter_section_bytes;
-  CHECK(serialized_command->size() == command_size);
+  if (serialized_command->size() != command_size) {
+    return TRUNKS_RC_SERIALIZATION_ERROR;
+  }
   return TPM_RC_SUCCESS;
 }
 
@@ -9303,7 +9343,9 @@ TPM_RC Tpm::ParseResponse_NV_Read(
   std::string response_hash(32, 0);
   hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     if (!authorization_delegate->CheckResponseAuthorization(
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -9315,7 +9357,9 @@ TPM_RC Tpm::ParseResponse_NV_Read(
     return rc;
   }
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     // Decrypt just the parameter data, not the size.
     std::string tmp = data_bytes.substr(2);
     if (!authorization_delegate->DecryptResponseParameter(&tmp)) {
@@ -9432,7 +9476,9 @@ TPM_RC Tpm::SerializeCommand_NV_ChangeAuth(
   *serialized_command = tag_bytes + command_size_bytes + command_code_bytes +
                         handle_section_bytes + authorization_size_bytes +
                         authorization_section_bytes + parameter_section_bytes;
-  CHECK(serialized_command->size() == command_size);
+  if (serialized_command->size() != command_size) {
+    return TRUNKS_RC_SERIALIZATION_ERROR;
+  }
   return TPM_RC_SUCCESS;
 }
 
@@ -9493,7 +9539,9 @@ TPM_RC Tpm::ParseResponse_NV_ChangeAuth(
   std::string response_hash(32, 0);
   hash->Finish(response_hash.data(), response_hash.size());
   if (tag == TPM_ST_SESSIONS) {
-    CHECK(authorization_delegate);
+    if (!authorization_delegate) {
+      return TRUNKS_RC_AUTHORIZATION_FAILED;
+    }
     if (!authorization_delegate->CheckResponseAuthorization(
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
