@@ -6,35 +6,12 @@
 #define MINI_TRUNKS_TPM_GENERATED_H_
 
 #include <string>
-#include <iostream>
 
 #ifndef TRUNKS_EXPORT
 #define TRUNKS_EXPORT
 #endif
 
 namespace mini_trunks {
-
-// TODO(apronin): get rid of LOG/CHECK macros
-class MakeVoid {
- public:
-  MakeVoid() = default;
-  // This has to be an operator with a precedence lower than << but
-  // higher than ?:
-  void operator&(std::ostream&) { }
-};
-
-#ifndef VLOG
-#define VLOG(verbosity) true ? (void) 0 : MakeVoid() & std::clog
-#endif
-
-#ifndef LOG
-#define LOG(level) true ? (void) 0 : MakeVoid() & std::clog
-#endif
-
-#ifndef CHECK
-#define CHECK(cond) true ? (void) 0 : MakeVoid() & std::cerr
-#endif
-
 
 class AuthorizationDelegate;
 class CommandTransceiver;
