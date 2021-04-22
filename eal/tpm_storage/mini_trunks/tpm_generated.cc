@@ -12,6 +12,7 @@
 
 #include "authorization_delegate.h"
 #include "command_transceiver.h"
+#include "eal.h"
 #include "error_codes.h"
 
 #ifndef CHECK
@@ -7780,32 +7781,35 @@ TPM_RC Tpm::SerializeCommand_StartAuthSession(
     }
     nonce_caller_bytes.replace(2, std::string::npos, tmp);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(tpm_key_name.data(), tpm_key_name.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, tpm_key_name.data(), tpm_key_name.size());
   handle_section_bytes += tpm_key_bytes;
   command_size += tpm_key_bytes.size();
-  hash->Update(bind_name.data(), bind_name.size());
+  pinweaver_eal_sha256_update(&hash, bind_name.data(), bind_name.size());
   handle_section_bytes += bind_bytes;
   command_size += bind_bytes.size();
-  hash->Update(nonce_caller_bytes.data(), nonce_caller_bytes.size());
+  pinweaver_eal_sha256_update(&hash, nonce_caller_bytes.data(), nonce_caller_bytes.size());
   parameter_section_bytes += nonce_caller_bytes;
   command_size += nonce_caller_bytes.size();
-  hash->Update(encrypted_salt_bytes.data(), encrypted_salt_bytes.size());
+  pinweaver_eal_sha256_update(&hash, encrypted_salt_bytes.data(), encrypted_salt_bytes.size());
   parameter_section_bytes += encrypted_salt_bytes;
   command_size += encrypted_salt_bytes.size();
-  hash->Update(session_type_bytes.data(), session_type_bytes.size());
+  pinweaver_eal_sha256_update(&hash, session_type_bytes.data(), session_type_bytes.size());
   parameter_section_bytes += session_type_bytes;
   command_size += session_type_bytes.size();
-  hash->Update(symmetric_bytes.data(), symmetric_bytes.size());
+  pinweaver_eal_sha256_update(&hash, symmetric_bytes.data(), symmetric_bytes.size());
   parameter_section_bytes += symmetric_bytes;
   command_size += symmetric_bytes.size();
-  hash->Update(auth_hash_bytes.data(), auth_hash_bytes.size());
+  pinweaver_eal_sha256_update(&hash, auth_hash_bytes.data(), auth_hash_bytes.size());
   parameter_section_bytes += auth_hash_bytes;
   command_size += auth_hash_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(command_hash.data(), command_hash.size());
+  char* hash_ptr = const_cast<char *>(command_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -7903,13 +7907,16 @@ TPM_RC Tpm::ParseResponse_StartAuthSession(
     // Keep the parameter section in |buffer|.
     buffer.erase(parameter_section_size);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(response_code_bytes.data(), response_code_bytes.size());
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(buffer.data(), buffer.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, response_code_bytes.data(), response_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(response_hash.data(), response_hash.size());
+  char* hash_ptr = const_cast<char *>(response_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   if (tag == TPM_ST_SESSIONS) {
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -7991,14 +7998,17 @@ TPM_RC Tpm::SerializeCommand_ReadPublic(
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(object_handle_name.data(), object_handle_name.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, object_handle_name.data(), object_handle_name.size());
   handle_section_bytes += object_handle_bytes;
   command_size += object_handle_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(command_hash.data(), command_hash.size());
+  char* hash_ptr = const_cast<char *>(command_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8091,13 +8101,16 @@ TPM_RC Tpm::ParseResponse_ReadPublic(
     // Keep the parameter section in |buffer|.
     buffer.erase(parameter_section_size);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(response_code_bytes.data(), response_code_bytes.size());
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(buffer.data(), buffer.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, response_code_bytes.data(), response_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(response_hash.data(), response_hash.size());
+  char* hash_ptr = const_cast<char *>(response_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   if (tag == TPM_ST_SESSIONS) {
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8187,17 +8200,20 @@ TPM_RC Tpm::SerializeCommand_PolicyCommandCode(
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(policy_session_name.data(), policy_session_name.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, policy_session_name.data(), policy_session_name.size());
   handle_section_bytes += policy_session_bytes;
   command_size += policy_session_bytes.size();
-  hash->Update(code_bytes.data(), code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, code_bytes.data(), code_bytes.size());
   parameter_section_bytes += code_bytes;
   command_size += code_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(command_hash.data(), command_hash.size());
+  char* hash_ptr = const_cast<char *>(command_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8287,13 +8303,16 @@ TPM_RC Tpm::ParseResponse_PolicyCommandCode(
     // Keep the parameter section in |buffer|.
     buffer.erase(parameter_section_size);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(response_code_bytes.data(), response_code_bytes.size());
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(buffer.data(), buffer.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, response_code_bytes.data(), response_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(response_hash.data(), response_hash.size());
+  char* hash_ptr = const_cast<char *>(response_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   if (tag == TPM_ST_SESSIONS) {
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8346,14 +8365,17 @@ TPM_RC Tpm::SerializeCommand_PolicyAuthValue(
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(policy_session_name.data(), policy_session_name.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, policy_session_name.data(), policy_session_name.size());
   handle_section_bytes += policy_session_bytes;
   command_size += policy_session_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(command_hash.data(), command_hash.size());
+  char* hash_ptr = const_cast<char *>(command_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8443,13 +8465,16 @@ TPM_RC Tpm::ParseResponse_PolicyAuthValue(
     // Keep the parameter section in |buffer|.
     buffer.erase(parameter_section_size);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(response_code_bytes.data(), response_code_bytes.size());
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(buffer.data(), buffer.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, response_code_bytes.data(), response_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(response_hash.data(), response_hash.size());
+  char* hash_ptr = const_cast<char *>(response_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   if (tag == TPM_ST_SESSIONS) {
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8498,14 +8523,17 @@ TPM_RC Tpm::SerializeCommand_FlushContext(
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(flush_handle_bytes.data(), flush_handle_bytes.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, flush_handle_bytes.data(), flush_handle_bytes.size());
   parameter_section_bytes += flush_handle_bytes;
   command_size += flush_handle_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(command_hash.data(), command_hash.size());
+  char* hash_ptr = const_cast<char *>(command_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8595,13 +8623,16 @@ TPM_RC Tpm::ParseResponse_FlushContext(
     // Keep the parameter section in |buffer|.
     buffer.erase(parameter_section_size);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(response_code_bytes.data(), response_code_bytes.size());
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(buffer.data(), buffer.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, response_code_bytes.data(), response_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(response_hash.data(), response_hash.size());
+  char* hash_ptr = const_cast<char *>(response_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   if (tag == TPM_ST_SESSIONS) {
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8670,20 +8701,23 @@ TPM_RC Tpm::SerializeCommand_NV_DefineSpace(
     }
     auth_bytes.replace(2, std::string::npos, tmp);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(auth_handle_name.data(), auth_handle_name.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, auth_handle_name.data(), auth_handle_name.size());
   handle_section_bytes += auth_handle_bytes;
   command_size += auth_handle_bytes.size();
-  hash->Update(auth_bytes.data(), auth_bytes.size());
+  pinweaver_eal_sha256_update(&hash, auth_bytes.data(), auth_bytes.size());
   parameter_section_bytes += auth_bytes;
   command_size += auth_bytes.size();
-  hash->Update(public_info_bytes.data(), public_info_bytes.size());
+  pinweaver_eal_sha256_update(&hash, public_info_bytes.data(), public_info_bytes.size());
   parameter_section_bytes += public_info_bytes;
   command_size += public_info_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(command_hash.data(), command_hash.size());
+  char* hash_ptr = const_cast<char *>(command_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8773,13 +8807,16 @@ TPM_RC Tpm::ParseResponse_NV_DefineSpace(
     // Keep the parameter section in |buffer|.
     buffer.erase(parameter_section_size);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(response_code_bytes.data(), response_code_bytes.size());
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(buffer.data(), buffer.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, response_code_bytes.data(), response_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(response_hash.data(), response_hash.size());
+  char* hash_ptr = const_cast<char *>(response_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   if (tag == TPM_ST_SESSIONS) {
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -8832,14 +8869,17 @@ TPM_RC Tpm::SerializeCommand_NV_ReadPublic(
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(nv_index_name.data(), nv_index_name.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, nv_index_name.data(), nv_index_name.size());
   handle_section_bytes += nv_index_bytes;
   command_size += nv_index_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(command_hash.data(), command_hash.size());
+  char* hash_ptr = const_cast<char *>(command_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -8931,13 +8971,16 @@ TPM_RC Tpm::ParseResponse_NV_ReadPublic(
     // Keep the parameter section in |buffer|.
     buffer.erase(parameter_section_size);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(response_code_bytes.data(), response_code_bytes.size());
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(buffer.data(), buffer.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, response_code_bytes.data(), response_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(response_hash.data(), response_hash.size());
+  char* hash_ptr = const_cast<char *>(response_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   if (tag == TPM_ST_SESSIONS) {
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -9042,23 +9085,26 @@ TPM_RC Tpm::SerializeCommand_NV_Write(
     }
     data_bytes.replace(2, std::string::npos, tmp);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(auth_handle_name.data(), auth_handle_name.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, auth_handle_name.data(), auth_handle_name.size());
   handle_section_bytes += auth_handle_bytes;
   command_size += auth_handle_bytes.size();
-  hash->Update(nv_index_name.data(), nv_index_name.size());
+  pinweaver_eal_sha256_update(&hash, nv_index_name.data(), nv_index_name.size());
   handle_section_bytes += nv_index_bytes;
   command_size += nv_index_bytes.size();
-  hash->Update(data_bytes.data(), data_bytes.size());
+  pinweaver_eal_sha256_update(&hash, data_bytes.data(), data_bytes.size());
   parameter_section_bytes += data_bytes;
   command_size += data_bytes.size();
-  hash->Update(offset_bytes.data(), offset_bytes.size());
+  pinweaver_eal_sha256_update(&hash, offset_bytes.data(), offset_bytes.size());
   parameter_section_bytes += offset_bytes;
   command_size += offset_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(command_hash.data(), command_hash.size());
+  char* hash_ptr = const_cast<char *>(command_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -9148,13 +9194,16 @@ TPM_RC Tpm::ParseResponse_NV_Write(
     // Keep the parameter section in |buffer|.
     buffer.erase(parameter_section_size);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(response_code_bytes.data(), response_code_bytes.size());
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(buffer.data(), buffer.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, response_code_bytes.data(), response_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(response_hash.data(), response_hash.size());
+  char* hash_ptr = const_cast<char *>(response_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   if (tag == TPM_ST_SESSIONS) {
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -9228,23 +9277,26 @@ TPM_RC Tpm::SerializeCommand_NV_Read(
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(auth_handle_name.data(), auth_handle_name.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, auth_handle_name.data(), auth_handle_name.size());
   handle_section_bytes += auth_handle_bytes;
   command_size += auth_handle_bytes.size();
-  hash->Update(nv_index_name.data(), nv_index_name.size());
+  pinweaver_eal_sha256_update(&hash, nv_index_name.data(), nv_index_name.size());
   handle_section_bytes += nv_index_bytes;
   command_size += nv_index_bytes.size();
-  hash->Update(size_bytes.data(), size_bytes.size());
+  pinweaver_eal_sha256_update(&hash, size_bytes.data(), size_bytes.size());
   parameter_section_bytes += size_bytes;
   command_size += size_bytes.size();
-  hash->Update(offset_bytes.data(), offset_bytes.size());
+  pinweaver_eal_sha256_update(&hash, offset_bytes.data(), offset_bytes.size());
   parameter_section_bytes += offset_bytes;
   command_size += offset_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(command_hash.data(), command_hash.size());
+  char* hash_ptr = const_cast<char *>(command_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -9335,13 +9387,16 @@ TPM_RC Tpm::ParseResponse_NV_Read(
     // Keep the parameter section in |buffer|.
     buffer.erase(parameter_section_size);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(response_code_bytes.data(), response_code_bytes.size());
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(buffer.data(), buffer.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, response_code_bytes.data(), response_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(response_hash.data(), response_hash.size());
+  char* hash_ptr = const_cast<char *>(response_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   if (tag == TPM_ST_SESSIONS) {
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
@@ -9431,17 +9486,20 @@ TPM_RC Tpm::SerializeCommand_NV_ChangeAuth(
     }
     new_auth_bytes.replace(2, std::string::npos, tmp);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(nv_index_name.data(), nv_index_name.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, nv_index_name.data(), nv_index_name.size());
   handle_section_bytes += nv_index_bytes;
   command_size += nv_index_bytes.size();
-  hash->Update(new_auth_bytes.data(), new_auth_bytes.size());
+  pinweaver_eal_sha256_update(&hash, new_auth_bytes.data(), new_auth_bytes.size());
   parameter_section_bytes += new_auth_bytes;
   command_size += new_auth_bytes.size();
   std::string command_hash(32, 0);
-  hash->Finish(command_hash.data(), command_hash.size());
+  char* hash_ptr = const_cast<char *>(command_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
@@ -9531,13 +9589,16 @@ TPM_RC Tpm::ParseResponse_NV_ChangeAuth(
     // Keep the parameter section in |buffer|.
     buffer.erase(parameter_section_size);
   }
-  std::unique_ptr<crypto::SecureHash> hash(
-      crypto::SecureHash::Create(crypto::SecureHash::SHA256));
-  hash->Update(response_code_bytes.data(), response_code_bytes.size());
-  hash->Update(command_code_bytes.data(), command_code_bytes.size());
-  hash->Update(buffer.data(), buffer.size());
+  pinweaver_eal_sha256_ctx_t hash;
+  if (pinweaver_eal_sha256_init(&hash)) {
+    return TRUNKS_RC_HASH_ERROR;
+  }
+  pinweaver_eal_sha256_update(&hash, response_code_bytes.data(), response_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, command_code_bytes.data(), command_code_bytes.size());
+  pinweaver_eal_sha256_update(&hash, buffer.data(), buffer.size());
   std::string response_hash(32, 0);
-  hash->Finish(response_hash.data(), response_hash.size());
+  char* hash_ptr = const_cast<char *>(response_hash.data());
+  pinweaver_eal_sha256_final(&hash, hash_ptr);
   if (tag == TPM_ST_SESSIONS) {
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
