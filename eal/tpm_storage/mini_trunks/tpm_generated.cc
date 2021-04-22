@@ -5,7 +5,6 @@
 #include "tpm_generated.h"
 
 #include <endian.h>
-#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -14,10 +13,6 @@
 #include "command_transceiver.h"
 #include "eal.h"
 #include "error_codes.h"
-
-#ifndef CHECK
-#define CHECK(cond) if (!(cond)) abort()
-#endif
 
 namespace mini_trunks {
 
@@ -1102,20 +1097,6 @@ TPM_RC Parse_TPM2B_DIGEST(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_DIGEST Make_TPM2B_DIGEST(const std::string& bytes) {
-  TPM2B_DIGEST tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_DIGEST));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_DIGEST(const TPM2B_DIGEST& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPM2B_NONCE(const TPM2B_NONCE& value, std::string* buffer) {
@@ -2210,20 +2191,6 @@ TPM_RC Parse_TPM2B_DATA(std::string* buffer,
   return result;
 }
 
-TPM2B_DATA Make_TPM2B_DATA(const std::string& bytes) {
-  TPM2B_DATA tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_DATA));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_DATA(const TPM2B_DATA& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
-}
-
 TPM_RC Serialize_TPM2B_EVENT(const TPM2B_EVENT& value, std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
 
@@ -2264,20 +2231,6 @@ TPM_RC Parse_TPM2B_EVENT(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_EVENT Make_TPM2B_EVENT(const std::string& bytes) {
-  TPM2B_EVENT tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_EVENT));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_EVENT(const TPM2B_EVENT& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPM2B_MAX_BUFFER(const TPM2B_MAX_BUFFER& value,
@@ -2323,20 +2276,6 @@ TPM_RC Parse_TPM2B_MAX_BUFFER(std::string* buffer,
   return result;
 }
 
-TPM2B_MAX_BUFFER Make_TPM2B_MAX_BUFFER(const std::string& bytes) {
-  TPM2B_MAX_BUFFER tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_MAX_BUFFER));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_MAX_BUFFER(const TPM2B_MAX_BUFFER& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
-}
-
 TPM_RC Serialize_TPM2B_MAX_NV_BUFFER(const TPM2B_MAX_NV_BUFFER& value,
                                      std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
@@ -2378,20 +2317,6 @@ TPM_RC Parse_TPM2B_MAX_NV_BUFFER(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_MAX_NV_BUFFER Make_TPM2B_MAX_NV_BUFFER(const std::string& bytes) {
-  TPM2B_MAX_NV_BUFFER tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_MAX_NV_BUFFER));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_MAX_NV_BUFFER(const TPM2B_MAX_NV_BUFFER& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPM2B_TIMEOUT(const TPM2B_TIMEOUT& value,
@@ -2437,20 +2362,6 @@ TPM_RC Parse_TPM2B_TIMEOUT(std::string* buffer,
   return result;
 }
 
-TPM2B_TIMEOUT Make_TPM2B_TIMEOUT(const std::string& bytes) {
-  TPM2B_TIMEOUT tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_TIMEOUT));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_TIMEOUT(const TPM2B_TIMEOUT& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
-}
-
 TPM_RC Serialize_TPM2B_IV(const TPM2B_IV& value, std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
 
@@ -2493,20 +2404,6 @@ TPM_RC Parse_TPM2B_IV(std::string* buffer,
   return result;
 }
 
-TPM2B_IV Make_TPM2B_IV(const std::string& bytes) {
-  TPM2B_IV tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_IV));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_IV(const TPM2B_IV& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
-}
-
 TPM_RC Serialize_TPM2B_NAME(const TPM2B_NAME& value, std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
 
@@ -2547,20 +2444,6 @@ TPM_RC Parse_TPM2B_NAME(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_NAME Make_TPM2B_NAME(const std::string& bytes) {
-  TPM2B_NAME tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.name));
-  memset(&tpm2b, 0, sizeof(TPM2B_NAME));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.name, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_NAME(const TPM2B_NAME& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.name);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPMS_PCR_SELECT(const TPMS_PCR_SELECT& value,
@@ -3243,20 +3126,6 @@ TPM_RC Parse_TPM2B_DIGEST_VALUES(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_DIGEST_VALUES Make_TPM2B_DIGEST_VALUES(const std::string& bytes) {
-  TPM2B_DIGEST_VALUES tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_DIGEST_VALUES));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_DIGEST_VALUES(const TPM2B_DIGEST_VALUES& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPML_PCR_SELECTION(const TPML_PCR_SELECTION& value,
@@ -4243,21 +4112,6 @@ TPM_RC Parse_TPM2B_ATTEST(std::string* buffer,
   return result;
 }
 
-TPM2B_ATTEST Make_TPM2B_ATTEST(const std::string& bytes) {
-  TPM2B_ATTEST tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.attestation_data));
-  memset(&tpm2b, 0, sizeof(TPM2B_ATTEST));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.attestation_data, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_ATTEST(const TPM2B_ATTEST& tpm2b) {
-  const char* char_buffer =
-      reinterpret_cast<const char*>(tpm2b.attestation_data);
-  return std::string(char_buffer, tpm2b.size);
-}
-
 TPM_RC Serialize_TPMS_AUTH_COMMAND(const TPMS_AUTH_COMMAND& value,
                                    std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
@@ -4648,20 +4502,6 @@ TPM_RC Parse_TPM2B_SYM_KEY(std::string* buffer,
   return result;
 }
 
-TPM2B_SYM_KEY Make_TPM2B_SYM_KEY(const std::string& bytes) {
-  TPM2B_SYM_KEY tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_SYM_KEY));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_SYM_KEY(const TPM2B_SYM_KEY& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
-}
-
 TPM_RC Serialize_TPMS_SYMCIPHER_PARMS(const TPMS_SYMCIPHER_PARMS& value,
                                       std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
@@ -4726,20 +4566,6 @@ TPM_RC Parse_TPM2B_SENSITIVE_DATA(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_SENSITIVE_DATA Make_TPM2B_SENSITIVE_DATA(const std::string& bytes) {
-  TPM2B_SENSITIVE_DATA tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_SENSITIVE_DATA));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_SENSITIVE_DATA(const TPM2B_SENSITIVE_DATA& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPMS_SENSITIVE_CREATE(const TPMS_SENSITIVE_CREATE& value,
@@ -4819,14 +4645,6 @@ TPM_RC Parse_TPM2B_SENSITIVE_CREATE(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_SENSITIVE_CREATE Make_TPM2B_SENSITIVE_CREATE(
-    const TPMS_SENSITIVE_CREATE& inner) {
-  TPM2B_SENSITIVE_CREATE tpm2b;
-  tpm2b.size = sizeof(TPMS_SENSITIVE_CREATE);
-  tpm2b.sensitive = inner;
-  return tpm2b;
 }
 
 TPM_RC Serialize_TPMS_SCHEME_XOR(const TPMS_SCHEME_XOR& value,
@@ -5678,20 +5496,6 @@ TPM_RC Parse_TPM2B_PUBLIC_KEY_RSA(std::string* buffer,
   return result;
 }
 
-TPM2B_PUBLIC_KEY_RSA Make_TPM2B_PUBLIC_KEY_RSA(const std::string& bytes) {
-  TPM2B_PUBLIC_KEY_RSA tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_PUBLIC_KEY_RSA));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_PUBLIC_KEY_RSA(const TPM2B_PUBLIC_KEY_RSA& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
-}
-
 TPM_RC Serialize_TPM2B_PRIVATE_KEY_RSA(const TPM2B_PRIVATE_KEY_RSA& value,
                                        std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
@@ -5735,21 +5539,6 @@ TPM_RC Parse_TPM2B_PRIVATE_KEY_RSA(std::string* buffer,
   return result;
 }
 
-TPM2B_PRIVATE_KEY_RSA Make_TPM2B_PRIVATE_KEY_RSA(const std::string& bytes) {
-  TPM2B_PRIVATE_KEY_RSA tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_PRIVATE_KEY_RSA));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_PRIVATE_KEY_RSA(
-    const TPM2B_PRIVATE_KEY_RSA& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
-}
-
 TPM_RC Serialize_TPM2B_ECC_PARAMETER(const TPM2B_ECC_PARAMETER& value,
                                      std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
@@ -5791,20 +5580,6 @@ TPM_RC Parse_TPM2B_ECC_PARAMETER(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_ECC_PARAMETER Make_TPM2B_ECC_PARAMETER(const std::string& bytes) {
-  TPM2B_ECC_PARAMETER tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_ECC_PARAMETER));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_ECC_PARAMETER(const TPM2B_ECC_PARAMETER& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPMS_ECC_POINT(const TPMS_ECC_POINT& value,
@@ -5883,13 +5658,6 @@ TPM_RC Parse_TPM2B_ECC_POINT(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_ECC_POINT Make_TPM2B_ECC_POINT(const TPMS_ECC_POINT& inner) {
-  TPM2B_ECC_POINT tpm2b;
-  tpm2b.size = sizeof(TPMS_ECC_POINT);
-  tpm2b.point = inner;
-  return tpm2b;
 }
 
 TPM_RC Serialize_TPMT_ECC_SCHEME(const TPMT_ECC_SCHEME& value,
@@ -6356,21 +6124,6 @@ TPM_RC Parse_TPM2B_ENCRYPTED_SECRET(std::string* buffer,
   return result;
 }
 
-TPM2B_ENCRYPTED_SECRET Make_TPM2B_ENCRYPTED_SECRET(const std::string& bytes) {
-  TPM2B_ENCRYPTED_SECRET tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.secret));
-  memset(&tpm2b, 0, sizeof(TPM2B_ENCRYPTED_SECRET));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.secret, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_ENCRYPTED_SECRET(
-    const TPM2B_ENCRYPTED_SECRET& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.secret);
-  return std::string(char_buffer, tpm2b.size);
-}
-
 TPM_RC Serialize_TPMS_KEYEDHASH_PARMS(const TPMS_KEYEDHASH_PARMS& value,
                                       std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
@@ -6829,13 +6582,6 @@ TPM_RC Parse_TPM2B_PUBLIC(std::string* buffer,
   return result;
 }
 
-TPM2B_PUBLIC Make_TPM2B_PUBLIC(const TPMT_PUBLIC& inner) {
-  TPM2B_PUBLIC tpm2b;
-  tpm2b.size = sizeof(TPMT_PUBLIC);
-  tpm2b.public_area = inner;
-  return tpm2b;
-}
-
 TPM_RC Serialize_TPM2B_PRIVATE_VENDOR_SPECIFIC(
     const TPM2B_PRIVATE_VENDOR_SPECIFIC& value, std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
@@ -6877,22 +6623,6 @@ TPM_RC Parse_TPM2B_PRIVATE_VENDOR_SPECIFIC(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_PRIVATE_VENDOR_SPECIFIC Make_TPM2B_PRIVATE_VENDOR_SPECIFIC(
-    const std::string& bytes) {
-  TPM2B_PRIVATE_VENDOR_SPECIFIC tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_PRIVATE_VENDOR_SPECIFIC));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_PRIVATE_VENDOR_SPECIFIC(
-    const TPM2B_PRIVATE_VENDOR_SPECIFIC& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPMU_SENSITIVE_COMPOSITE(const TPMU_SENSITIVE_COMPOSITE& value,
@@ -7066,13 +6796,6 @@ TPM_RC Parse_TPM2B_SENSITIVE(std::string* buffer,
   return result;
 }
 
-TPM2B_SENSITIVE Make_TPM2B_SENSITIVE(const TPMT_SENSITIVE& inner) {
-  TPM2B_SENSITIVE tpm2b;
-  tpm2b.size = sizeof(TPMT_SENSITIVE);
-  tpm2b.sensitive_area = inner;
-  return tpm2b;
-}
-
 TPM_RC Serialize__PRIVATE(const _PRIVATE& value, std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
 
@@ -7158,20 +6881,6 @@ TPM_RC Parse_TPM2B_PRIVATE(std::string* buffer,
   return result;
 }
 
-TPM2B_PRIVATE Make_TPM2B_PRIVATE(const std::string& bytes) {
-  TPM2B_PRIVATE tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_PRIVATE));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_PRIVATE(const TPM2B_PRIVATE& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
-}
-
 TPM_RC Serialize__ID_OBJECT(const _ID_OBJECT& value, std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
 
@@ -7245,20 +6954,6 @@ TPM_RC Parse_TPM2B_ID_OBJECT(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_ID_OBJECT Make_TPM2B_ID_OBJECT(const std::string& bytes) {
-  TPM2B_ID_OBJECT tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.credential));
-  memset(&tpm2b, 0, sizeof(TPM2B_ID_OBJECT));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.credential, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_ID_OBJECT(const TPM2B_ID_OBJECT& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.credential);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPMS_NV_PUBLIC(const TPMS_NV_PUBLIC& value,
@@ -7369,13 +7064,6 @@ TPM_RC Parse_TPM2B_NV_PUBLIC(std::string* buffer,
   return result;
 }
 
-TPM2B_NV_PUBLIC Make_TPM2B_NV_PUBLIC(const TPMS_NV_PUBLIC& inner) {
-  TPM2B_NV_PUBLIC tpm2b;
-  tpm2b.size = sizeof(TPMS_NV_PUBLIC);
-  tpm2b.nv_public = inner;
-  return tpm2b;
-}
-
 TPM_RC Serialize_TPM2B_CONTEXT_SENSITIVE(const TPM2B_CONTEXT_SENSITIVE& value,
                                          std::string* buffer) {
   TPM_RC result = TPM_RC_SUCCESS;
@@ -7417,21 +7105,6 @@ TPM_RC Parse_TPM2B_CONTEXT_SENSITIVE(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_CONTEXT_SENSITIVE Make_TPM2B_CONTEXT_SENSITIVE(const std::string& bytes) {
-  TPM2B_CONTEXT_SENSITIVE tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_CONTEXT_SENSITIVE));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_CONTEXT_SENSITIVE(
-    const TPM2B_CONTEXT_SENSITIVE& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPMS_CONTEXT_DATA(const TPMS_CONTEXT_DATA& value,
@@ -7509,20 +7182,6 @@ TPM_RC Parse_TPM2B_CONTEXT_DATA(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_CONTEXT_DATA Make_TPM2B_CONTEXT_DATA(const std::string& bytes) {
-  TPM2B_CONTEXT_DATA tpm2b;
-  CHECK(bytes.size() <= sizeof(tpm2b.buffer));
-  memset(&tpm2b, 0, sizeof(TPM2B_CONTEXT_DATA));
-  tpm2b.size = bytes.size();
-  memcpy(tpm2b.buffer, bytes.data(), bytes.size());
-  return tpm2b;
-}
-
-std::string StringFrom_TPM2B_CONTEXT_DATA(const TPM2B_CONTEXT_DATA& tpm2b) {
-  const char* char_buffer = reinterpret_cast<const char*>(tpm2b.buffer);
-  return std::string(char_buffer, tpm2b.size);
 }
 
 TPM_RC Serialize_TPMS_CONTEXT(const TPMS_CONTEXT& value, std::string* buffer) {
@@ -7704,13 +7363,6 @@ TPM_RC Parse_TPM2B_CREATION_DATA(std::string* buffer,
     }
   }
   return result;
-}
-
-TPM2B_CREATION_DATA Make_TPM2B_CREATION_DATA(const TPMS_CREATION_DATA& inner) {
-  TPM2B_CREATION_DATA tpm2b;
-  tpm2b.size = sizeof(TPMS_CREATION_DATA);
-  tpm2b.creation_data = inner;
-  return tpm2b;
 }
 
 TPM_RC Tpm::SerializeCommand_StartAuthSession(
