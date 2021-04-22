@@ -15,6 +15,10 @@
 #define PINWEAVER_EAL_INFO(...)
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Functions for deriving wrap_key and hmac_key based on key_derivation_nonce.
  * TODO: temporary, to be better abstracted.
@@ -90,5 +94,9 @@ int pinweaver_eal_storage_set_log(const struct pw_log_storage_t *log);
 int pinweaver_eal_storage_get_tree_data(struct pw_long_term_storage_t *dest);
 int pinweaver_eal_storage_set_tree_data(
 		const struct pw_long_term_storage_t *data);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* __PINWEAVER_EAL_H */
