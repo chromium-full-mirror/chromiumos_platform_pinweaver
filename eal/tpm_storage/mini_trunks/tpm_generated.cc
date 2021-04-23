@@ -21,11 +21,11 @@ extern "C" {
 namespace mini_trunks {
 
 const size_t kSizeOffset = 2;
-const size_t kMaxResponseSize = 2048;
+const size_t kMaxResponseSize = 4096;
 char g_response[kMaxResponseSize];
 
 void SendCommandAndWait(const std::string& command, std::string* response) {
-  send_command_and_wait(command.data(), g_response, kMaxResponseSize);
+  send_command_and_wait(command.data(), g_response);
   std::string buffer(g_response + kSizeOffset, sizeof(UINT32));
   UINT32 response_size;
   TPM_RC rc = Parse_UINT32(&buffer, &response_size, NULL);
