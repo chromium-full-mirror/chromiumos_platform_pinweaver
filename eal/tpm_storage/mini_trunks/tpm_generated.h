@@ -3189,12 +3189,11 @@ TPM_RC Parse_TPMU_SYM_DETAILS(std::string* buffer,
 class Tpm {
  public:
   // Does not take ownership of |transceiver|.
-  explicit Tpm(CommandTransceiver* transceiver) : transceiver_(transceiver) {}
+  explicit Tpm() {}
   Tpm(const Tpm&) = delete;
   Tpm& operator=(const Tpm&) = delete;
 
   virtual ~Tpm() {}
-  CommandTransceiver* get_transceiver() { return transceiver_; }
 
   static TPM_RC SerializeCommand_StartAuthSession(
       const TPMI_DH_OBJECT& tpm_key,
@@ -3374,8 +3373,6 @@ class Tpm {
       const std::string& nv_index_name,
       const TPM2B_AUTH& new_auth,
       AuthorizationDelegate* authorization_delegate);
- private:
-  CommandTransceiver* transceiver_;
 };
 
 }  // namespace mini_trunks

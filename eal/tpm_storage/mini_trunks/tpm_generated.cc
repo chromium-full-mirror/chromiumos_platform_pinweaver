@@ -10,11 +10,32 @@
 #include <string>
 
 #include "authorization_delegate.h"
-#include "command_transceiver.h"
 #include "eal.h"
 #include "error_codes.h"
 
+// TODO(apronin): remove after de-C++-ification
+extern "C" {
+#include "pinweaver_tpm.h"
+}
+
 namespace mini_trunks {
+
+const size_t kSizeOffset = 2;
+const size_t kMaxResponseSize = 2048;
+char g_response[kMaxResponseSize];
+
+void SendCommandAndWait(const std::string& command, std::string* response) {
+  send_command_and_wait(command.data(), g_response, kMaxResponseSize);
+  std::string buffer(g_response + kSizeOffset, sizeof(UINT32));
+  UINT32 response_size;
+  TPM_RC rc = Parse_UINT32(&buffer, &response_size, NULL);
+  if (rc != TPM_RC_SUCCESS || response_size > kMaxResponseSize) {
+    response->clear();
+  } else {
+    response->assign(g_response, response_size);
+  }
+}
+
 
 size_t GetNumberOfRequestHandles(TPM_CC command_code) {
   switch (command_code) {
@@ -7621,7 +7642,8 @@ TPM_RC Tpm::StartAuthSessionSync(
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::string response = transceiver_->SendCommandAndWait(command);
+  std::string response;
+  SendCommandAndWait(command, &response);
   rc = ParseResponse_StartAuthSession(response, session_handle, nonce_tpm,
                                       authorization_delegate);
   return rc;
@@ -7817,7 +7839,9 @@ TPM_RC Tpm::ReadPublicSync(const TPMI_DH_OBJECT& object_handle,
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::string response = transceiver_->SendCommandAndWait(command);
+  std::string response;
+  SendCommandAndWait(command, &response);
+
   rc = ParseResponse_ReadPublic(response, out_public, name, qualified_name,
                                 authorization_delegate);
   return rc;
@@ -7989,7 +8013,9 @@ TPM_RC Tpm::PolicyCommandCodeSync(
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::string response = transceiver_->SendCommandAndWait(command);
+  std::string response;
+  SendCommandAndWait(command, &response);
+
   rc = ParseResponse_PolicyCommandCode(response, authorization_delegate);
   return rc;
 }
@@ -8148,7 +8174,9 @@ TPM_RC Tpm::PolicyAuthValueSync(const TPMI_SH_POLICY& policy_session,
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::string response = transceiver_->SendCommandAndWait(command);
+  std::string response;
+  SendCommandAndWait(command, &response);
+
   rc = ParseResponse_PolicyAuthValue(response, authorization_delegate);
   return rc;
 }
@@ -8305,7 +8333,9 @@ TPM_RC Tpm::FlushContextSync(const TPMI_DH_CONTEXT& flush_handle,
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::string response = transceiver_->SendCommandAndWait(command);
+  std::string response;
+  SendCommandAndWait(command, &response);
+
   rc = ParseResponse_FlushContext(response, authorization_delegate);
   return rc;
 }
@@ -8493,7 +8523,9 @@ TPM_RC Tpm::NV_DefineSpaceSync(const TPMI_RH_PROVISION& auth_handle,
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::string response = transceiver_->SendCommandAndWait(command);
+  std::string response;
+  SendCommandAndWait(command, &response);
+
   rc = ParseResponse_NV_DefineSpace(response, authorization_delegate);
   return rc;
 }
@@ -8681,7 +8713,9 @@ TPM_RC Tpm::NV_ReadPublicSync(const TPMI_RH_NV_INDEX& nv_index,
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::string response = transceiver_->SendCommandAndWait(command);
+  std::string response;
+  SendCommandAndWait(command, &response);
+
   rc = ParseResponse_NV_ReadPublic(response, nv_public, nv_name,
                                    authorization_delegate);
   return rc;
@@ -8882,7 +8916,9 @@ TPM_RC Tpm::NV_WriteSync(const TPMI_RH_NV_AUTH& auth_handle,
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::string response = transceiver_->SendCommandAndWait(command);
+  std::string response;
+  SendCommandAndWait(command, &response);
+
   rc = ParseResponse_NV_Write(response, authorization_delegate);
   return rc;
 }
@@ -9096,7 +9132,9 @@ TPM_RC Tpm::NV_ReadSync(const TPMI_RH_NV_AUTH& auth_handle,
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::string response = transceiver_->SendCommandAndWait(command);
+  std::string response;
+  SendCommandAndWait(command, &response);
+
   rc = ParseResponse_NV_Read(response, data, authorization_delegate);
   return rc;
 }
@@ -9273,7 +9311,9 @@ TPM_RC Tpm::NV_ChangeAuthSync(const TPMI_RH_NV_INDEX& nv_index,
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  std::string response = transceiver_->SendCommandAndWait(command);
+  std::string response;
+  SendCommandAndWait(command, &response);
+
   rc = ParseResponse_NV_ChangeAuth(response, authorization_delegate);
   return rc;
 }
