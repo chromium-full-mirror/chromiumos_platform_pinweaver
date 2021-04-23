@@ -1,21 +1,16 @@
-// Copyright 2014 The Chromium OS Authors. All rights reserved.
+// Copyright 2021 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_
-#define TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_
+#ifndef MINI_TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_
+#define MINI_TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_
 
 #include <string>
 
-#include <base/gtest_prod_util.h>
-#include <crypto/secure_hash.h>
-#include <gtest/gtest_prod.h>
+#include "authorization_delegate.h"
+#include "tpm_generated.h"
 
-#include "trunks/authorization_delegate.h"
-#include "trunks/tpm_generated.h"
-#include "trunks/trunks_export.h"
-
-namespace trunks {
+namespace mini_trunks {
 
 const uint8_t kContinueSession = 1;
 const size_t kAesKeySize = 16;      // 128 bits is minimum AES key size.
@@ -25,28 +20,7 @@ const size_t kHashDigestSize = 32;  // 256 bits is SHA256 digest size.
 // interface. It provides the necessary Auth data for HMAC sessions.
 // This delegate also does parameter encryption on sessions that support it.
 
-// Usage:
-// 1) After running the StartAuthSession command on the TPM2.0, we declare this
-// delegate using the constructor. We can specify if we want parameter
-// obfuscation enabled or not.
-// 2) We initialize the session using |InitSession|. We feed in the handle and
-// tpm_nonce returned by StartAuthSession. Additionally we inject the
-// caller_nonce, salt and auth_value of the bound entity we fed into
-// StartAuthSession.
-// 3) Pass a pointer to this delegate to any TPM command that needs
-// authorization using this delegate.
-
-// Sample control flow:
-//  TrunksProxy proxy;
-//  proxy.Init();
-//  Tpm tpm(&proxy);
-//  tpm.StartAuthSession(...);
-//  HmacAuthorizationDelegate hmac();
-//  hmac.InitSession(...);
-//  tpm.Create(..., &hmac);
-//  hmac.set_entity_authorization_value(...);
-//  tpm.Load(..., &hmac);
-class TRUNKS_EXPORT HmacAuthorizationDelegate : public AuthorizationDelegate {
+class HmacAuthorizationDelegate : public AuthorizationDelegate {
  public:
   HmacAuthorizationDelegate();
   HmacAuthorizationDelegate(const HmacAuthorizationDelegate&) = delete;
@@ -105,11 +79,6 @@ class TRUNKS_EXPORT HmacAuthorizationDelegate : public AuthorizationDelegate {
     use_entity_authorization_for_encryption_only_ = value;
   }
 
- protected:
-  FRIEND_TEST(HmacAuthorizationDelegateFixture, NonceRegenerationTest);
-  FRIEND_TEST(HmacAuthorizationDelegateTest, EncryptDecryptTest);
-  FRIEND_TEST(HmacAuthorizationDelegateTest, SessionKeyTest);
-
  private:
   // This method implements the key derivation function used in the TPM.
   // NOTE: It only returns 32 byte keys.
@@ -147,6 +116,6 @@ class TRUNKS_EXPORT HmacAuthorizationDelegate : public AuthorizationDelegate {
   bool use_entity_authorization_for_encryption_only_;
 };
 
-}  // namespace trunks
+}  // namespace mini_trunks
 
-#endif  // TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_
+#endif  // MINI_TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_

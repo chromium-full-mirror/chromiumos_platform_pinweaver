@@ -1,19 +1,12 @@
-// Copyright 2014 The Chromium OS Authors. All rights reserved.
+// Copyright 2021 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "trunks/hmac_authorization_delegate.h"
+#include <cstring>
 
-#include <base/check.h>
-#include <base/check_op.h>
-#include <base/logging.h>
-#include <base/stl_util.h>
-#include <crypto/secure_util.h>
-#include <openssl/aes.h>
-#include <openssl/hmac.h>
-#include <openssl/rand.h>
+#include "hmac_authorization_delegate.h"
 
-namespace trunks {
+namespace mini_trunks {
 
 namespace {
 
@@ -315,4 +308,4 @@ void HmacAuthorizationDelegate::RegenerateCallerNonce() {
       << "Error regenerating a cryptographically random nonce.";
 }
 
-}  // namespace trunks
+}  // namespace mini_trunks
