@@ -40,7 +40,6 @@ bool HmacAuthorizationDelegate::GetCommandAuthorization(
     std::string* authorization) {
   if (!session_handle_) {
     authorization->clear();
-    LOG(ERROR) << "Delegate being used before Initialization,";
     return false;
   }
   TPMS_AUTH_COMMAND auth;
@@ -61,9 +60,10 @@ bool HmacAuthorizationDelegate::GetCommandAuthorization(
   // We reset the |nonce_generated| flag in preparation of the next command.
   nonce_generated_ = false;
   std::string attributes_bytes;
-  CHECK_EQ(Serialize_TPMA_SESSION(auth.session_attributes, &attributes_bytes),
-           TPM_RC_SUCCESS)
-      << "Error serializing session attributes.";
+  if (Serialize_TPMA_SESSION(auth.session_attributes, &attributes_bytes) !=
+      TPM_RC_SUCCESS) {
+    return false;
+  }
 
   std::string hmac_data;
   std::string hmac_key;
@@ -83,7 +83,6 @@ bool HmacAuthorizationDelegate::GetCommandAuthorization(
 
   TPM_RC serialize_error = Serialize_TPMS_AUTH_COMMAND(auth, authorization);
   if (serialize_error != TPM_RC_SUCCESS) {
-    LOG(ERROR) << "Could not serialize command auth.";
     return false;
   }
   return true;
@@ -101,32 +100,27 @@ bool HmacAuthorizationDelegate::CheckResponseAuthorization(
   parse_error = Parse_TPMS_AUTH_RESPONSE(&mutable_auth_string, &auth_response,
                                          &auth_bytes);
   if (authorization.size() != auth_bytes.size()) {
-    LOG(ERROR) << "Authorization string was of wrong length.";
     return false;
   }
   if (parse_error != TPM_RC_SUCCESS) {
-    LOG(ERROR) << "Could not parse authorization response.";
     return false;
   }
   if (!mutable_auth_string.empty()) {
-    LOG(ERROR) << "Authorization string was of wrong length.";
     return false;
   }
   if (auth_response.hmac.size != kHashDigestSize) {
-    LOG(ERROR) << "TPM auth hmac was incorrect size.";
     return false;
   }
   if (auth_response.nonce.size < kNonceMinSize ||
       auth_response.nonce.size > kNonceMaxSize) {
-    LOG(ERROR) << "TPM_nonce is not the correct length.";
     return false;
   }
   tpm_nonce_ = auth_response.nonce;
   std::string attributes_bytes;
-  CHECK_EQ(Serialize_TPMA_SESSION(auth_response.session_attributes,
-                                  &attributes_bytes),
-           TPM_RC_SUCCESS)
-      << "Error serializing session attributes.";
+  if (Serialize_TPMA_SESSION(auth_response.session_attributes,
+                             &attributes_bytes) != TPM_RC_SUCCESS) {
+    return false;
+  }
 
   std::string hmac_data;
   std::string hmac_key;
@@ -149,10 +143,8 @@ bool HmacAuthorizationDelegate::CheckResponseAuthorization(
                    caller_nonce_.size);
   hmac_data.append(attributes_bytes);
   std::string digest = HmacSha256(hmac_key, hmac_data);
-  CHECK_EQ(digest.size(), auth_response.hmac.size);
   if (!crypto::SecureMemEqual(digest.data(), auth_response.hmac.buffer,
                               digest.size())) {
-    LOG(ERROR) << "Authorization response hash did not match expected value.";
     return false;
   }
   return true;
@@ -160,9 +152,7 @@ bool HmacAuthorizationDelegate::CheckResponseAuthorization(
 
 bool HmacAuthorizationDelegate::EncryptCommandParameter(
     std::string* parameter) {
-  CHECK(parameter);
   if (!session_handle_) {
-    LOG(ERROR) << __func__ << ": Invalid session handle.";
     return false;
   }
   if (!is_parameter_encryption_enabled_) {
@@ -170,7 +160,6 @@ bool HmacAuthorizationDelegate::EncryptCommandParameter(
     return true;
   }
   if (parameter->size() > kTpmBufferSize) {
-    LOG(ERROR) << "Parameter size is too large for TPM decryption.";
     return false;
   }
   RegenerateCallerNonce();
@@ -181,9 +170,7 @@ bool HmacAuthorizationDelegate::EncryptCommandParameter(
 
 bool HmacAuthorizationDelegate::DecryptResponseParameter(
     std::string* parameter) {
-  CHECK(parameter);
   if (!session_handle_) {
-    LOG(ERROR) << __func__ << ": Invalid session handle.";
     return false;
   }
   if (!is_parameter_encryption_enabled_) {
@@ -191,7 +178,6 @@ bool HmacAuthorizationDelegate::DecryptResponseParameter(
     return true;
   }
   if (parameter->size() > kTpmBufferSize) {
-    LOG(ERROR) << "Parameter size is too large for TPM encryption.";
     return false;
   }
   AesOperation(parameter, tpm_nonce_, caller_nonce_, AES_DECRYPT);
@@ -214,7 +200,6 @@ bool HmacAuthorizationDelegate::InitSession(TPM_HANDLE session_handle,
   session_handle_ = session_handle;
   if (caller_nonce.size < kNonceMinSize || caller_nonce.size > kNonceMaxSize ||
       tpm_nonce.size < kNonceMinSize || tpm_nonce.size > kNonceMaxSize) {
-    LOG(INFO) << "Session Nonces have to be between 16 and 32 bytes long.";
     return false;
   }
   tpm_nonce_ = tpm_nonce;
@@ -247,12 +232,8 @@ std::string HmacAuthorizationDelegate::CreateKey(
   std::string digest_size_bits;
   if (Serialize_uint32_t(1, &counter) != TPM_RC_SUCCESS ||
       Serialize_uint32_t(kDigestBits, &digest_size_bits) != TPM_RC_SUCCESS) {
-    LOG(ERROR) << "Error serializing uint32_t during session key generation.";
     return std::string();
   }
-  CHECK_EQ(counter.size(), sizeof(uint32_t));
-  CHECK_EQ(digest_size_bits.size(), sizeof(uint32_t));
-  CHECK_EQ(label.size(), kLabelSize);
 
   std::string data;
   data.append(counter);
@@ -273,7 +254,6 @@ std::string HmacAuthorizationDelegate::HmacSha256(const std::string& key,
   HMAC(EVP_sha256(), key.data(), key.size(),
        reinterpret_cast<const unsigned char*>(data.data()), data.size(), digest,
        &digest_length);
-  CHECK_EQ(digest_length, kHashDigestSize);
   return std::string(reinterpret_cast<char*>(digest), digest_length);
 }
 
@@ -285,7 +265,6 @@ void HmacAuthorizationDelegate::AesOperation(std::string* parameter,
   std::string compound_key =
       CreateKey(session_key_ + entity_authorization_value_, label, nonce_newer,
                 nonce_older);
-  CHECK_EQ(compound_key.size(), kAesKeySize + kAesIVSize);
   unsigned char aes_key[kAesKeySize];
   unsigned char aes_iv[kAesIVSize];
   memcpy(aes_key, &compound_key[0], kAesKeySize);
@@ -301,11 +280,9 @@ void HmacAuthorizationDelegate::AesOperation(std::string* parameter,
 }
 
 void HmacAuthorizationDelegate::RegenerateCallerNonce() {
-  CHECK(session_handle_);
   // RAND_bytes takes a signed number, but since nonce_size is guaranteed to be
   // less than 32 bytes and greater than 16 we dont have to worry about it.
-  CHECK_EQ(RAND_bytes(caller_nonce_.buffer, caller_nonce_.size), 1)
-      << "Error regenerating a cryptographically random nonce.";
+  RAND_bytes(caller_nonce_.buffer, caller_nonce_.size);
 }
 
 }  // namespace mini_trunks
