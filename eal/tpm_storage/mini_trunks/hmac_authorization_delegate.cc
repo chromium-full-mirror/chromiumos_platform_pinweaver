@@ -4,6 +4,8 @@
 
 #include <cstring>
 
+#include "eal.h"
+#include "eal_tpm.h"
 #include "hmac_authorization_delegate.h"
 
 namespace mini_trunks {
@@ -79,7 +81,9 @@ bool HmacAuthorizationDelegate::GetCommandAuthorization(
                    tpm_nonce_.size);
   hmac_data.append(attributes_bytes);
   std::string digest = HmacSha256(hmac_key, hmac_data);
-  auth.hmac = Make_TPM2B_DIGEST(digest);
+
+  auth.hmac.size = digest.size();
+  memcpy(auth.hmac.buffer, digest.data(), digest.size());
 
   TPM_RC serialize_error = Serialize_TPMS_AUTH_COMMAND(auth, authorization);
   if (serialize_error != TPM_RC_SUCCESS) {
@@ -143,8 +147,8 @@ bool HmacAuthorizationDelegate::CheckResponseAuthorization(
                    caller_nonce_.size);
   hmac_data.append(attributes_bytes);
   std::string digest = HmacSha256(hmac_key, hmac_data);
-  if (!crypto::SecureMemEqual(digest.data(), auth_response.hmac.buffer,
-                              digest.size())) {
+  if (!pinweaver_eal_safe_memcmp(digest.data(), auth_response.hmac.buffer,
+                                 digest.size())) {
     return false;
   }
   return true;
@@ -164,7 +168,7 @@ bool HmacAuthorizationDelegate::EncryptCommandParameter(
   }
   RegenerateCallerNonce();
   nonce_generated_ = true;
-  AesOperation(parameter, caller_nonce_, tpm_nonce_, AES_ENCRYPT);
+  AesOperation(parameter, caller_nonce_, tpm_nonce_, PINWEAVER_EAL_ENCRYPT);
   return true;
 }
 
@@ -180,7 +184,7 @@ bool HmacAuthorizationDelegate::DecryptResponseParameter(
   if (parameter->size() > kTpmBufferSize) {
     return false;
   }
-  AesOperation(parameter, tpm_nonce_, caller_nonce_, AES_DECRYPT);
+  AesOperation(parameter, tpm_nonce_, caller_nonce_, PINWEAVER_EAL_DECRYPT);
   return true;
 }
 
@@ -249,12 +253,14 @@ std::string HmacAuthorizationDelegate::CreateKey(
 
 std::string HmacAuthorizationDelegate::HmacSha256(const std::string& key,
                                                   const std::string& data) {
-  unsigned char digest[EVP_MAX_MD_SIZE];
-  unsigned int digest_length;
-  HMAC(EVP_sha256(), key.data(), key.size(),
-       reinterpret_cast<const unsigned char*>(data.data()), data.size(), digest,
-       &digest_length);
-  return std::string(reinterpret_cast<char*>(digest), digest_length);
+	pinweaver_eal_hmac_sha256_ctx_t hmac;
+  unsigned char digest[SHA256_DIGEST_LENGTH];
+
+	pinweaver_eal_hmac_sha256_init(&hmac, key.data(), key.size());
+	pinweaver_eal_hmac_sha256_update(&hmac, data.data(), data.size());
+	pinweaver_eal_hmac_sha256_final(&hmac, digest);
+
+  return std::string(reinterpret_cast<char*>(digest), SHA256_DIGEST_LENGTH);
 }
 
 void HmacAuthorizationDelegate::AesOperation(std::string* parameter,
@@ -269,20 +275,18 @@ void HmacAuthorizationDelegate::AesOperation(std::string* parameter,
   unsigned char aes_iv[kAesIVSize];
   memcpy(aes_key, &compound_key[0], kAesKeySize);
   memcpy(aes_iv, &compound_key[kAesKeySize], kAesIVSize);
-  AES_KEY key;
-  int iv_offset = 0;
-  AES_set_encrypt_key(aes_key, kAesKeySize * 8, &key);
   unsigned char decrypted[kTpmBufferSize];
-  AES_cfb128_encrypt(reinterpret_cast<const unsigned char*>(parameter->data()),
-                     decrypted, parameter->size(), &key, aes_iv, &iv_offset,
-                     operation_type);
-  memcpy(base::data(*parameter), decrypted, parameter->size());
+  pinweaver_eal_aes128_cfb(aes_key, kAesKeySize, aes_iv,
+                           parameter->data(), parameter->size(), operation_type,
+                           decrypted);
+  char* dest = const_cast<char *>(parameter->data());
+  memcpy(dest, decrypted, parameter->size());
 }
 
 void HmacAuthorizationDelegate::RegenerateCallerNonce() {
   // RAND_bytes takes a signed number, but since nonce_size is guaranteed to be
   // less than 32 bytes and greater than 16 we dont have to worry about it.
-  RAND_bytes(caller_nonce_.buffer, caller_nonce_.size);
+  pinweaver_eal_rand_bytes(caller_nonce_.buffer, caller_nonce_.size);
 }
 
 }  // namespace mini_trunks
