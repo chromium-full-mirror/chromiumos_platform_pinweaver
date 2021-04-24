@@ -7,10 +7,7 @@
 
 #include <string>
 
-namespace mini_trunks {
-
-class AuthorizationDelegate;
-class CommandTransceiver;
+struct AuthorizationDelegate;
 
 #if !defined(SHA1_DIGEST_SIZE)
 #define SHA1_DIGEST_SIZE 20
@@ -135,8 +132,8 @@ class CommandTransceiver;
 #if !defined(ECC_CURVES)
 #define ECC_CURVES                                      \
   {                                                     \
-    mini_trunks::TPM_ECC_NIST_P256, mini_trunks::TPM_ECC_BN_P256, \
-        mini_trunks::TPM_ECC_SM2_P256                        \
+    TPM_ECC_NIST_P256, TPM_ECC_BN_P256, \
+        TPM_ECC_SM2_P256                        \
   }
 #endif
 #if !defined(ECC_KEY_SIZES_BITS)
@@ -188,7 +185,7 @@ class CommandTransceiver;
 #define FIELD_UPGRADE_IMPLEMENTED NO
 #endif
 #if !defined(BSIZE)
-#define BSIZE mini_trunks::UINT16
+#define BSIZE UINT16
 #endif
 #if !defined(BUFFER_ALIGNMENT)
 #define BUFFER_ALIGNMENT 4
@@ -215,10 +212,10 @@ class CommandTransceiver;
 #define MAX_ACTIVE_SESSIONS 64
 #endif
 #if !defined(CONTEXT_SLOT)
-#define CONTEXT_SLOT mini_trunks::UINT16
+#define CONTEXT_SLOT UINT16
 #endif
 #if !defined(CONTEXT_COUNTER)
-#define CONTEXT_COUNTER mini_trunks::UINT64
+#define CONTEXT_COUNTER UINT64
 #endif
 #if !defined(MAX_LOADED_SESSIONS)
 #define MAX_LOADED_SESSIONS 3
@@ -275,7 +272,7 @@ class CommandTransceiver;
 #define PRIMARY_SEED_SIZE 32
 #endif
 #if !defined(CONTEXT_ENCRYPT_ALG)
-#define CONTEXT_ENCRYPT_ALG mini_trunks::TPM_ALG_AES
+#define CONTEXT_ENCRYPT_ALG TPM_ALG_AES
 #endif
 #if !defined(CONTEXT_ENCRYPT_KEY_BITS)
 #define CONTEXT_ENCRYPT_KEY_BITS MAX_SYM_KEY_BITS
@@ -284,7 +281,7 @@ class CommandTransceiver;
 #define CONTEXT_ENCRYPT_KEY_BYTES ((CONTEXT_ENCRYPT_KEY_BITS + 7) / 8)
 #endif
 #if !defined(CONTEXT_INTEGRITY_HASH_ALG)
-#define CONTEXT_INTEGRITY_HASH_ALG mini_trunks::TPM_ALG_SHA256
+#define CONTEXT_INTEGRITY_HASH_ALG TPM_ALG_SHA256
 #endif
 #if !defined(CONTEXT_INTEGRITY_HASH_SIZE)
 #define CONTEXT_INTEGRITY_HASH_SIZE SHA256_DIGEST_SIZE
@@ -311,10 +308,10 @@ class CommandTransceiver;
 #define MAX_ORDERLY_COUNT ((1 << ORDERLY_BITS) - 1)
 #endif
 #if !defined(ALG_ID_FIRST)
-#define ALG_ID_FIRST mini_trunks::TPM_ALG_FIRST
+#define ALG_ID_FIRST TPM_ALG_FIRST
 #endif
 #if !defined(ALG_ID_LAST)
-#define ALG_ID_LAST mini_trunks::TPM_ALG_LAST
+#define ALG_ID_LAST TPM_ALG_LAST
 #endif
 #if !defined(MAX_SYM_DATA)
 #define MAX_SYM_DATA 128
@@ -340,41 +337,41 @@ class CommandTransceiver;
 #endif
 #if !defined(MAX_CAP_DATA)
 #define MAX_CAP_DATA \
-  (MAX_CAP_BUFFER - sizeof(mini_trunks::TPM_CAP) - sizeof(mini_trunks::UINT32))
+  (MAX_CAP_BUFFER - sizeof(TPM_CAP) - sizeof(UINT32))
 #endif
 #if !defined(MAX_CAP_ALGS)
-#define MAX_CAP_ALGS (mini_trunks::TPM_ALG_LAST - mini_trunks::TPM_ALG_FIRST + 1)
+#define MAX_CAP_ALGS (TPM_ALG_LAST - TPM_ALG_FIRST + 1)
 #endif
 #if !defined(MAX_CAP_HANDLES)
-#define MAX_CAP_HANDLES (MAX_CAP_DATA / sizeof(mini_trunks::TPM_HANDLE))
+#define MAX_CAP_HANDLES (MAX_CAP_DATA / sizeof(TPM_HANDLE))
 #endif
 #if !defined(MAX_CAP_CC)
-#define MAX_CAP_CC ((mini_trunks::TPM_CC_LAST - mini_trunks::TPM_CC_FIRST) + 1)
+#define MAX_CAP_CC ((TPM_CC_LAST - TPM_CC_FIRST) + 1)
 #endif
 #if !defined(MAX_CAP_CCE)
-#define MAX_CAP_CCE ((mini_trunks::TPM_CCE_LAST - mini_trunks::TPM_CCE_FIRST) + 1)
+#define MAX_CAP_CCE ((TPM_CCE_LAST - TPM_CCE_FIRST) + 1)
 #endif
 #if !defined(MAX_CAP_CC_ALL)
 #define MAX_CAP_CC_ALL (MAX_CAP_CC + MAX_CAP_CCE)
 #endif
 #if !defined(MAX_TPM_PROPERTIES)
-#define MAX_TPM_PROPERTIES (MAX_CAP_DATA / sizeof(mini_trunks::TPMS_TAGGED_PROPERTY))
+#define MAX_TPM_PROPERTIES (MAX_CAP_DATA / sizeof(TPMS_TAGGED_PROPERTY))
 #endif
 #if !defined(MAX_PCR_PROPERTIES)
 #define MAX_PCR_PROPERTIES \
-  (MAX_CAP_DATA / sizeof(mini_trunks::TPMS_TAGGED_PCR_SELECT))
+  (MAX_CAP_DATA / sizeof(TPMS_TAGGED_PCR_SELECT))
 #endif
 #if !defined(MAX_ECC_CURVES)
-#define MAX_ECC_CURVES (MAX_CAP_DATA / sizeof(mini_trunks::TPM_ECC_CURVE))
+#define MAX_ECC_CURVES (MAX_CAP_DATA / sizeof(TPM_ECC_CURVE))
 #endif
 #if !defined(HASH_COUNT)
 #define HASH_COUNT 5
 #endif
 
 #define IS_TPM2_STD_CMD(x) \
-  ((x) >= mini_trunks::TPM_CC_FIRST && (x) <= mini_trunks::TPM_CC_LAST)
+  ((x) >= TPM_CC_FIRST && (x) <= TPM_CC_LAST)
 #define IS_TPM2_EXT_CMD(x) \
-  ((x) >= mini_trunks::TPM_CCE_FIRST && (x) <= mini_trunks::TPM_CCE_LAST)
+  ((x) >= TPM_CCE_FIRST && (x) <= TPM_CCE_LAST)
 #define IS_TPM2_CMD(x) (IS_TPM2_STD_CMD(x) || IS_TPM2_EXT_CMD(x))
 
 typedef uint8_t UINT8;
@@ -3374,7 +3371,5 @@ class Tpm {
       const TPM2B_AUTH& new_auth,
       AuthorizationDelegate* authorization_delegate);
 };
-
-}  // namespace mini_trunks
 
 #endif  // MINI_TRUNKS_TPM_GENERATED_H_

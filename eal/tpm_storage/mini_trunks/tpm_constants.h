@@ -7,8 +7,6 @@
 
 #include "tpm_generated.h"
 
-namespace mini_trunks {
-
 // TPM Object Attributes.
 constexpr TPMA_OBJECT kFixedTPM = 1U << 1;
 constexpr TPMA_OBJECT kFixedParent = 1U << 4;
@@ -51,6 +49,5 @@ constexpr TPM_CC TPM_CC_VENDOR_SPECIFIC_MASK = 1U << 29;
 
 // This needs to be used to be backwards compatible with older Cr50 versions.
 constexpr TPM_CC TPM_CC_CR50_EXTENSION_COMMAND = 0xbaccd00a;
-}  // namespace mini_trunks
 
 #endif  // MINI_TRUNKS_TPM_CONSTANTS_H_

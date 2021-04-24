@@ -7,8 +7,6 @@
 
 #include "tpm_generated.h"  // For TPM_RC.
 
-namespace mini_trunks {
-
 // Use the TPM_RC type but with different layer bits (12 - 15). Choose the layer
 // value arbitrarily. Currently TSS2 uses 9 for TCTI and 8 for SAPI.
 // TCTI and SAPI error codes taken from
@@ -59,7 +57,5 @@ const TPM_RC SAPI_RC_INCOMPATIBLE_TCTI = kSapiErrorBase + 13;
 const TPM_RC SAPI_RC_MALFORMED_RESPONSE = kSapiErrorBase + 14;
 const TPM_RC SAPI_RC_BAD_TCTI_STRUCTURE = kSapiErrorBase + 15;
 const TPM_RC SAPI_RC_NO_CONNECTION = kSapiErrorBase + 16;
-
-}  // namespace mini_trunks
 
 #endif  // MINI_TRUNKS_ERROR_CODES_H_

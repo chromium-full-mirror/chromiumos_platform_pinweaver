@@ -3,104 +3,16 @@
 // found in the LICENSE file.
 
 #ifndef MINI_TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_
-#define MINI_TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_
+#define MINI_TRUNKS_AUTHORIZATION_DELEGATE_H_
 
 #include <string>
-
-#include "authorization_delegate.h"
 #include "tpm_generated.h"
 
-namespace mini_trunks {
-
-const uint8_t kContinueSession = 1;
-const size_t kAesKeySize = 16;      // 128 bits is minimum AES key size.
-const size_t kHashDigestSize = 32;  // 256 bits is SHA256 digest size.
-
-// HmacAuthorizationDelegate is an implementation of the AuthorizationDelegate
-// interface. It provides the necessary Auth data for HMAC sessions.
-// This delegate also does parameter encryption on sessions that support it.
-
-class HmacAuthorizationDelegate : public AuthorizationDelegate {
- public:
-  HmacAuthorizationDelegate();
-  HmacAuthorizationDelegate(const HmacAuthorizationDelegate&) = delete;
-  HmacAuthorizationDelegate& operator=(const HmacAuthorizationDelegate&) =
-      delete;
-
-  ~HmacAuthorizationDelegate() override;
-
-  // AuthorizationDelegate methods.
-  bool GetCommandAuthorization(const std::string& command_hash,
-                               bool is_command_parameter_encryption_possible,
-                               bool is_response_parameter_encryption_possible,
-                               std::string* authorization) override;
-  bool CheckResponseAuthorization(const std::string& response_hash,
-                                  const std::string& authorization) override;
-  bool EncryptCommandParameter(std::string* parameter) override;
-  bool DecryptResponseParameter(std::string* parameter) override;
-  bool GetTpmNonce(std::string* nonce) override;
-
-  // This function is called with the return data of |StartAuthSession|. It
-  // will initialize the session to start providing auth information. It can
-  // only be called once per delegate, and must be called before the delegate
-  // is used for any operation. The boolean arg |enable_parameter_encryption|
-  // specifies if parameter encryption should be enabled for this delegate.
-  // |salt| and |bind_auth_value| specify the injected auth values into this
-  // delegate.
-  bool InitSession(TPM_HANDLE session_handle,
-                   const TPM2B_NONCE& tpm_nonce,
-                   const TPM2B_NONCE& caller_nonce,
-                   const std::string& salt,
-                   const std::string& bind_auth_value,
-                   bool enable_parameter_encryption);
-
-  // This method sets the FutureAuthorizationValue. This value is used in
-  // computing the HMAC response of TPM2_HierarchyChangeAuth.
-  void set_future_authorization_value(const std::string& auth_value);
-
-  std::string future_authorization_value() {
-    return future_authorization_value_;
-  }
-
-  // This method is used to inject an auth_value associated with an entity.
-  // This auth_value is then used when generating HMACs and encryption keys.
-  // Note: This value will be used for all commands until explicitly reset.
-  void set_entity_authorization_value(const std::string& auth_value) {
-    entity_authorization_value_ = auth_value;
-  }
-
-  std::string entity_authorization_value() const {
-    return entity_authorization_value_;
-  }
-
-  TPM_HANDLE session_handle() const { return session_handle_; }
-
-  void set_use_entity_authorization_for_encryption_only(bool value) {
-    use_entity_authorization_for_encryption_only_ = value;
-  }
-
- private:
-  // This method implements the key derivation function used in the TPM.
-  // NOTE: It only returns 32 byte keys.
-  std::string CreateKey(const std::string& hmac_key,
-                        const std::string& label,
-                        const TPM2B_NONCE& nonce_newer,
-                        const TPM2B_NONCE& nonce_older);
-  // This method performs a FIPS198 HMAC operation on |data| using |key|
-  std::string HmacSha256(const std::string& key, const std::string& data);
-  // This method performs an AES operation using a 128 bit key.
-  // |operation_type| can be either AES_ENCRYPT or AES_DECRYPT and it
-  // determines if the operation is an encryption or decryption.
-  void AesOperation(std::string* parameter,
-                    const TPM2B_NONCE& nonce_newer,
-                    const TPM2B_NONCE& nonce_older,
-                    int operation_type);
-  // This method regenerates the caller nonce. The new nonce is the same
-  // length as the previous nonce. The buffer is filled with random data using
-  // openssl's |RAND_bytes| function.
-  // NOTE: This operation is DESTRUCTIVE, and rewrites the caller_nonce_ field.
-  void RegenerateCallerNonce();
-
+// AuthorizationDelegate is an interface passed to TPM commands. The delegate
+// takes care of providing the authorization data for commands and verifying
+// authorization data for responses. It also handles parameter encryption for
+// commands and parameter decryption for responses.
+typedef struct HmacAuthorizationDelegate {
   TPM_HANDLE session_handle_;
   TPM2B_NONCE caller_nonce_;
   TPM2B_NONCE tpm_nonce_;
@@ -114,8 +26,59 @@ class HmacAuthorizationDelegate : public AuthorizationDelegate {
   // when computing the hmac_key to create the authorization hmac. Defaults
   // to false, but policy sessions may set this flag to true.
   bool use_entity_authorization_for_encryption_only_;
-};
+} HmacAuthorizationDelegate;
 
-}  // namespace mini_trunks
+// Provides authorization data for a command which has a cpHash value of
+// |command_hash|. The availability of encryption for the command is indicated
+// by |is_*_parameter_encryption_possible|. On success, |authorization| is
+// populated with the exact octets for the Authorization Area of the command.
+// Returns true on success.
+bool GetCommandAuthorizationHmac(
+    HmacAuthorizationDelegate* delegate,
+    const std::string& command_hash,
+    bool is_command_parameter_encryption_possible,
+    bool is_response_parameter_encryption_possible,
+    std::string* authorization);
+
+// Checks authorization data for a response which has a rpHash value of
+// |response_hash|. The exact octets from the Authorization Area of the
+// response are given in |authorization|. Returns true iff the authorization
+// is valid.
+bool CheckResponseAuthorizationHmac(
+    HmacAuthorizationDelegate* delegate,
+    const std::string& response_hash,
+    const std::string& authorization);
+
+// Encrypts |parameter| if encryption is enabled. Returns true on success.
+bool EncryptCommandParameterHmac(
+    HmacAuthorizationDelegate* delegate,
+    std::string* parameter);
+
+// Decrypts |parameter| if encryption is enabled. Returns true on success.
+bool DecryptResponseParameterHmac(
+    HmacAuthorizationDelegate* delegate,
+    std::string* parameter);
+
+// Returns the current TPM-generated nonce that is associated with the
+// authorization session. Returns true on success.
+bool GetTpmNonceHmac(
+    HmacAuthorizationDelegate* delegate,
+    std::string* nonce);
+
+// This function is called with the return data of |StartAuthSession|. It
+// will initialize the session to start providing auth information. It can
+// only be called once per delegate, and must be called before the delegate
+// is used for any operation. The boolean arg |enable_parameter_encryption|
+// specifies if parameter encryption should be enabled for this delegate.
+// |salt| and |bind_auth_value| specify the injected auth values into this
+// delegate.
+bool InitSession(
+    HmacAuthorizationDelegate* delegate,
+    TPM_HANDLE session_handle,
+    const TPM2B_NONCE& tpm_nonce,
+    const TPM2B_NONCE& caller_nonce,
+    const std::string& salt,
+    const std::string& bind_auth_value,
+    bool enable_parameter_encryption);
 
 #endif  // MINI_TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_

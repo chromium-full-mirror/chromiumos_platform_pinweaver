@@ -18,8 +18,6 @@ extern "C" {
 #include "pinweaver_tpm.h"
 }
 
-namespace mini_trunks {
-
 const size_t kSizeOffset = 2;
 const size_t kMaxResponseSize = 4096;
 char g_response[kMaxResponseSize];
@@ -7449,7 +7447,7 @@ TPM_RC Tpm::SerializeCommand_StartAuthSession(
   if (authorization_delegate) {
     // Encrypt just the parameter data, not the size.
     std::string tmp = nonce_caller_bytes.substr(2);
-    if (!authorization_delegate->EncryptCommandParameter(&tmp)) {
+    if (!EncryptCommandParameter(authorization_delegate, &tmp)) {
       return TRUNKS_RC_ENCRYPTION_FAILED;
     }
     nonce_caller_bytes.replace(2, std::string::npos, tmp);
@@ -7486,7 +7484,7 @@ TPM_RC Tpm::SerializeCommand_StartAuthSession(
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
-    if (!authorization_delegate->GetCommandAuthorization(
+    if (!GetCommandAuthorization(authorization_delegate, 
             command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -7594,7 +7592,7 @@ TPM_RC Tpm::ParseResponse_StartAuthSession(
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
-    if (!authorization_delegate->CheckResponseAuthorization(
+    if (!CheckResponseAuthorization(authorization_delegate, 
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
@@ -7610,7 +7608,7 @@ TPM_RC Tpm::ParseResponse_StartAuthSession(
     }
     // Decrypt just the parameter data, not the size.
     std::string tmp = nonce_tpm_bytes.substr(2);
-    if (!authorization_delegate->DecryptResponseParameter(&tmp)) {
+    if (!DecryptResponseParameter(authorization_delegate, &tmp)) {
       return TRUNKS_RC_ENCRYPTION_FAILED;
     }
     nonce_tpm_bytes.replace(2, std::string::npos, tmp);
@@ -7686,7 +7684,7 @@ TPM_RC Tpm::SerializeCommand_ReadPublic(
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
-    if (!authorization_delegate->GetCommandAuthorization(
+    if (!GetCommandAuthorization(authorization_delegate, 
             command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -7789,7 +7787,7 @@ TPM_RC Tpm::ParseResponse_ReadPublic(
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
-    if (!authorization_delegate->CheckResponseAuthorization(
+    if (!CheckResponseAuthorization(authorization_delegate, 
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
@@ -7815,7 +7813,7 @@ TPM_RC Tpm::ParseResponse_ReadPublic(
     }
     // Decrypt just the parameter data, not the size.
     std::string tmp = out_public_bytes.substr(2);
-    if (!authorization_delegate->DecryptResponseParameter(&tmp)) {
+    if (!DecryptResponseParameter(authorization_delegate, &tmp)) {
       return TRUNKS_RC_ENCRYPTION_FAILED;
     }
     out_public_bytes.replace(2, std::string::npos, tmp);
@@ -7893,7 +7891,7 @@ TPM_RC Tpm::SerializeCommand_PolicyCommandCode(
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
-    if (!authorization_delegate->GetCommandAuthorization(
+    if (!GetCommandAuthorization(authorization_delegate, 
             command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -7993,7 +7991,7 @@ TPM_RC Tpm::ParseResponse_PolicyCommandCode(
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
-    if (!authorization_delegate->CheckResponseAuthorization(
+    if (!CheckResponseAuthorization(authorization_delegate, 
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
@@ -8057,7 +8055,7 @@ TPM_RC Tpm::SerializeCommand_PolicyAuthValue(
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
-    if (!authorization_delegate->GetCommandAuthorization(
+    if (!GetCommandAuthorization(authorization_delegate, 
             command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -8157,7 +8155,7 @@ TPM_RC Tpm::ParseResponse_PolicyAuthValue(
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
-    if (!authorization_delegate->CheckResponseAuthorization(
+    if (!CheckResponseAuthorization(authorization_delegate, 
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
@@ -8217,7 +8215,7 @@ TPM_RC Tpm::SerializeCommand_FlushContext(
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
-    if (!authorization_delegate->GetCommandAuthorization(
+    if (!GetCommandAuthorization(authorization_delegate, 
             command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -8317,7 +8315,7 @@ TPM_RC Tpm::ParseResponse_FlushContext(
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
-    if (!authorization_delegate->CheckResponseAuthorization(
+    if (!CheckResponseAuthorization(authorization_delegate, 
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
@@ -8378,7 +8376,7 @@ TPM_RC Tpm::SerializeCommand_NV_DefineSpace(
   if (authorization_delegate) {
     // Encrypt just the parameter data, not the size.
     std::string tmp = auth_bytes.substr(2);
-    if (!authorization_delegate->EncryptCommandParameter(&tmp)) {
+    if (!EncryptCommandParameter(authorization_delegate, &tmp)) {
       return TRUNKS_RC_ENCRYPTION_FAILED;
     }
     auth_bytes.replace(2, std::string::npos, tmp);
@@ -8403,7 +8401,7 @@ TPM_RC Tpm::SerializeCommand_NV_DefineSpace(
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
-    if (!authorization_delegate->GetCommandAuthorization(
+    if (!GetCommandAuthorization(authorization_delegate, 
             command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -8503,7 +8501,7 @@ TPM_RC Tpm::ParseResponse_NV_DefineSpace(
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
-    if (!authorization_delegate->CheckResponseAuthorization(
+    if (!CheckResponseAuthorization(authorization_delegate, 
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
@@ -8567,7 +8565,7 @@ TPM_RC Tpm::SerializeCommand_NV_ReadPublic(
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
-    if (!authorization_delegate->GetCommandAuthorization(
+    if (!GetCommandAuthorization(authorization_delegate, 
             command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -8669,7 +8667,7 @@ TPM_RC Tpm::ParseResponse_NV_ReadPublic(
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
-    if (!authorization_delegate->CheckResponseAuthorization(
+    if (!CheckResponseAuthorization(authorization_delegate, 
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
@@ -8690,7 +8688,7 @@ TPM_RC Tpm::ParseResponse_NV_ReadPublic(
     }
     // Decrypt just the parameter data, not the size.
     std::string tmp = nv_public_bytes.substr(2);
-    if (!authorization_delegate->DecryptResponseParameter(&tmp)) {
+    if (!DecryptResponseParameter(authorization_delegate, &tmp)) {
       return TRUNKS_RC_ENCRYPTION_FAILED;
     }
     nv_public_bytes.replace(2, std::string::npos, tmp);
@@ -8766,7 +8764,7 @@ TPM_RC Tpm::SerializeCommand_NV_Write(
   if (authorization_delegate) {
     // Encrypt just the parameter data, not the size.
     std::string tmp = data_bytes.substr(2);
-    if (!authorization_delegate->EncryptCommandParameter(&tmp)) {
+    if (!EncryptCommandParameter(authorization_delegate, &tmp)) {
       return TRUNKS_RC_ENCRYPTION_FAILED;
     }
     data_bytes.replace(2, std::string::npos, tmp);
@@ -8794,7 +8792,7 @@ TPM_RC Tpm::SerializeCommand_NV_Write(
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
-    if (!authorization_delegate->GetCommandAuthorization(
+    if (!GetCommandAuthorization(authorization_delegate, 
             command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -8894,7 +8892,7 @@ TPM_RC Tpm::ParseResponse_NV_Write(
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
-    if (!authorization_delegate->CheckResponseAuthorization(
+    if (!CheckResponseAuthorization(authorization_delegate, 
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
@@ -8988,7 +8986,7 @@ TPM_RC Tpm::SerializeCommand_NV_Read(
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
-    if (!authorization_delegate->GetCommandAuthorization(
+    if (!GetCommandAuthorization(authorization_delegate, 
             command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -9089,7 +9087,7 @@ TPM_RC Tpm::ParseResponse_NV_Read(
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
-    if (!authorization_delegate->CheckResponseAuthorization(
+    if (!CheckResponseAuthorization(authorization_delegate, 
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
@@ -9105,7 +9103,7 @@ TPM_RC Tpm::ParseResponse_NV_Read(
     }
     // Decrypt just the parameter data, not the size.
     std::string tmp = data_bytes.substr(2);
-    if (!authorization_delegate->DecryptResponseParameter(&tmp)) {
+    if (!DecryptResponseParameter(authorization_delegate, &tmp)) {
       return TRUNKS_RC_ENCRYPTION_FAILED;
     }
     data_bytes.replace(2, std::string::npos, tmp);
@@ -9171,7 +9169,7 @@ TPM_RC Tpm::SerializeCommand_NV_ChangeAuth(
   if (authorization_delegate) {
     // Encrypt just the parameter data, not the size.
     std::string tmp = new_auth_bytes.substr(2);
-    if (!authorization_delegate->EncryptCommandParameter(&tmp)) {
+    if (!EncryptCommandParameter(authorization_delegate, &tmp)) {
       return TRUNKS_RC_ENCRYPTION_FAILED;
     }
     new_auth_bytes.replace(2, std::string::npos, tmp);
@@ -9193,7 +9191,7 @@ TPM_RC Tpm::SerializeCommand_NV_ChangeAuth(
   std::string authorization_section_bytes;
   std::string authorization_size_bytes;
   if (authorization_delegate) {
-    if (!authorization_delegate->GetCommandAuthorization(
+    if (!GetCommandAuthorization(authorization_delegate, 
             command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -9293,7 +9291,7 @@ TPM_RC Tpm::ParseResponse_NV_ChangeAuth(
     if (!authorization_delegate) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
-    if (!authorization_delegate->CheckResponseAuthorization(
+    if (!CheckResponseAuthorization(authorization_delegate, 
             response_hash, authorization_section_bytes)) {
       return TRUNKS_RC_AUTHORIZATION_FAILED;
     }
@@ -9317,5 +9315,3 @@ TPM_RC Tpm::NV_ChangeAuthSync(const TPMI_RH_NV_INDEX& nv_index,
   rc = ParseResponse_NV_ChangeAuth(response, authorization_delegate);
   return rc;
 }
-
-}  // namespace mini_trunks
