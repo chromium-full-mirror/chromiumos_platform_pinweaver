@@ -7384,7 +7384,7 @@ TPM_RC Parse_TPM2B_CREATION_DATA(std::string* buffer,
   return result;
 }
 
-TPM_RC Tpm::SerializeCommand_StartAuthSession(
+static TPM_RC SerializeCommand_StartAuthSession(
     const TPMI_DH_OBJECT& tpm_key,
     const std::string& tpm_key_name,
     const TPMI_DH_ENTITY& bind,
@@ -7521,7 +7521,7 @@ TPM_RC Tpm::SerializeCommand_StartAuthSession(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ParseResponse_StartAuthSession(
+static TPM_RC ParseResponse_StartAuthSession(
     const std::string& response,
     TPMI_SH_AUTH_SESSION* session_handle,
     TPM2B_NONCE* nonce_tpm,
@@ -7620,7 +7620,7 @@ TPM_RC Tpm::ParseResponse_StartAuthSession(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::StartAuthSessionSync(
+TPM_RC StartAuthSession(
     const TPMI_DH_OBJECT& tpm_key,
     const std::string& tpm_key_name,
     const TPMI_DH_ENTITY& bind,
@@ -7647,7 +7647,7 @@ TPM_RC Tpm::StartAuthSessionSync(
   return rc;
 }
 
-TPM_RC Tpm::SerializeCommand_ReadPublic(
+static TPM_RC SerializeCommand_ReadPublic(
     const TPMI_DH_OBJECT& object_handle,
     const std::string& object_handle_name,
     std::string* serialized_command,
@@ -7721,7 +7721,7 @@ TPM_RC Tpm::SerializeCommand_ReadPublic(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ParseResponse_ReadPublic(
+static TPM_RC ParseResponse_ReadPublic(
     const std::string& response,
     TPM2B_PUBLIC* out_public,
     TPM2B_NAME* name,
@@ -7825,12 +7825,12 @@ TPM_RC Tpm::ParseResponse_ReadPublic(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ReadPublicSync(const TPMI_DH_OBJECT& object_handle,
-                           const std::string& object_handle_name,
-                           TPM2B_PUBLIC* out_public,
-                           TPM2B_NAME* name,
-                           TPM2B_NAME* qualified_name,
-                           AuthorizationDelegate* authorization_delegate) {
+TPM_RC ReadPublic(const TPMI_DH_OBJECT& object_handle,
+                  const std::string& object_handle_name,
+                  TPM2B_PUBLIC* out_public,
+                  TPM2B_NAME* name,
+                  TPM2B_NAME* qualified_name,
+                  AuthorizationDelegate* authorization_delegate) {
   std::string command;
   TPM_RC rc = SerializeCommand_ReadPublic(object_handle, object_handle_name,
                                           &command, authorization_delegate);
@@ -7845,7 +7845,7 @@ TPM_RC Tpm::ReadPublicSync(const TPMI_DH_OBJECT& object_handle,
   return rc;
 }
 
-TPM_RC Tpm::SerializeCommand_PolicyCommandCode(
+static TPM_RC SerializeCommand_PolicyCommandCode(
     const TPMI_SH_POLICY& policy_session,
     const std::string& policy_session_name,
     const TPM_CC& code,
@@ -7928,7 +7928,7 @@ TPM_RC Tpm::SerializeCommand_PolicyCommandCode(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ParseResponse_PolicyCommandCode(
+static TPM_RC ParseResponse_PolicyCommandCode(
     const std::string& response,
     AuthorizationDelegate* authorization_delegate) {
   TPM_RC rc = TPM_RC_SUCCESS;
@@ -7999,7 +7999,7 @@ TPM_RC Tpm::ParseResponse_PolicyCommandCode(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::PolicyCommandCodeSync(
+TPM_RC PolicyCommandCode(
     const TPMI_SH_POLICY& policy_session,
     const std::string& policy_session_name,
     const TPM_CC& code,
@@ -8018,7 +8018,7 @@ TPM_RC Tpm::PolicyCommandCodeSync(
   return rc;
 }
 
-TPM_RC Tpm::SerializeCommand_PolicyAuthValue(
+static TPM_RC SerializeCommand_PolicyAuthValue(
     const TPMI_SH_POLICY& policy_session,
     const std::string& policy_session_name,
     std::string* serialized_command,
@@ -8092,7 +8092,7 @@ TPM_RC Tpm::SerializeCommand_PolicyAuthValue(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ParseResponse_PolicyAuthValue(
+static TPM_RC ParseResponse_PolicyAuthValue(
     const std::string& response,
     AuthorizationDelegate* authorization_delegate) {
   TPM_RC rc = TPM_RC_SUCCESS;
@@ -8163,9 +8163,9 @@ TPM_RC Tpm::ParseResponse_PolicyAuthValue(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::PolicyAuthValueSync(const TPMI_SH_POLICY& policy_session,
-                                const std::string& policy_session_name,
-                                AuthorizationDelegate* authorization_delegate) {
+TPM_RC PolicyAuthValue(const TPMI_SH_POLICY& policy_session,
+                       const std::string& policy_session_name,
+                       AuthorizationDelegate* authorization_delegate) {
   std::string command;
   TPM_RC rc = SerializeCommand_PolicyAuthValue(
       policy_session, policy_session_name, &command, authorization_delegate);
@@ -8179,7 +8179,7 @@ TPM_RC Tpm::PolicyAuthValueSync(const TPMI_SH_POLICY& policy_session,
   return rc;
 }
 
-TPM_RC Tpm::SerializeCommand_FlushContext(
+static TPM_RC SerializeCommand_FlushContext(
     const TPMI_DH_CONTEXT& flush_handle,
     std::string* serialized_command,
     AuthorizationDelegate* authorization_delegate) {
@@ -8252,7 +8252,7 @@ TPM_RC Tpm::SerializeCommand_FlushContext(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ParseResponse_FlushContext(
+static TPM_RC ParseResponse_FlushContext(
     const std::string& response,
     AuthorizationDelegate* authorization_delegate) {
   TPM_RC rc = TPM_RC_SUCCESS;
@@ -8323,8 +8323,8 @@ TPM_RC Tpm::ParseResponse_FlushContext(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::FlushContextSync(const TPMI_DH_CONTEXT& flush_handle,
-                             AuthorizationDelegate* authorization_delegate) {
+TPM_RC FlushContext(const TPMI_DH_CONTEXT& flush_handle,
+                    AuthorizationDelegate* authorization_delegate) {
   std::string command;
   TPM_RC rc = SerializeCommand_FlushContext(flush_handle, &command,
                                             authorization_delegate);
@@ -8338,7 +8338,7 @@ TPM_RC Tpm::FlushContextSync(const TPMI_DH_CONTEXT& flush_handle,
   return rc;
 }
 
-TPM_RC Tpm::SerializeCommand_NV_DefineSpace(
+static TPM_RC SerializeCommand_NV_DefineSpace(
     const TPMI_RH_PROVISION& auth_handle,
     const std::string& auth_handle_name,
     const TPM2B_AUTH& auth,
@@ -8438,7 +8438,7 @@ TPM_RC Tpm::SerializeCommand_NV_DefineSpace(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ParseResponse_NV_DefineSpace(
+static TPM_RC ParseResponse_NV_DefineSpace(
     const std::string& response,
     AuthorizationDelegate* authorization_delegate) {
   TPM_RC rc = TPM_RC_SUCCESS;
@@ -8509,11 +8509,11 @@ TPM_RC Tpm::ParseResponse_NV_DefineSpace(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::NV_DefineSpaceSync(const TPMI_RH_PROVISION& auth_handle,
-                               const std::string& auth_handle_name,
-                               const TPM2B_AUTH& auth,
-                               const TPM2B_NV_PUBLIC& public_info,
-                               AuthorizationDelegate* authorization_delegate) {
+TPM_RC NV_DefineSpace(const TPMI_RH_PROVISION& auth_handle,
+                      const std::string& auth_handle_name,
+                      const TPM2B_AUTH& auth,
+                      const TPM2B_NV_PUBLIC& public_info,
+                      AuthorizationDelegate* authorization_delegate) {
   std::string command;
   TPM_RC rc = SerializeCommand_NV_DefineSpace(auth_handle, auth_handle_name,
                                               auth, public_info, &command,
@@ -8528,7 +8528,7 @@ TPM_RC Tpm::NV_DefineSpaceSync(const TPMI_RH_PROVISION& auth_handle,
   return rc;
 }
 
-TPM_RC Tpm::SerializeCommand_NV_ReadPublic(
+static TPM_RC SerializeCommand_NV_ReadPublic(
     const TPMI_RH_NV_INDEX& nv_index,
     const std::string& nv_index_name,
     std::string* serialized_command,
@@ -8602,7 +8602,7 @@ TPM_RC Tpm::SerializeCommand_NV_ReadPublic(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ParseResponse_NV_ReadPublic(
+static TPM_RC ParseResponse_NV_ReadPublic(
     const std::string& response,
     TPM2B_NV_PUBLIC* nv_public,
     TPM2B_NAME* nv_name,
@@ -8700,11 +8700,11 @@ TPM_RC Tpm::ParseResponse_NV_ReadPublic(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::NV_ReadPublicSync(const TPMI_RH_NV_INDEX& nv_index,
-                              const std::string& nv_index_name,
-                              TPM2B_NV_PUBLIC* nv_public,
-                              TPM2B_NAME* nv_name,
-                              AuthorizationDelegate* authorization_delegate) {
+TPM_RC NV_ReadPublic(const TPMI_RH_NV_INDEX& nv_index,
+                     const std::string& nv_index_name,
+                     TPM2B_NV_PUBLIC* nv_public,
+                     TPM2B_NAME* nv_name,
+                     AuthorizationDelegate* authorization_delegate) {
   std::string command;
   TPM_RC rc = SerializeCommand_NV_ReadPublic(nv_index, nv_index_name, &command,
                                              authorization_delegate);
@@ -8719,7 +8719,7 @@ TPM_RC Tpm::NV_ReadPublicSync(const TPMI_RH_NV_INDEX& nv_index,
   return rc;
 }
 
-TPM_RC Tpm::SerializeCommand_NV_Write(
+static TPM_RC SerializeCommand_NV_Write(
     const TPMI_RH_NV_AUTH& auth_handle,
     const std::string& auth_handle_name,
     const TPMI_RH_NV_INDEX& nv_index,
@@ -8829,7 +8829,7 @@ TPM_RC Tpm::SerializeCommand_NV_Write(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ParseResponse_NV_Write(
+static TPM_RC ParseResponse_NV_Write(
     const std::string& response,
     AuthorizationDelegate* authorization_delegate) {
   TPM_RC rc = TPM_RC_SUCCESS;
@@ -8900,13 +8900,13 @@ TPM_RC Tpm::ParseResponse_NV_Write(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::NV_WriteSync(const TPMI_RH_NV_AUTH& auth_handle,
-                         const std::string& auth_handle_name,
-                         const TPMI_RH_NV_INDEX& nv_index,
-                         const std::string& nv_index_name,
-                         const TPM2B_MAX_NV_BUFFER& data,
-                         const UINT16& offset,
-                         AuthorizationDelegate* authorization_delegate) {
+TPM_RC NV_Write(const TPMI_RH_NV_AUTH& auth_handle,
+                const std::string& auth_handle_name,
+                const TPMI_RH_NV_INDEX& nv_index,
+                const std::string& nv_index_name,
+                const TPM2B_MAX_NV_BUFFER& data,
+                const UINT16& offset,
+                AuthorizationDelegate* authorization_delegate) {
   std::string command;
   TPM_RC rc = SerializeCommand_NV_Write(auth_handle, auth_handle_name, nv_index,
                                         nv_index_name, data, offset, &command,
@@ -8921,7 +8921,7 @@ TPM_RC Tpm::NV_WriteSync(const TPMI_RH_NV_AUTH& auth_handle,
   return rc;
 }
 
-TPM_RC Tpm::SerializeCommand_NV_Read(
+static TPM_RC SerializeCommand_NV_Read(
     const TPMI_RH_NV_AUTH& auth_handle,
     const std::string& auth_handle_name,
     const TPMI_RH_NV_INDEX& nv_index,
@@ -9023,7 +9023,7 @@ TPM_RC Tpm::SerializeCommand_NV_Read(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ParseResponse_NV_Read(
+static TPM_RC ParseResponse_NV_Read(
     const std::string& response,
     TPM2B_MAX_NV_BUFFER* data,
     AuthorizationDelegate* authorization_delegate) {
@@ -9115,14 +9115,14 @@ TPM_RC Tpm::ParseResponse_NV_Read(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::NV_ReadSync(const TPMI_RH_NV_AUTH& auth_handle,
-                        const std::string& auth_handle_name,
-                        const TPMI_RH_NV_INDEX& nv_index,
-                        const std::string& nv_index_name,
-                        const UINT16& size,
-                        const UINT16& offset,
-                        TPM2B_MAX_NV_BUFFER* data,
-                        AuthorizationDelegate* authorization_delegate) {
+TPM_RC NV_Read(const TPMI_RH_NV_AUTH& auth_handle,
+               const std::string& auth_handle_name,
+               const TPMI_RH_NV_INDEX& nv_index,
+               const std::string& nv_index_name,
+               const UINT16& size,
+               const UINT16& offset,
+               TPM2B_MAX_NV_BUFFER* data,
+               AuthorizationDelegate* authorization_delegate) {
   std::string command;
   TPM_RC rc = SerializeCommand_NV_Read(auth_handle, auth_handle_name, nv_index,
                                        nv_index_name, size, offset, &command,
@@ -9137,7 +9137,7 @@ TPM_RC Tpm::NV_ReadSync(const TPMI_RH_NV_AUTH& auth_handle,
   return rc;
 }
 
-TPM_RC Tpm::SerializeCommand_NV_ChangeAuth(
+static TPM_RC SerializeCommand_NV_ChangeAuth(
     const TPMI_RH_NV_INDEX& nv_index,
     const std::string& nv_index_name,
     const TPM2B_AUTH& new_auth,
@@ -9228,7 +9228,7 @@ TPM_RC Tpm::SerializeCommand_NV_ChangeAuth(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::ParseResponse_NV_ChangeAuth(
+static TPM_RC ParseResponse_NV_ChangeAuth(
     const std::string& response,
     AuthorizationDelegate* authorization_delegate) {
   TPM_RC rc = TPM_RC_SUCCESS;
@@ -9299,10 +9299,10 @@ TPM_RC Tpm::ParseResponse_NV_ChangeAuth(
   return TPM_RC_SUCCESS;
 }
 
-TPM_RC Tpm::NV_ChangeAuthSync(const TPMI_RH_NV_INDEX& nv_index,
-                              const std::string& nv_index_name,
-                              const TPM2B_AUTH& new_auth,
-                              AuthorizationDelegate* authorization_delegate) {
+TPM_RC NV_ChangeAuth(const TPMI_RH_NV_INDEX& nv_index,
+                     const std::string& nv_index_name,
+                     const TPM2B_AUTH& new_auth,
+                     AuthorizationDelegate* authorization_delegate) {
   std::string command;
   TPM_RC rc = SerializeCommand_NV_ChangeAuth(nv_index, nv_index_name, new_auth,
                                              &command, authorization_delegate);
