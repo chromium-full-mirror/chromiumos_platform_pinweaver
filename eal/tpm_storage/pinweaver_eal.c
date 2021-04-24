@@ -4,6 +4,7 @@
  */
 
 #include <eal.h>
+#include <eal_tpm.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <string.h>
@@ -92,6 +93,50 @@ out:
 	EVP_CIPHER_CTX_free(ctx);
 	return rv;
 }
+
+int pinweaver_eal_aes128_cfb(const void *key,
+			     size_t key_size, /* in bytes */
+			     const void *iv,
+			     const void *data,
+			     size_t size,
+			     int op_type, /* PINWEAVER_EAL_{DE|EN}CRYPT */
+			     void *res)
+{
+	EVP_CIPHER_CTX *ctx;
+	int rv;
+	int len, len_final;
+
+	if (key_size != 128/8)
+		return -1;
+	ctx = EVP_CIPHER_CTX_new();
+	if (!ctx)
+		return -1;
+	switch (op_type) {
+		case PINWEAVER_EAL_DECRYPT:
+			rv = EVP_DecryptInit(ctx, EVP_aes_128_cfb(), key, iv);
+			if (rv)
+				break;
+			rv = EVP_DecryptUpdate(ctx, res, &len, data, size);
+			if (rv)
+				break;
+			rv = EVP_DecryptFinal(ctx, res+len, &len_final);
+			break;
+		case PINWEAVER_EAL_ENCRYPT:
+			rv = EVP_EncryptInit(ctx, EVP_aes_128_cfb(), key, iv);
+			if (rv)
+				break;
+			rv = EVP_EncryptUpdate(ctx, res, &len, data, size);
+			if (rv)
+				break;
+			rv = EVP_EncryptFinal(ctx, res+len, &len_final);
+			break;
+		default:
+			rv = -1;
+	}
+	EVP_CIPHER_CTX_free(ctx);
+	return rv;
+}
+
 
 int pinweaver_eal_safe_memcmp(const void *s1, const void *s2, size_t len)
 {
