@@ -99,16 +99,6 @@ static void RegenerateCallerNonce(HmacAuthorizationDelegate* delegate) {
   pinweaver_eal_rand_bytes(delegate->caller_nonce_.buffer, delegate->caller_nonce_.size);
 }
 
-// HmacAuthorizationDelegate::HmacAuthorizationDelegate()
-//     : delegate->session_handle_(0),
-//       delegate->is_parameter_encryption_enabled_(false),
-//       delegate->nonce_generated_(false),
-//       delegate->future_authorization_value_set_(false),
-//       delegate->use_entity_authorization_for_encryption_only_(false) {
-//   delegate->tpm_nonce_.size = 0;
-//   delegate->caller_nonce_.size = 0;
-// }
-
 bool GetCommandAuthorizationHmac(
     HmacAuthorizationDelegate* delegate,
     const std::string& command_hash,
@@ -288,6 +278,7 @@ bool InitSession(
     const std::string& salt,
     const std::string& bind_auth_value,
     bool enable_parameter_encryption) {
+  memset((void *)delegate, 0, sizeof(HmacAuthorizationDelegate));
   delegate->session_handle_ = session_handle;
   if (caller_nonce.size < kNonceMinSize || caller_nonce.size > kNonceMaxSize ||
       tpm_nonce.size < kNonceMinSize || tpm_nonce.size > kNonceMaxSize) {
