@@ -11,7 +11,6 @@
 
 #include "authorization_delegate.h"
 #include "eal.h"
-#include "error_codes.h"
 
 // TODO(apronin): remove after de-C++-ification
 extern "C" {
