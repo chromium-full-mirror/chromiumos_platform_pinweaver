@@ -15,11 +15,11 @@ const uint16_t kNonceMaxSize = 32;
 const uint8_t kDecryptSession = 1 << 5;
 const uint8_t kEncryptSession = 1 << 6;
 const uint8_t kLabelSize = 4;
-const size_t kAesKeySize = 16;      // 128 bits is minimum AES key size.
-const size_t kAesIVSize = 16;
+const size_t kAesKeySize = 128/8;      // 128 bits is minimum AES key size.
+const size_t kAesIVSize = kAesKeySize;
 const uint32_t kTpmBufferSize = 4096;
 const uint8_t kContinueSession = 1;
-const size_t kHashDigestSize = 32;  // 256 bits is SHA256 digest size.
+const size_t kHashDigestSize = SHA256_DIGEST_LENGTH;
 
 // This method performs a FIPS198 HMAC operation on |data| using |key|
 static std::string HmacSha256(
