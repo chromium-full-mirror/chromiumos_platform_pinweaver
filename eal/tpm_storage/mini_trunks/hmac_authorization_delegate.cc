@@ -7,7 +7,7 @@
 #include "authorization_delegate.h"
 #include "eal.h"
 #include "eal_tpm.h"
-#include "tpm_generated.h"
+#include "tss_internal.h"
 
 const uint32_t kDigestBits = 256;
 const uint16_t kNonceMinSize = 16;

@@ -5,7 +5,7 @@
 #ifndef MINI_TRUNKS_TPM_CONSTANTS_H_
 #define MINI_TRUNKS_TPM_CONSTANTS_H_
 
-#include "tpm_generated.h"
+#include "tss.h"
 
 // TPM Object Attributes.
 const TPMA_OBJECT kFixedTPM = 1U << 1;

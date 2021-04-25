@@ -5,7 +5,7 @@
 #ifndef MINI_TRUNKS_ERROR_CODES_H_
 #define MINI_TRUNKS_ERROR_CODES_H_
 
-#include "tpm_generated.h"  // For TPM_RC.
+#include "tss.h"  // For TPM_RC.
 
 // Use the TPM_RC type but with different layer bits (12 - 15). Choose the layer
 // value arbitrarily.

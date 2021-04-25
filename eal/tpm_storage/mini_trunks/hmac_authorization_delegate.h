@@ -6,7 +6,7 @@
 #define MINI_TRUNKS_AUTHORIZATION_DELEGATE_H_
 
 #include <string>
-#include "tpm_generated.h"
+#include "tss.h"
 
 // AuthorizationDelegate is an interface passed to TPM commands. The delegate
 // takes care of providing the authorization data for commands and verifying
