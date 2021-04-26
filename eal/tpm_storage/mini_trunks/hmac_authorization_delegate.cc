@@ -118,12 +118,10 @@ static bool AesOperation(
 }
 
 // This method regenerates the caller nonce. The new nonce is the same
-// length as the previous nonce. The buffer is filled with random data using
-// openssl's |RAND_bytes| function.
-// NOTE: This operation is DESTRUCTIVE, and rewrites the delegate->caller_nonce_ field.
+// length as the previous nonce. The buffer is filled with random data.
+// NOTE: This operation is DESTRUCTIVE, and rewrites the caller_nonce_ field.
 static void RegenerateCallerNonce(HmacAuthorizationDelegate* delegate) {
-  // RAND_bytes takes a signed number, but since nonce_size is guaranteed to be
-  // less than 32 bytes and greater than 16 we dont have to worry about it.
+  // nonce_size is guaranteed to be less than 32 bytes and greater than 16.
   pinweaver_eal_rand_bytes(delegate->caller_nonce_.buffer,
                            delegate->caller_nonce_.size);
 }
