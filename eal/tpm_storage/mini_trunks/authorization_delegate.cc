@@ -11,10 +11,10 @@
 // Returns true on success.
 bool GetCommandAuthorization(
     AuthorizationDelegate* delegate,
-    const std::string& command_hash,
+    const src_data_buf_t* command_hash,
     bool is_command_parameter_encryption_possible,
     bool is_response_parameter_encryption_possible,
-    std::string* authorization) {
+    dst_data_buf_t* authorization) {
   return GetCommandAuthorizationHmac(
       &delegate->hmac,
       command_hash, 
@@ -29,8 +29,8 @@ bool GetCommandAuthorization(
 // is valid.
 bool CheckResponseAuthorization(
     AuthorizationDelegate* delegate,
-    const std::string& response_hash,
-    const std::string& authorization) {
+    const src_data_buf_t* response_hash,
+    const src_data_buf_t* authorization) {
   return CheckResponseAuthorizationHmac(
       &delegate->hmac, response_hash, authorization);
 }
@@ -38,14 +38,14 @@ bool CheckResponseAuthorization(
 // Encrypts |parameter| if encryption is enabled. Returns true on success.
 bool EncryptCommandParameter(
     AuthorizationDelegate* delegate,
-    std::string* parameter) {
+    src_data_buf_t* parameter) {
   return EncryptCommandParameterHmac(&delegate->hmac, parameter);
 }
 
 // Decrypts |parameter| if encryption is enabled. Returns true on success.
 bool DecryptResponseParameter(
     AuthorizationDelegate* delegate,
-    std::string* parameter) {
+    src_data_buf_t* parameter) {
   return DecryptResponseParameterHmac(&delegate->hmac, parameter);
 }
 
@@ -53,6 +53,6 @@ bool DecryptResponseParameter(
 // authorization session. Returns true on success.
 bool GetTpmNonce(
     AuthorizationDelegate* delegate,
-    std::string* nonce) {
+    dst_data_buf_t* nonce) {
   return GetTpmNonceHmac(&delegate->hmac, nonce);
 }

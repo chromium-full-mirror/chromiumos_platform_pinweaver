@@ -5,7 +5,6 @@
 #ifndef MINI_TRUNKS_AUTHORIZATION_DELEGATE_H_
 #define MINI_TRUNKS_AUTHORIZATION_DELEGATE_H_
 
-#include <string>
 #include "hmac_authorization_delegate.h"
 
 typedef struct AuthorizationDelegate {
@@ -19,10 +18,10 @@ typedef struct AuthorizationDelegate {
 // Returns true on success.
 bool GetCommandAuthorization(
     AuthorizationDelegate* delegate,
-    const std::string& command_hash,
+    const src_data_buf_t* command_hash,
     bool is_command_parameter_encryption_possible,
     bool is_response_parameter_encryption_possible,
-    std::string* authorization);
+    dst_data_buf_t* authorization);
 
 // Checks authorization data for a response which has a rpHash value of
 // |response_hash|. The exact octets from the Authorization Area of the
@@ -30,23 +29,23 @@ bool GetCommandAuthorization(
 // is valid.
 bool CheckResponseAuthorization(
     AuthorizationDelegate* delegate,
-    const std::string& response_hash,
-    const std::string& authorization);
+    const src_data_buf_t* response_hash,
+    const src_data_buf_t* authorization);
 
 // Encrypts |parameter| if encryption is enabled. Returns true on success.
 bool EncryptCommandParameter(
     AuthorizationDelegate* delegate,
-    std::string* parameter);
+    src_data_buf_t* parameter);
 
 // Decrypts |parameter| if encryption is enabled. Returns true on success.
 bool DecryptResponseParameter(
     AuthorizationDelegate* delegate,
-    std::string* parameter);
+    src_data_buf_t* parameter);
 
 // Returns the current TPM-generated nonce that is associated with the
 // authorization session. Returns true on success.
 bool GetTpmNonce(
     AuthorizationDelegate* delegate,
-    std::string* nonce);
+    dst_data_buf_t* nonce);
 
 #endif  // MINI_TRUNKS_AUTHORIZATION_DELEGATE_H_

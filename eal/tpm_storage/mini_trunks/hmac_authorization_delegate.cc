@@ -17,76 +17,104 @@ const uint8_t kEncryptSession = 1 << 6;
 const uint8_t kLabelSize = 4;
 const size_t kAesKeySize = 128/8;      // 128 bits is minimum AES key size.
 const size_t kAesIVSize = kAesKeySize;
-const uint32_t kTpmBufferSize = 4096;
+const size_t kMaxDecryptSize = 256;
 const uint8_t kContinueSession = 1;
 const size_t kHashDigestSize = SHA256_DIGEST_LENGTH;
+const size_t kMaxDigestSize = sizeof(TPMU_HA);
+const size_t kSessionKeySize = 256/8;
 
-// This method performs a FIPS198 HMAC operation on |data| using |key|
-static std::string HmacSha256(
-    const std::string& key,
-    const std::string& data) {
-	pinweaver_eal_hmac_sha256_ctx_t hmac;
-  unsigned char digest[SHA256_DIGEST_LENGTH];
+typedef struct hmac_key_t {
+  size_t size;
+  uint8_t buffer[2 * kMaxDigestSize];
+} hmac_key_t;
 
-	pinweaver_eal_hmac_sha256_init(&hmac, key.data(), key.size());
-	pinweaver_eal_hmac_sha256_update(&hmac, data.data(), data.size());
-	pinweaver_eal_hmac_sha256_final(&hmac, digest);
+void HmacKeyInit(hmac_key_t* key) {
+  key->size = 0;
+}
 
-  return std::string(reinterpret_cast<char*>(digest), SHA256_DIGEST_LENGTH);
+void HmacKeyAppend(hmac_key_t* key, const TPM2B_DIGEST* data) {
+  memcpy(key->buffer + key->size, data->buffer, data->size);
+  key->size += data->size;
 }
 
 // This method implements the key derivation function used in the TPM.
 // NOTE: It only returns 32 byte keys.
-static std::string CreateKey(
+static bool CreateKey(
     HmacAuthorizationDelegate* delegate,
-    const std::string& hmac_key,
-    const std::string& label,
-    const TPM2B_NONCE& nonce_newer,
-    const TPM2B_NONCE& nonce_older) {
-  std::string counter;
-  std::string digest_size_bits;
-  if (Serialize_uint32_t(1, &counter) != TPM_RC_SUCCESS ||
-      Serialize_uint32_t(kDigestBits, &digest_size_bits) != TPM_RC_SUCCESS) {
-    return std::string();
+    const hmac_key_t* hmac_key,
+    const src_data_buf_t* label,
+    const TPM2B_NONCE* nonce_newer,
+    const TPM2B_NONCE* nonce_older,
+    uint8_t* key /* size=SHA256_DIGEST_LENGTH */) {
+  uint32_t counter_buf;
+  dst_data_buf_t counter = {sizeof(uint32_t), 0, (uint8_t *)&counter_buf};
+  uint32_t digest_size_bits_buf;
+  dst_data_buf_t digest_size_bits = {sizeof(uint32_t), 0
+                                     &digest_size_bits_buf};
+  const uint32_t kOne = 1;
+  if (Serialize_uint32_t(&kOne, &counter) != TPM_RC_SUCCESS ||
+      Serialize_uint32_t(&kDigestBits, &digest_size_bits) != TPM_RC_SUCCESS) {
+    return false;
   }
 
-  std::string data;
-  data.append(counter);
-  data.append(label);
-  data.append(reinterpret_cast<const char*>(nonce_newer.buffer),
-              nonce_newer.size);
-  data.append(reinterpret_cast<const char*>(nonce_older.buffer),
-              nonce_older.size);
-  data.append(digest_size_bits);
-  std::string key = HmacSha256(hmac_key, data);
-  return key;
+  pinweaver_eal_hmac_sha256_ctx_t hmac;
+
+  // TODO: check errors
+  pinweaver_eal_hmac_sha256_init(&hmac, hmac_key->buffer,
+                                 hmac_key->size);
+  pinweaver_eal_hmac_sha256_update(&hmac, counter.buffer,
+                                   counter.size);
+  pinweaver_eal_hmac_sha256_update(&hmac, label->buffer,
+                                   label->size);
+  pinweaver_eal_hmac_sha256_update(&hmac, nonce_newer->buffer,
+                                   nonce_newer->size);
+  pinweaver_eal_hmac_sha256_update(&hmac, nonce_older->buffer,
+                                   nonce_older->size);
+  pinweaver_eal_hmac_sha256_update(&hmac, digest_size_bits.buffer,
+                                   digest_size_bits.size);
+  pinweaver_eal_hmac_sha256_final(&hmac, key);
+
+  return true;
 }
 
 // This method performs an AES operation using a 128 bit key.
 // |operation_type| can be either AES_ENCRYPT or AES_DECRYPT and it
 // determines if the operation is an encryption or decryption.
-static void AesOperation(
+static bool AesOperation(
     HmacAuthorizationDelegate* delegate,
-    std::string* parameter,
+    src_data_buf_t* parameter,
     const TPM2B_NONCE& nonce_newer,
     const TPM2B_NONCE& nonce_older,
     int operation_type) {
-  std::string label("CFB", kLabelSize);
-  std::string compound_key =
-      CreateKey(delegate,
-                delegate->session_key_ + delegate->entity_authorization_value_, 
-                label, nonce_newer,
-                nonce_older);
+  if (parameter->size > kMaxDecryptSize) {
+    return false;
+  }
+  const src_data_buf_t kLabelCFB = {kLabelSize, (uint8_t *)"CFB"};
+  hmac_key_t hmac_key;
+  HmacKeyInit(&hmac_key);
+  HmacKeyAppend(&hmac_key, &delegate->session_key_);
+  HmacKeyAppend(&hmac_key, &delegate->entity_authorization_value_);
+  uint8_t compound_key[kSessionKeySize];
+  if (!CreateKey(delegate,
+                &hmac_key,
+                &kLabelCFB,
+                &nonce_newer,
+                &nonce_older,
+                compound_key)) {
+    return false;
+  }
   unsigned char aes_key[kAesKeySize];
   unsigned char aes_iv[kAesIVSize];
   memcpy(aes_key, &compound_key[0], kAesKeySize);
   memcpy(aes_iv, &compound_key[kAesKeySize], kAesIVSize);
-  unsigned char decrypted[kTpmBufferSize];
-  pinweaver_eal_aes128_cfb(aes_key, kAesKeySize, aes_iv,
-                           parameter->data(), parameter->size(), operation_type,
-                           decrypted);
-  char* dest = const_cast<char *>(parameter->data());
-  memcpy(dest, decrypted, parameter->size());
+  unsigned char decrypted[kMaxDecryptSize];
+  if (pinweaver_eal_aes128_cfb(aes_key, kAesKeySize, aes_iv,
+                               parameter->buffer, parameter->size,
+                               operation_type, decrypted) != 0) {
+    return false;
+  }
+  memcpy(parameter->buffer, decrypted, parameter->size);
+  return true;
 }
 
 // This method regenerates the caller nonce. The new nonce is the same
@@ -96,17 +124,18 @@ static void AesOperation(
 static void RegenerateCallerNonce(HmacAuthorizationDelegate* delegate) {
   // RAND_bytes takes a signed number, but since nonce_size is guaranteed to be
   // less than 32 bytes and greater than 16 we dont have to worry about it.
-  pinweaver_eal_rand_bytes(delegate->caller_nonce_.buffer, delegate->caller_nonce_.size);
+  pinweaver_eal_rand_bytes(delegate->caller_nonce_.buffer,
+                           delegate->caller_nonce_.size);
 }
 
 bool GetCommandAuthorizationHmac(
     HmacAuthorizationDelegate* delegate,
-    const std::string& command_hash,
+    const src_data_buf_t* command_hash,
     bool is_command_parameter_encryption_possible,
     bool is_response_parameter_encryption_possible,
-    std::string* authorization) {
+    dst_data_buf_t* authorization) {
   if (!delegate->session_handle_) {
-    authorization->clear();
+    authorization->size = 0;
     return false;
   }
   TPMS_AUTH_COMMAND auth;
@@ -126,31 +155,38 @@ bool GetCommandAuthorizationHmac(
   }
   // We reset the |nonce_generated| flag in preparation of the next command.
   delegate->nonce_generated_ = false;
-  std::string attributes_bytes;
-  if (Serialize_TPMA_SESSION(auth.session_attributes, &attributes_bytes) !=
+  UINT8 attributes_bytes_buf;
+  dst_data_buf_t attributes_bytes = {sizeof(attributes_bytes_buf), 0,
+                                     &attributes_bytes_buf};
+  if (Serialize_TPMA_SESSION(&auth.session_attributes, &attributes_bytes) !=
       TPM_RC_SUCCESS) {
     return false;
   }
 
-  std::string hmac_data;
-  std::string hmac_key;
+  hmac_key_t hmac_key;
+  HmacKeyInit(&hmac_key);
+  HmacKeyAppend(&hmac_key, &delegate->session_key_);
   if (!delegate->use_entity_authorization_for_encryption_only_) {
-    hmac_key = delegate->session_key_ + delegate->entity_authorization_value_;
-  } else {
-    hmac_key = delegate->session_key_;
+    HmacKeyAppend(&hmac_key, &delegate->entity_authorization_value_);
   }
-  hmac_data.append(command_hash);
-  hmac_data.append(reinterpret_cast<const char*>(delegate->caller_nonce_.buffer),
-                   delegate->caller_nonce_.size);
-  hmac_data.append(reinterpret_cast<const char*>(delegate->tpm_nonce_.buffer),
-                   delegate->tpm_nonce_.size);
-  hmac_data.append(attributes_bytes);
-  std::string digest = HmacSha256(hmac_key, hmac_data);
+  pinweaver_eal_hmac_sha256_ctx_t hmac;
+  pinweaver_eal_hmac_sha256_init(&hmac, hmac_key.buffer, hmac_key.size);
+  pinweaver_eal_hmac_sha256_update(&hmac,
+                                   command_hash->buffer,
+                                   command_hash->size);
+  pinweaver_eal_hmac_sha256_update(&hmac,
+                                   delegate->caller_nonce_.buffer,
+                                   delegate->caller_nonce_.size);
+  pinweaver_eal_hmac_sha256_update(&hmac,
+                                   delegate->tpm_nonce_.buffer,
+                                   delegate->tpm_nonce_.size);
+  pinweaver_eal_hmac_sha256_update(&hmac,
+                                   attributes_bytes.buffer,
+                                   attributes_bytes.size);
+  pinweaver_eal_hmac_sha256_final(&hmac, auth.hmac.buffer);
+  auth.hmac.size = SHA256_DIGEST_LENGTH;
 
-  auth.hmac.size = digest.size();
-  memcpy(auth.hmac.buffer, digest.data(), digest.size());
-
-  TPM_RC serialize_error = Serialize_TPMS_AUTH_COMMAND(auth, authorization);
+  TPM_RC serialize_error = Serialize_TPMS_AUTH_COMMAND(&auth, authorization);
   if (serialize_error != TPM_RC_SUCCESS) {
     return false;
   }
@@ -159,24 +195,21 @@ bool GetCommandAuthorizationHmac(
 
 bool CheckResponseAuthorizationHmac(
     HmacAuthorizationDelegate* delegate,
-    const std::string& response_hash,
-    const std::string& authorization) {
+    const src_data_buf_t* response_hash,
+    const src_data_buf_t* authorization) {
   if (!delegate->session_handle_) {
     return false;
   }
   TPMS_AUTH_RESPONSE auth_response;
-  std::string mutable_auth_string(authorization);
+  src_data_buf_t mutable_auth_string = {authorization->size,
+                                        authorization->buffer};
   TPM_RC parse_error;
-  std::string auth_bytes;
   parse_error = Parse_TPMS_AUTH_RESPONSE(&mutable_auth_string, &auth_response,
-                                         &auth_bytes);
-  if (authorization.size() != auth_bytes.size()) {
-    return false;
-  }
+                                         NULL);
   if (parse_error != TPM_RC_SUCCESS) {
     return false;
   }
-  if (!mutable_auth_string.empty()) {
+  if (mutable_auth_string.size != 0) {
     return false;
   }
   if (auth_response.hmac.size != kHashDigestSize) {
@@ -187,35 +220,44 @@ bool CheckResponseAuthorizationHmac(
     return false;
   }
   delegate->tpm_nonce_ = auth_response.nonce;
-  std::string attributes_bytes;
-  if (Serialize_TPMA_SESSION(auth_response.session_attributes,
+  UINT8 attributes_bytes_buf;
+  dst_data_buf_t attributes_bytes = {sizeof(attributes_bytes_buf), 0,
+                                     &attributes_bytes_buf};
+  if (Serialize_TPMA_SESSION(&auth_response.session_attributes,
                              &attributes_bytes) != TPM_RC_SUCCESS) {
     return false;
   }
 
-  std::string hmac_data;
-  std::string hmac_key;
+  hmac_key_t hmac_key;
+  HmacKeyInit(&hmac_key);
+  HmacKeyAppend(&hmac_key, &delegate->session_key_);
   if (!delegate->use_entity_authorization_for_encryption_only_) {
     // In a special case with TPM2_HierarchyChangeAuth, we need to use the
     // auth_value that was set.
     if (delegate->future_authorization_value_set_) {
-      hmac_key = delegate->session_key_ + delegate->future_authorization_value_;
+      HmacKeyAppend(&hmac_key, &delegate->future_authorization_value_);
       delegate->future_authorization_value_set_ = false;
     } else {
-      hmac_key = delegate->session_key_ + delegate->entity_authorization_value_;
+      HmacKeyAppend(&hmac_key, &delegate->entity_authorization_value_);
     }
-  } else {
-    hmac_key = delegate->session_key_;
   }
-  hmac_data.append(response_hash);
-  hmac_data.append(reinterpret_cast<const char*>(delegate->tpm_nonce_.buffer),
-                   delegate->tpm_nonce_.size);
-  hmac_data.append(reinterpret_cast<const char*>(delegate->caller_nonce_.buffer),
-                   delegate->caller_nonce_.size);
-  hmac_data.append(attributes_bytes);
-  std::string digest = HmacSha256(hmac_key, hmac_data);
-  if (!pinweaver_eal_safe_memcmp(digest.data(), auth_response.hmac.buffer,
-                                 digest.size())) {
+
+  pinweaver_eal_hmac_sha256_ctx_t hmac;
+  unsigned char digest[SHA256_DIGEST_LENGTH];
+
+  pinweaver_eal_hmac_sha256_init(&hmac, hmac_key.buffer, hmac_key.size);
+  pinweaver_eal_hmac_sha256_update(&hmac, response_hash->buffer,
+                                   response_hash->size);
+  pinweaver_eal_hmac_sha256_update(&hmac, delegate->tpm_nonce_.buffer,
+                                   delegate->tpm_nonce_.size);
+  pinweaver_eal_hmac_sha256_update(&hmac, delegate->caller_nonce_.buffer,
+                                   delegate->caller_nonce_.size);
+  pinweaver_eal_hmac_sha256_update(&hmac, attributes_bytes.buffer,
+                                   attributes_bytes.size);
+  pinweaver_eal_hmac_sha256_final(&hmac, digest);
+
+  if (!pinweaver_eal_safe_memcmp(digest, auth_response.hmac.buffer,
+                                 SHA256_DIGEST_LENGTH)) {
     return false;
   }
   return true;
@@ -223,7 +265,7 @@ bool CheckResponseAuthorizationHmac(
 
 bool EncryptCommandParameterHmac(
     HmacAuthorizationDelegate* delegate,
-    std::string* parameter) {
+    src_data_buf_t* parameter) {
   if (!delegate->session_handle_) {
     return false;
   }
@@ -231,20 +273,16 @@ bool EncryptCommandParameterHmac(
     // No parameter encryption enabled.
     return true;
   }
-  if (parameter->size() > kTpmBufferSize) {
-    return false;
-  }
   RegenerateCallerNonce(delegate);
   delegate->nonce_generated_ = true;
-  AesOperation(delegate, parameter,
-               delegate->caller_nonce_, delegate->tpm_nonce_,
-               PINWEAVER_EAL_ENCRYPT);
-  return true;
+  return AesOperation(delegate, parameter,
+                      delegate->caller_nonce_, delegate->tpm_nonce_,
+                      PINWEAVER_EAL_ENCRYPT);
 }
 
 bool DecryptResponseParameterHmac(
     HmacAuthorizationDelegate* delegate,
-    std::string* parameter) {
+    src_data_buf_t* parameter) {
   if (!delegate->session_handle_) {
     return false;
   }
@@ -252,50 +290,59 @@ bool DecryptResponseParameterHmac(
     // No parameter decryption enabled.
     return true;
   }
-  if (parameter->size() > kTpmBufferSize) {
-    return false;
-  }
-  AesOperation(delegate, parameter,
-               delegate->tpm_nonce_, delegate->caller_nonce_,
-               PINWEAVER_EAL_DECRYPT);
-  return true;
+  return AesOperation(delegate, parameter,
+                      delegate->tpm_nonce_, delegate->caller_nonce_,
+                      PINWEAVER_EAL_DECRYPT);
 }
 
 bool GetTpmNonceHmac(
     HmacAuthorizationDelegate* delegate,
-    std::string* nonce) {
+    dst_data_buf_t* nonce) {
   if (!delegate->tpm_nonce_.size)
     return false;
-  nonce->assign(delegate->tpm_nonce_.buffer, delegate->tpm_nonce_.buffer + delegate->tpm_nonce_.size);
+  if (nonce->max_size < delegate->tpm_nonce_.size)
+    return false;
+  memcpy(nonce->buffer, &delegate->tpm_nonce_.buffer,
+         delegate->tpm_nonce_.size);
+  nonce->size = delegate->tpm_nonce_.size;
   return true;
 }
 
 bool InitSession(
     HmacAuthorizationDelegate* delegate,
     TPM_HANDLE session_handle,
-    const TPM2B_NONCE& tpm_nonce,
-    const TPM2B_NONCE& caller_nonce,
-    const std::string& salt,
-    const std::string& bind_auth_value,
+    const TPM2B_NONCE* tpm_nonce,
+    const TPM2B_NONCE* caller_nonce,
+    const TPM2B_DIGEST* salt,
+    const TPM2B_DIGEST* bind_auth_value,
     bool enable_parameter_encryption) {
   memset((void *)delegate, 0, sizeof(HmacAuthorizationDelegate));
   delegate->session_handle_ = session_handle;
-  if (caller_nonce.size < kNonceMinSize || caller_nonce.size > kNonceMaxSize ||
-      tpm_nonce.size < kNonceMinSize || tpm_nonce.size > kNonceMaxSize) {
+  if (caller_nonce->size < kNonceMinSize
+      || caller_nonce->size > kNonceMaxSize
+      || tpm_nonce->size < kNonceMinSize
+      || tpm_nonce->size > kNonceMaxSize) {
     return false;
   }
-  delegate->tpm_nonce_ = tpm_nonce;
-  delegate->caller_nonce_ = caller_nonce;
-  std::string session_key_label("ATH", kLabelSize);
+  memcpy(&delegate->tpm_nonce_, tpm_nonce, sizeof(TPM2B_NONCE));
+  memcpy(&delegate->caller_nonce_, caller_nonce, sizeof(TPM2B_NONCE));
   delegate->is_parameter_encryption_enabled_ = enable_parameter_encryption;
-  if (salt.length() == 0 && bind_auth_value.length() == 0) {
+  if (salt->size == 0 && bind_auth_value->size == 0) {
     // SessionKey is set to the empty string for unsalted and
     // unbound sessions.
-    delegate->session_key_ = std::string();
+    delegate->session_key_.size = 0;
   } else {
-    delegate->session_key_ =
-        CreateKey(delegate, bind_auth_value + salt, session_key_label,
-                  delegate->tpm_nonce_, delegate->caller_nonce_);
+    src_data_buf_t kLabelATH = {kLabelSize, (uint8_t *)"ATH"};
+    hmac_key_t hmac_key;
+    HmacKeyInit(&hmac_key);
+    HmacKeyAppend(&hmac_key, bind_auth_value);
+    HmacKeyAppend(&hmac_key, salt);
+    if (!CreateKey(delegate, &hmac_key, &kLabelATH,
+                   &delegate->tpm_nonce_, &delegate->caller_nonce_,
+                   delegate->session_key_.buffer)) {
+      return false;
+    }
+    delegate->session_key_.size = kSessionKeySize;
   }
   return true;
 }

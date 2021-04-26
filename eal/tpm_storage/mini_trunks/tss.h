@@ -5,6 +5,9 @@
 #ifndef MINI_TRUNKS_TSS_H_
 #define MINI_TRUNKS_TSS_H_
 
+#include <stddef.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1653,6 +1656,17 @@ struct FIDO_DATA_RANGE {
   UINT16 size;
 };
 
+typedef struct src_data_buf_t {
+  size_t size;
+  uint8_t* buffer;
+} src_data_buf_t;
+
+typedef struct dst_data_buf_t {
+  size_t max_size;
+  size_t size;
+  uint8_t* buffer;
+} dst_data_buf_t;
+
 // TPM Object Attributes.
 const TPMA_OBJECT kFixedTPM = 1U << 1;
 const TPMA_OBJECT kFixedParent = 1U << 4;
@@ -1705,76 +1719,76 @@ const TPM_RC TRUNKS_RC_SERIALIZATION_ERROR = kTrunksErrorBase + 8;
 const TPM_RC TRUNKS_RC_HASH_ERROR = kTrunksErrorBase + 9;
 
 TPM_RC StartAuthSession(
-    const TPMI_DH_OBJECT& tpm_key,
-    const std::string& tpm_key_name,
-    const TPMI_DH_ENTITY& bind,
-    const std::string& bind_name,
-    const TPM2B_NONCE& nonce_caller,
-    const TPM2B_ENCRYPTED_SECRET& encrypted_salt,
-    const TPM_SE& session_type,
-    const TPMT_SYM_DEF& symmetric,
-    const TPMI_ALG_HASH& auth_hash,
+    const TPMI_DH_OBJECT tpm_key,
+    const TPM2B_DIGEST* tpm_key_name,
+    const TPMI_DH_ENTITY bind,
+    const TPM2B_DIGEST* bind_name,
+    const TPM2B_NONCE* nonce_caller,
+    const TPM2B_ENCRYPTED_SECRET* encrypted_salt,
+    const TPM_SE session_type,
+    const TPMT_SYM_DEF* symmetric,
+    const TPMI_ALG_HASH auth_hash,
     TPMI_SH_AUTH_SESSION* session_handle,
     TPM2B_NONCE* nonce_tpm,
     AuthorizationDelegate* authorization_delegate);
 
-TPM_RC ReadPublic(const TPMI_DH_OBJECT& object_handle,
-                  const std::string& object_handle_name,
+TPM_RC ReadPublic(const TPMI_DH_OBJECT object_handle,
+                  const TPM2B_DIGEST* object_handle_name,
                   TPM2B_PUBLIC* out_public,
                   TPM2B_NAME* name,
                   TPM2B_NAME* qualified_name,
                   AuthorizationDelegate* authorization_delegate);
 
 TPM_RC PolicyCommandCode(
-    const TPMI_SH_POLICY& policy_session,
-    const std::string& policy_session_name,
-    const TPM_CC& code,
+    const TPMI_SH_POLICY policy_session,
+    const TPM2B_DIGEST* policy_session_name,
+    const TPM_CC code,
     AuthorizationDelegate* authorization_delegate);
 
 TPM_RC PolicyAuthValue(
-    const TPMI_SH_POLICY& policy_session,
-    const std::string& policy_session_name,
+    const TPMI_SH_POLICY policy_session,
+    const TPM2B_DIGEST* policy_session_name,
     AuthorizationDelegate* authorization_delegate);
 
 TPM_RC FlushContext(
-    const TPMI_DH_CONTEXT& flush_handle,
+    const TPMI_DH_CONTEXT flush_handle,
     AuthorizationDelegate* authorization_delegate);
 
 TPM_RC NV_DefineSpace(
-    const TPMI_RH_PROVISION& auth_handle,
-    const std::string& auth_handle_name,
-    const TPM2B_AUTH& auth,
-    const TPM2B_NV_PUBLIC& public_info,
+    const TPMI_RH_PROVISION auth_handle,
+    const TPM2B_DIGEST* auth_handle_name,
+    const TPM2B_AUTH* auth,
+    const TPM2B_NV_PUBLIC* public_info,
     AuthorizationDelegate* authorization_delegate);
 
 TPM_RC NV_ReadPublic(
-    const TPMI_RH_NV_INDEX& nv_index,
-    const std::string& nv_index_name,
+    const TPMI_RH_NV_INDEX nv_index,
+    const TPM2B_DIGEST* nv_index_name,
     TPM2B_NV_PUBLIC* nv_public,
     TPM2B_NAME* nv_name,
     AuthorizationDelegate* authorization_delegate);
 
-TPM_RC NV_Write(const TPMI_RH_NV_AUTH& auth_handle,
-                const std::string& auth_handle_name,
-                const TPMI_RH_NV_INDEX& nv_index,
-                const std::string& nv_index_name,
-                const TPM2B_MAX_NV_BUFFER& data,
-                const UINT16& offset,
+TPM_RC NV_Write(const TPMI_RH_NV_AUTH auth_handle,
+                const TPM2B_DIGEST* auth_handle_name,
+                const TPMI_RH_NV_INDEX nv_index,
+                const TPM2B_DIGEST* nv_index_name,
+                const TPM2B_MAX_NV_BUFFER* data,
+                const UINT16 offset,
                 AuthorizationDelegate* authorization_delegate);
 
-TPM_RC NV_Read(const TPMI_RH_NV_AUTH& auth_handle,
-               const std::string& auth_handle_name,
-               const TPMI_RH_NV_INDEX& nv_index,
-               const std::string& nv_index_name,
-               const UINT16& size,
-               const UINT16& offset,
+TPM_RC NV_Read(const TPMI_RH_NV_AUTH auth_handle,
+               const TPM2B_DIGEST* auth_handle_name,
+               const TPMI_RH_NV_INDEX nv_index,
+               const TPM2B_DIGEST* nv_index_name,
+               const UINT16 size,
+               const UINT16 offset,
                TPM2B_MAX_NV_BUFFER* data,
                AuthorizationDelegate* authorization_delegate);
 
 TPM_RC NV_ChangeAuth(
-    const TPMI_RH_NV_INDEX& nv_index,
-    const std::string& nv_index_name,
-    const TPM2B_AUTH& new_auth,
+    const TPMI_RH_NV_INDEX nv_index,
+    const TPM2B_DIGEST* nv_index_name,
+    const TPM2B_AUTH* new_auth,
     AuthorizationDelegate* authorization_delegate);
 
 #ifdef __cplusplus
