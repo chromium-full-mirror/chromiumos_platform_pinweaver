@@ -42,8 +42,6 @@ int pinweaver_eal_hmac_sha256_init(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 				   const void *key,
 				   size_t key_size /* in bytes */)
 {
-	if (key_size != 256/8)
-		return -1;
 	*ctx = HMAC_CTX_new();
 	if (!*ctx)
 		return -1;
