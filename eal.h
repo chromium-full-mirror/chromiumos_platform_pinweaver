@@ -85,6 +85,7 @@ uint8_t pinweaver_eal_get_current_pcr_digest(
 /*
  * Storage functions.
  */
+int pinweaver_eal_storage_start();
 int pinweaver_eal_storage_init_state(uint8_t *root_hash,
 				     uint32_t *restart_count);
 

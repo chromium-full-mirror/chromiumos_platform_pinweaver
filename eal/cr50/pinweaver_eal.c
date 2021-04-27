@@ -130,6 +130,11 @@ uint64_t pinweaver_eal_seconds_since_boot()
 	return get_time().val / SECOND;
 }
 
+int pinweaver_eal_storage_start()
+{
+	return 0;
+}
+
 static int pinweaver_eal_storage_get_log_var(struct tuple **var_ptr,
 					     struct pw_log_storage_t **log_ptr)
 {

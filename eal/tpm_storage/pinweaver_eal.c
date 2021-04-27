@@ -153,6 +153,11 @@ uint64_t pinweaver_eal_seconds_since_boot()
 	return 11;
 }
 
+int pinweaver_eal_storage_start()
+{
+	return 0;
+}
+
 int pinweaver_eal_storage_init_state(uint8_t *root_hash,
 				     uint32_t *restart_count)
 {
