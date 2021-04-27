@@ -98,7 +98,7 @@ int pinweaver_eal_hmac_sha256_update(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 }
 
 int pinweaver_eal_hmac_sha256_final(pinweaver_eal_hmac_sha256_ctx_t *ctx,
-				    unsigned char *res)
+				    void *res)
 {
 	memcpy(res, DCRYPTO_HMAC_final(ctx), SHA256_DIGEST_SIZE);
 	return 0;

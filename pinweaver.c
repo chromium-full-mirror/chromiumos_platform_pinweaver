@@ -3,9 +3,10 @@
  * found in the LICENSE file.
  */
 
-#include <eal.h>
-#include <pinweaver.h>
 #include <string.h>
+
+#include "pinweaver.h"
+#include "pinweaver_eal.h"
 
 /* TODO(apronin): get rid of temporary #defines */
 

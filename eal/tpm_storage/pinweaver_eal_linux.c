@@ -3,22 +3,13 @@
  * found in the LICENSE file.
  */
 
-#include <eal.h>
-#include <eal_tpm.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <string.h>
+#include <sys/sysinfo.h>
 
-/* Make sure the largest possible message would fit in
- * (struct tpm_register_file).data_fifo.
- */
-BUILD_ASSERT(PW_MAX_MESSAGE_SIZE + 12 /* sizeof(struct tpm_cmd_header) */ <= 2048);
-
-int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree)
-{
-	/* TODO */
-	return 0;
-}
+#include "pinweaver_eal.h"
+#include "pinweaver_eal_tpm.h"
 
 int pinweaver_eal_sha256_init(pinweaver_eal_sha256_ctx_t *ctx)
 {
@@ -55,7 +46,7 @@ int pinweaver_eal_hmac_sha256_update(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 }
 
 int pinweaver_eal_hmac_sha256_final(pinweaver_eal_hmac_sha256_ctx_t *ctx,
-				    unsigned char *res)
+				    void *res)
 {
 	unsigned int len;
 	int rv = HMAC_Final(*ctx, res, &len);
@@ -138,8 +129,14 @@ int pinweaver_eal_aes128_cfb(const void *key,
 
 int pinweaver_eal_safe_memcmp(const void *s1, const void *s2, size_t len)
 {
-	/* TODO */
-	return memcmp(s1, s2, len);
+	const uint8_t *us1 = s1;
+	const uint8_t *us2 = s2;
+	int result = 0;
+
+	while (len--)
+		result |= *us1++ ^ *us2++;
+
+	return result != 0;
 }
 
 int pinweaver_eal_rand_bytes(void *buf, size_t size)
@@ -149,53 +146,9 @@ int pinweaver_eal_rand_bytes(void *buf, size_t size)
 
 uint64_t pinweaver_eal_seconds_since_boot()
 {
-	/* TODO */
-	return 11;
-}
+	struct sysinfo si;
+	if (sysinfo(&si))
+		return 0;
 
-int pinweaver_eal_storage_start()
-{
-	return 0;
+	return (uint64_t)si.uptime;
 }
-
-int pinweaver_eal_storage_init_state(uint8_t *root_hash,
-				     uint32_t *restart_count)
-{
-	/* TODO */
-	*restart_count = 0;
-	return 0;
-}
-
-int pinweaver_eal_storage_get_log(struct pw_log_storage_t *dest)
-{
-	/* TODO */
-	return 0;
-}
-
-int pinweaver_eal_storage_set_log(const struct pw_log_storage_t *log)
-{
-	/* TODO */
-	return 0;
-}
-
-int pinweaver_eal_storage_get_tree_data(struct pw_long_term_storage_t *dest)
-{
-	/* TODO */
-	return 0;
-}
-
-int pinweaver_eal_storage_set_tree_data(
-		const struct pw_long_term_storage_t *data)
-{
-	/* TODO */
-	return 0;
-}
-
-uint8_t pinweaver_eal_get_current_pcr_digest(
-		const uint8_t bitmask[2],
-		uint8_t sha256_of_selected_pcr[32])
-{
-	/* TODO */
-	return 0;
-}
-

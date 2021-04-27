@@ -9,13 +9,13 @@
 // by |is_*_parameter_encryption_possible|. On success, |authorization| is
 // populated with the exact octets for the Authorization Area of the command.
 // Returns true on success.
-bool GetCommandAuthorization(
-    AuthorizationDelegate* delegate,
-    const src_data_buf_t* command_hash,
+int tss_GetCommandAuthorization(
+    TSS_AUTHORIZATION_DELEGATE* delegate,
+    const TSS_SRC_DATA_BUF* command_hash,
     bool is_command_parameter_encryption_possible,
     bool is_response_parameter_encryption_possible,
-    dst_data_buf_t* authorization) {
-  return GetCommandAuthorizationHmac(
+    TSS_DST_DATA_BUF* authorization) {
+  return tss_GetCommandAuthorizationHmac(
       &delegate->hmac,
       command_hash, 
       is_command_parameter_encryption_possible,
@@ -27,32 +27,32 @@ bool GetCommandAuthorization(
 // |response_hash|. The exact octets from the Authorization Area of the
 // response are given in |authorization|. Returns true iff the authorization
 // is valid.
-bool CheckResponseAuthorization(
-    AuthorizationDelegate* delegate,
-    const src_data_buf_t* response_hash,
-    const src_data_buf_t* authorization) {
-  return CheckResponseAuthorizationHmac(
+int tss_CheckResponseAuthorization(
+    TSS_AUTHORIZATION_DELEGATE* delegate,
+    const TSS_SRC_DATA_BUF* response_hash,
+    const TSS_SRC_DATA_BUF* authorization) {
+  return tss_CheckResponseAuthorizationHmac(
       &delegate->hmac, response_hash, authorization);
 }
 
 // Encrypts |parameter| if encryption is enabled. Returns true on success.
-bool EncryptCommandParameter(
-    AuthorizationDelegate* delegate,
-    src_data_buf_t* parameter) {
-  return EncryptCommandParameterHmac(&delegate->hmac, parameter);
+int tss_EncryptCommandParameter(
+    TSS_AUTHORIZATION_DELEGATE* delegate,
+    TSS_SRC_DATA_BUF* parameter) {
+  return tss_EncryptCommandParameterHmac(&delegate->hmac, parameter);
 }
 
 // Decrypts |parameter| if encryption is enabled. Returns true on success.
-bool DecryptResponseParameter(
-    AuthorizationDelegate* delegate,
-    src_data_buf_t* parameter) {
-  return DecryptResponseParameterHmac(&delegate->hmac, parameter);
+int tss_DecryptResponseParameter(
+    TSS_AUTHORIZATION_DELEGATE* delegate,
+    TSS_SRC_DATA_BUF* parameter) {
+  return tss_DecryptResponseParameterHmac(&delegate->hmac, parameter);
 }
 
 // Returns the current TPM-generated nonce that is associated with the
 // authorization session. Returns true on success.
-bool GetTpmNonce(
-    AuthorizationDelegate* delegate,
-    dst_data_buf_t* nonce) {
-  return GetTpmNonceHmac(&delegate->hmac, nonce);
+int tss_GetTpmNonce(
+    TSS_AUTHORIZATION_DELEGATE* delegate,
+    TSS_DST_DATA_BUF* nonce) {
+  return tss_GetTpmNonceHmac(&delegate->hmac, nonce);
 }

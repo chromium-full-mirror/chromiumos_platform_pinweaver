@@ -8,8 +8,9 @@
 #define __PINWEAVER_EAL_H
 
 #include <stddef.h>
-#include <eal_types.h>
-#include <pinweaver.h>
+
+#include "pinweaver.h"
+#include "pinweaver_eal_types.h"
 
 #ifndef PINWEAVER_EAL_INFO
 #define PINWEAVER_EAL_INFO(...)
@@ -46,7 +47,7 @@ int pinweaver_eal_hmac_sha256_update(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 				     const void *data,
 				     size_t size);
 int pinweaver_eal_hmac_sha256_final(pinweaver_eal_hmac_sha256_ctx_t *ctx,
-				    unsigned char *res);
+				    void *res);
 
 /*
  * Perform AES-256 CTR.
