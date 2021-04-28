@@ -4,10 +4,10 @@
  */
 
 #include <common.h>
-#include <eal.h>
 #include <extension.h>
 #include <hooks.h>
 #include <nvmem_vars.h>
+#include <pinweaver_eal.h>
 #include <timer.h>
 #include <tpm_vendor_cmds.h>
 #include <trng.h>
