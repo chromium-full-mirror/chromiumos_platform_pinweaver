@@ -52,3 +52,9 @@ int pinweaver_eal_storage_set_tree_data(
 	/* TODO */
 	return 0;
 }
+
+int pinweaver_eal_storage_initialize_owner()
+{
+	/* TODO */
+	return 0;
+}

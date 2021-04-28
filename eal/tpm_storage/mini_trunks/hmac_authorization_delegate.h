@@ -71,7 +71,7 @@ int tss_GetTpmNonceHmac(
 // specifies if parameter encryption should be enabled for this delegate.
 // |salt| and |bind_auth_value| specify the injected auth values into this
 // delegate.
-int tss_InitSession(
+int tss_InitSessionHmac(
     TSS_AUTHORIZATION_DELEGATE_HMAC* delegate,
     TPM_HANDLE session_handle,
     const TPM2B_NONCE* tpm_nonce,

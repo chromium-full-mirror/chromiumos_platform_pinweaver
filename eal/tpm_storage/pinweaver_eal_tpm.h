@@ -16,6 +16,11 @@
 
 #define PINWEAVER_TSS_MAX_MESSAGE_SIZE 4096
 
+#define SALTING_KEY_HANDLE (TPM_HT_PERSISTENT + 10 /* TODO */)
+#define TREE_DESCRIPTOR_HANDLE (0 /* TODO */)
+#define LOG_ENTRY_PERSIST_HANDLE (TREE_DESCRIPTOR_HANDLE + 1)
+#define LOG_ENTRY_FIRST_HANDLE (LOG_ENTRY_PERSIST_HANDLE + 1)
+
 int pinweaver_eal_tpm_initialize();
 
 // Sends a TPM command synchronously and returns the response. If a transmission
@@ -43,6 +48,7 @@ int pinweaver_eal_aes128_cfb(const void *key,
 
 #define PINWEAVER_EAL_AUTH_CURRENT 0
 #define PINWEAVER_EAL_AUTH_PREVIOUS 1
+#define PINWEAVER_EAL_CONST 2
 int pinweaver_eal_get_device_key(int kind,
 				 void* key /* 256-bit */);
 

@@ -345,7 +345,9 @@ int tss_InitSessionHmac(
     TSS_SRC_DATA_BUF kLabelATH = {LABEL_SIZE, (uint8_t *)"ATH"};
     HMAC_KEY hmac_key;
     HmacKeyInit(&hmac_key);
-    HmacKeyAppend(&hmac_key, bind_auth_value);
+    if (bind_auth_value) {
+      HmacKeyAppend(&hmac_key, bind_auth_value);
+    }
     HmacKeyAppend(&hmac_key, salt);
     if (CreateKey(delegate, &hmac_key, &kLabelATH,
                   &delegate->tpm_nonce_, &delegate->caller_nonce_,
