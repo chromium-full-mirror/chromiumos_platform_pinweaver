@@ -152,3 +152,19 @@ uint64_t pinweaver_eal_seconds_since_boot()
 
 	return (uint64_t)si.uptime;
 }
+
+int pinweaver_eal_get_device_key(int kind,
+		void* key /* 256-bit */)
+{
+	/* TODO */
+	return 0;
+}
+
+uint8_t pinweaver_eal_get_current_pcr_digest(
+		const uint8_t bitmask[2],
+		uint8_t sha256_of_selected_pcr[32])
+{
+	/* TODO */
+	return 0;
+}
+

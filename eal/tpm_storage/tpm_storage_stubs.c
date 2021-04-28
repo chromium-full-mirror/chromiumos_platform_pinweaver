@@ -52,20 +52,3 @@ int pinweaver_eal_storage_set_tree_data(
 	/* TODO */
 	return 0;
 }
-
-uint8_t pinweaver_eal_get_current_pcr_digest(
-		const uint8_t bitmask[2],
-		uint8_t sha256_of_selected_pcr[32])
-{
-	/* TODO */
-	return 0;
-}
-
-int pinweaver_eal_get_auth_value(
-		int kind, /* CURRENT/PREVIOUS */
-		void* auth_value /* 256-bit */)
-{
-	/* TODO */
-	memset(auth_value, 0xA5, 256/8);
-	return 0;
-}
