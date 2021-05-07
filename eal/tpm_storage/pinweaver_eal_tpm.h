@@ -7,6 +7,7 @@
 #ifndef __PINWEAVER_EAL_TPM_H
 #define __PINWEAVER_EAL_TPM_H
 
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "pinweaver_eal_types.h"
@@ -43,5 +44,12 @@ int pinweaver_eal_aes128_cfb(const void *key,
 #define PINWEAVER_EAL_AUTH_PREVIOUS 1
 int pinweaver_eal_get_device_key(int kind,
 				 void* key /* 256-bit */);
+
+/*
+ * Get Salting key hash from storage.
+ * `*committed` is set to true if it is committed to write-once memory,
+ * and false if it comes from SRAM.
+ */
+int pinweaver_get_tpm_key_hash(uint8_t tpm_key_hash[32], bool* committed);
 
 #endif  /* __PINWEAVER_EAL_H */

@@ -160,6 +160,14 @@ int pinweaver_eal_get_device_key(int kind,
 	return 0;
 }
 
+int pinweaver_get_tpm_key_hash(uint8_t tpm_key_hash[32], bool* committed)
+{
+	/* TODO */
+	memset(tpm_key_hash, 0, 32);
+	*committed = true;
+	return 0;
+}
+
 uint8_t pinweaver_eal_get_current_pcr_digest(
 		const uint8_t bitmask[2],
 		uint8_t sha256_of_selected_pcr[32])
