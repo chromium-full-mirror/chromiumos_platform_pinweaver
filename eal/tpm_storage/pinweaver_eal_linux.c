@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include <openssl/bn.h>
+#include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <string.h>
@@ -176,3 +178,184 @@ uint8_t pinweaver_eal_get_current_pcr_digest(
 	return 0;
 }
 
+static int tpm_to_openssl_ec_point(const TPMS_ECC_POINT* point,
+		const EC_GROUP* ec_group,
+		EC_POINT* ec_point)
+{
+	BN_CTX* ctx = BN_CTX_new();
+
+	BIGNUM* x = BN_CTX_get(ctx);
+	BIGNUM* y = BN_CTX_get(ctx);
+
+	if (!x || !y) {
+		PINWEAVER_EAL_INFO("%s: failed to create bignums", __func__);
+		BN_CTX_free(ctx);
+		return -1;
+	}
+
+	int res = 1;
+	if (res) {
+		res = !!BN_bin2bn((const unsigned char*)(point->x.buffer),
+				point->x.size, x);
+	}
+	if (res) {
+		res = !!BN_bin2bn((const unsigned char*)(point->y.buffer),
+				point->y.size, y);
+	}
+	if (res) {
+		res = EC_POINT_set_affine_coordinates_GFp(ec_group, ec_point,
+				x, y, ctx);
+	}
+	if (!res) {
+		PINWEAVER_EAL_INFO("%s: failed to convert", __func__);
+	}
+	BN_CTX_free(ctx);
+	return res ? -1 : 0;
+}
+
+static int bignum_to_tpm_param(const BIGNUM* coord,
+		TPM2B_ECC_PARAMETER* param)
+{
+	const int kEccPointSize = 256/8; /* P-256 curve point size */
+	int key_size = BN_num_bytes(coord);
+	if (key_size > kEccPointSize) {
+		PINWEAVER_EAL_INFO("%s: too big (%d > %d)", __func__, key_size, kEccPointSize);
+		return -1;
+	}
+	memset(param->buffer, 0, sizeof(param->buffer));
+	unsigned char* start_pos =
+		(unsigned char*)(param->buffer) + kEccPointSize - key_size;
+	if (BN_bn2bin(coord, start_pos) != key_size) {
+		PINWEAVER_EAL_INFO("%s: unexpected BN_bn2bin size", __func__);
+		return -1;
+	}
+
+	param->size = kEccPointSize;
+	return 0;
+}
+
+static int openssl_to_tpm_ec_point(const EC_GROUP* ec_group,
+		const EC_POINT* point,
+		TPMS_ECC_POINT* tpm_point)
+{
+	BN_CTX* ctx = BN_CTX_new();
+
+	BIGNUM* x = BN_CTX_get(ctx);
+	BIGNUM* y = BN_CTX_get(ctx);
+
+	if (!x || !y) {
+		PINWEAVER_EAL_INFO("%s: failed to create bignums", __func__);
+		BN_CTX_free(ctx);
+		return -1;
+	}
+
+
+	int res = 0;
+	if (!res) {
+		res = !EC_POINT_get_affine_coordinates_GFp(ec_group, point,
+				x, y, ctx);
+		if (res) {
+			PINWEAVER_EAL_INFO("%s: failed to get X and Y", __func__);
+		}
+	}
+	if (!res) {
+		res = bignum_to_tpm_param(x, &tpm_point->x);
+	}
+	if (!res) {
+		res = bignum_to_tpm_param(y, &tpm_point->y);
+	}
+	BN_CTX_free(ctx);
+	return res;
+}
+
+static int try_generating_points(const TPMS_ECC_POINT* pub_key,
+		TPMS_ECC_POINT* ephemeral_point,
+		TPMS_ECC_POINT* z_point)
+{
+	EC_KEY* ephemeral_key = NULL;
+	EC_GROUP* ec_group = NULL;
+	EC_POINT* z = NULL;
+	EC_POINT* pub = NULL;
+
+	int res = -1;
+	do {
+		ephemeral_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+		if (!ephemeral_key) {
+			PINWEAVER_EAL_INFO("%s: failed to create new key", __func__);
+			break;
+		}
+
+		if (!EC_KEY_generate_key(ephemeral_key)) {
+			PINWEAVER_EAL_INFO("%s: failed to generate key", __func__);
+			break;
+		}
+
+		ec_group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1);
+		if (!ec_group) {
+			PINWEAVER_EAL_INFO("%s: failed to create new group", __func__);
+			break;
+		}
+
+		const EC_POINT* ephemeral_pub =
+			EC_KEY_get0_public_key(ephemeral_key);
+		const BIGNUM* ephemeral_pri =
+			EC_KEY_get0_private_key(ephemeral_key);
+
+		z = EC_POINT_new(ec_group);
+		pub = EC_POINT_new(ec_group);
+		if (!z || !pub) {
+			PINWEAVER_EAL_INFO("%s: failed to create Z and pub points", __func__);
+			break;
+		}
+
+		if (!tpm_to_openssl_ec_point(pub_key, ec_group, pub)) {
+			PINWEAVER_EAL_INFO("%s: failed to convert pub_point", __func__);
+			break;
+		}
+
+		if (!EC_POINT_mul(ec_group, z, /* n = */ NULL, pub,
+				ephemeral_pri, /* ctx = */ NULL)) {
+			PINWEAVER_EAL_INFO("%s: failed to compute Z", __func__);
+			break;
+		}
+
+		if (EC_POINT_is_at_infinity(ec_group, z)) {
+			PINWEAVER_EAL_INFO("%s: Z = infinity, retry", __func__);
+			break;
+		}
+
+		if (openssl_to_tpm_ec_point(ec_group, ephemeral_pub, ephemeral_point)) {
+			PINWEAVER_EAL_INFO("%s: failed to convert ephemeral", __func__);
+			break;
+		}
+
+		if (openssl_to_tpm_ec_point(ec_group, z, z_point)) {
+			PINWEAVER_EAL_INFO("%s: failed to convert Z", __func__);
+			break;
+		}
+
+		res = 0;
+	} while(0);
+
+	EC_KEY_free(ephemeral_key);
+	EC_GROUP_free(ec_group);
+	EC_POINT_free(z);
+	EC_POINT_free(pub);
+
+	return res;
+}
+
+int pinweaver_eal_generate_ecdh_points(const TPMS_ECC_POINT* pub_key,
+		TPMS_ECC_POINT* ephemeral_point,
+		TPMS_ECC_POINT* z_point)
+{
+	const int kRetryLimit = 3;
+	int retry;
+	for (retry = 0; retry < kRetryLimit; ++retry) {
+		if (try_generating_points(pub_key, ephemeral_point,
+				z_point) == 0)
+			return 0;
+	}
+	PINWEAVER_EAL_INFO("%s: failed to generate points", __func__);
+	return -1;
+}

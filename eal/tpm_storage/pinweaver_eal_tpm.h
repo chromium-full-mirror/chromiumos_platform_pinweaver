@@ -12,6 +12,7 @@
 
 #include "pinweaver_eal_types.h"
 #include "pinweaver.h"
+#include "mini_trunks/tss_types.h"
 
 #define PINWEAVER_TSS_MAX_MESSAGE_SIZE 4096
 
@@ -51,5 +52,12 @@ int pinweaver_eal_get_device_key(int kind,
  * and false if it comes from SRAM.
  */
 int pinweaver_get_tpm_key_hash(uint8_t tpm_key_hash[32], bool* committed);
+
+/* Generate ECDH ephemeral point and z point based on EC public point
+ * for NIST P256 curve.
+ */
+int pinweaver_eal_generate_ecdh_points(const TPMS_ECC_POINT* pub_key,
+		TPMS_ECC_POINT* ephemeral_point,
+		TPMS_ECC_POINT* z_point);
 
 #endif  /* __PINWEAVER_EAL_H */
