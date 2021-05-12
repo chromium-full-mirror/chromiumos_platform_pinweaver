@@ -7,7 +7,8 @@
 
 #include "pinweaver_eal.h"
 #include "pinweaver_eal_tpm.h"
-#include "tss_internal.h"
+#include "tss.h"
+#include "tss_serde.h"
 
 #define MAX_AUTH_SECTION_SIZE (3 * sizeof(TPMS_AUTH_COMMAND))
 #define SIZE_OFFSET 2

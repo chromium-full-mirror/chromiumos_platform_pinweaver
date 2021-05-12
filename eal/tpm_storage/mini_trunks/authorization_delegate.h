@@ -7,17 +7,6 @@
 
 #include "hmac_authorization_delegate.h"
 
-typedef struct TSS_SRC_DATA_BUF {
-  size_t size;
-  uint8_t* buffer;
-} TSS_SRC_DATA_BUF;
-
-typedef struct TSS_DST_DATA_BUF {
-  size_t max_size;
-  size_t size;
-  uint8_t* buffer;
-} TSS_DST_DATA_BUF;
-
 typedef struct TSS_AUTHORIZATION_DELEGATE {
   TSS_AUTHORIZATION_DELEGATE_HMAC hmac;
 } TSS_AUTHORIZATION_DELEGATE;

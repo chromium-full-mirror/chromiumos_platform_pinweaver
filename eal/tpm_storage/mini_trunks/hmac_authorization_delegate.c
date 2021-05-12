@@ -4,9 +4,9 @@
 
 #include <string.h>
 
+#include "hmac_authorization_delegate.h"
 #include "pinweaver_eal.h"
 #include "pinweaver_eal_tpm.h"
-#include "tss_internal.h"
 
 #define NONCE_MIN_SIZE 16
 #define NONCE_MAX_SIZE 32

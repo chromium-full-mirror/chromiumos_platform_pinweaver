@@ -3,12 +3,9 @@
 // found in the LICENSE file.
 
 #ifndef MINI_TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_
-#define MINI_TRUNKS_AUTHORIZATION_DELEGATE_H_
+#define MINI_TRUNKS_HMAC_AUTHORIZATION_DELEGATE_H_
 
-#include "tss_types.h"
-
-struct TSS_SRC_DATA_BUF;
-struct TSS_DST_DATA_BUF;
+#include "tss_serde.h"
 
 // TSS_AUTHORIZATION_DELEGATE is an interface passed to TPM commands. The delegate
 // takes care of providing the authorization data for commands and verifying
@@ -37,10 +34,10 @@ typedef struct TSS_AUTHORIZATION_DELEGATE_HMAC {
 // Returns 0 on success.
 int tss_GetCommandAuthorizationHmac(
     TSS_AUTHORIZATION_DELEGATE_HMAC* delegate,
-    const struct TSS_SRC_DATA_BUF* command_hash,
+    const TSS_SRC_DATA_BUF* command_hash,
     bool is_command_parameter_encryption_possible,
     bool is_response_parameter_encryption_possible,
-    struct TSS_DST_DATA_BUF* authorization);
+    TSS_DST_DATA_BUF* authorization);
 
 // Checks authorization data for a response which has a rpHash value of
 // |response_hash|. The exact octets from the Authorization Area of the
@@ -48,24 +45,24 @@ int tss_GetCommandAuthorizationHmac(
 // is valid.
 int tss_CheckResponseAuthorizationHmac(
     TSS_AUTHORIZATION_DELEGATE_HMAC* delegate,
-    const struct TSS_SRC_DATA_BUF* response_hash,
-    const struct TSS_SRC_DATA_BUF* authorization);
+    const TSS_SRC_DATA_BUF* response_hash,
+    const TSS_SRC_DATA_BUF* authorization);
 
 // Encrypts |parameter| if encryption is enabled. Returns true on success.
 int tss_EncryptCommandParameterHmac(
     TSS_AUTHORIZATION_DELEGATE_HMAC* delegate,
-    struct TSS_SRC_DATA_BUF* parameter);
+    TSS_SRC_DATA_BUF* parameter);
 
 // Decrypts |parameter| if encryption is enabled. Returns true on success.
 int tss_DecryptResponseParameterHmac(
     TSS_AUTHORIZATION_DELEGATE_HMAC* delegate,
-    struct TSS_SRC_DATA_BUF* parameter);
+    TSS_SRC_DATA_BUF* parameter);
 
 // Returns the current TPM-generated nonce that is associated with the
 // authorization session. Returns true on success.
 int tss_GetTpmNonceHmac(
     TSS_AUTHORIZATION_DELEGATE_HMAC* delegate,
-    struct TSS_DST_DATA_BUF* nonce);
+    TSS_DST_DATA_BUF* nonce);
 
 // This function is called with the return data of |StartAuthSession|. It
 // will initialize the session to start providing auth information. It can

@@ -2,10 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef MINI_TRUNKS_TSS_INTERNAL_H_
-#define MINI_TRUNKS_TSS_INTERNAL_H_
+#ifndef MINI_TRUNKS_TSS_SERDE_H_
+#define MINI_TRUNKS_TSS_SERDE_H_
 
-#include "tss.h"
+#include "tss_types.h"
+
+typedef struct TSS_SRC_DATA_BUF {
+  size_t size;
+  uint8_t* buffer;
+} TSS_SRC_DATA_BUF;
+
+typedef struct TSS_DST_DATA_BUF {
+  size_t max_size;
+  size_t size;
+  uint8_t* buffer;
+} TSS_DST_DATA_BUF;
 
 size_t tss_GetNumberOfRequestHandles(TPM_CC command_code);
 size_t tss_GetNumberOfResponseHandles(TPM_CC command_code);
@@ -1569,4 +1580,4 @@ TPM_RC tss_Parse_TPMU_SYM_DETAILS(TSS_SRC_DATA_BUF* buffer,
                               TPMU_SYM_DETAILS* value,
                               TSS_DST_DATA_BUF* value_bytes);
 
-#endif  // MINI_TRUNKS_TSS_INTERNAL_H_
+#endif  // MINI_TRUNKS_TSS_SERDE_H_
