@@ -333,7 +333,7 @@ static int verify_salting_key_public(TPM2B_PUBLIC* public)
 	uint8_t provisioned_hash[SHA256_DIGEST_SIZE];
 	bool committed;
 
-	if (pinweaver_get_tpm_key_hash(provisioned_hash, &committed))
+	if (pinweaver_eal_get_tpm_key_hash(provisioned_hash, &committed))
 		return -1;
 	if (calc_salting_key_hash(public, key_hash))
 		return -1;

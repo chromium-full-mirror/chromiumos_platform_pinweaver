@@ -57,7 +57,22 @@ int pinweaver_eal_get_device_key(int kind,
  * `*committed` is set to true if it is committed to write-once memory,
  * and false if it comes from SRAM.
  */
-int pinweaver_get_tpm_key_hash(uint8_t tpm_key_hash[32], bool* committed);
+int pinweaver_eal_get_tpm_key_hash(uint8_t tpm_key_hash[32], bool* committed);
+
+/*
+ * Set Salting key hash in *SRAM*.
+ * Returns non-zero if a hash already exists in write-once memory.
+ * Otherwise overwrites the SRAM hash and returns zero.
+ */
+int pinweaver_eal_set_tpm_key_hash(const uint8_t tpm_key_hash[32]);
+
+/*
+ * Commit Salting key hash in SRAM to write-once storage.
+ * Returns non-zero if a hash already exists in write-once memory, if
+ * the hash is uninitialized (via pinweaver_eal_set_tpm_key_hash) in
+ * SRAM, or in case of an error in committing the hash.
+ */
+int pinweaver_eal_commit_tpm_key_hash();
 
 /* Generate ECDH ephemeral point and z point based on EC public point
  * for NIST P256 curve.

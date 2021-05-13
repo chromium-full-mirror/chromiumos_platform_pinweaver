@@ -3,15 +3,22 @@
  * found in the LICENSE file.
  */
 
+#include <fcntl.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <string.h>
 #include <sys/sysinfo.h>
+#include <unistd.h>
 
 #include "pinweaver_eal.h"
 #include "pinweaver_eal_tpm.h"
+
+static uint8_t g_tpm_key_hash_volatile[32] = {0,};
+static bool g_tpm_key_hash_volatile_is_set = false;
+static bool g_tpm_key_hash_is_committed = false;
+static const char *kTpmKeyHashCommitPath = "/tmp/pw_tpm_key_hash";
 
 int pinweaver_eal_sha256_init(pinweaver_eal_sha256_ctx_t *ctx)
 {
@@ -162,12 +169,68 @@ int pinweaver_eal_get_device_key(int kind,
 	return 0;
 }
 
-int pinweaver_get_tpm_key_hash(uint8_t tpm_key_hash[32], bool* committed)
+static void initialize_tpm_key_hash() {
+	if (g_tpm_key_hash_volatile_is_set) {
+		return;
+	}
+	g_tpm_key_hash_is_committed = false;
+	int fd = open(kTpmKeyHashCommitPath, O_RDONLY);
+	if (fd < 0) {
+		return;
+	}
+	read(fd, g_tpm_key_hash_volatile, 32);
+	close(fd);
+	g_tpm_key_hash_is_committed = true;
+	g_tpm_key_hash_volatile_is_set = true;
+	PINWEAVER_EAL_INFO("%s: recovered TPM Key hash from %s", __func__,
+			kTpmKeyHashCommitPath);
+}
+
+int pinweaver_eal_get_tpm_key_hash(uint8_t tpm_key_hash[32], bool* committed)
 {
-	/* TODO */
-	memset(tpm_key_hash, 0, 32);
-	*committed = true;
+	initialize_tpm_key_hash();
+	if (g_tpm_key_hash_volatile_is_set) {
+		memcpy(tpm_key_hash, g_tpm_key_hash_volatile, 32);
+		*committed = g_tpm_key_hash_is_committed;
+		return 0;
+	}
+	return 1;
+}
+
+int pinweaver_eal_set_tpm_key_hash(const uint8_t tpm_key_hash[32])
+{
+	initialize_tpm_key_hash();
+	if (g_tpm_key_hash_is_committed) {
+		return 1;
+	}
+	memcpy(g_tpm_key_hash_volatile, tpm_key_hash, 32);
+	g_tpm_key_hash_volatile_is_set = true;
 	return 0;
+}
+
+int pinweaver_eal_commit_tpm_key_hash()
+{
+	initialize_tpm_key_hash();
+	if (g_tpm_key_hash_is_committed || !g_tpm_key_hash_volatile_is_set) {
+		return 1;
+	}
+	int rc = 0;
+	int fd;
+	do {
+		fd = open(kTpmKeyHashCommitPath, O_WRONLY | O_CREAT, 0644);
+		if (fd < 0) {
+			rc = fd;
+			break;
+		}
+		if(write(fd, g_tpm_key_hash_volatile, 32) != 32) {
+				rc = 1;
+		}
+		close(fd);
+	} while (0);
+	if (!rc) {
+		g_tpm_key_hash_is_committed = true;
+	}
+	return rc;
 }
 
 uint8_t pinweaver_eal_get_current_pcr_digest(
