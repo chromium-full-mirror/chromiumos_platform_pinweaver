@@ -28,11 +28,14 @@ typedef struct tpm_session_t {
 } tpm_session_t;
 static tpm_session_t g_auth_session = { 0, };
 
-const TPM2B_DIGEST kSaltingKeyName = {0, } /* TODO */;
+typedef struct PW_PACKED tpm_storage_tree_descriptor_t {
+	uint16_t version;
+	uint32_t restart_count;
+	struct pw_long_term_storage_t descriptor;
+} tpm_storage_tree_descriptor_t;
 
-static struct pw_long_term_storage_t g_tree_descriptor;
+static struct tpm_storage_tree_descriptor_t g_tree_descriptor;
 static bool g_tree_descriptor_filled = false;
-const TPM2B_DIGEST kTreeDescriptorName = {0, } /* TODO */;
 
 static bool g_auth_value_obtained[2] = {false, false};
 static TPM2B_DIGEST g_auth_value[2];
@@ -45,13 +48,13 @@ static bool g_device_key_obtained[2] = {false, false};
 static uint8_t g_data_key[2][DATA_KEY_SIZE];
 static bool g_data_key_obtained[2] = {false, false};
 
-typedef struct log_sensitive_data_t {
+typedef struct PW_PACKED log_sensitive_data_t {
 	struct pw_get_log_entry_t entry;
 	uint8_t hash[SHA256_DIGEST_SIZE];
 } log_sensitive_data_t;
 
 #define LOG_ENTRY_IV_SIZE SHA256_DIGEST_SIZE
-typedef struct tpm_storage_log_entry_t {
+typedef struct PW_PACKED tpm_storage_log_entry_t {
 	uint16_t version;
 	uint32_t counter;
 	uint8_t iv[LOG_ENTRY_IV_SIZE];
@@ -59,18 +62,30 @@ typedef struct tpm_storage_log_entry_t {
 } tpm_storage_log_entry_t;
 
 typedef struct cached_log_entry_t {
-	uint32_t counter;
 	struct pw_get_log_entry_t data;
+	uint32_t counter;
 } cached_log_entry_t;
 
 #define MAX_LOG_ENTRIES 5
 #define LOG_ENTRY_PERSIST MAX_LOG_ENTRIES
-const TPM2B_DIGEST kLogEntryPersistName = {0, } /* TODO */;
-const TPM2B_DIGEST kLogEntryName[MAX_LOG_ENTRIES] = {0, } /* TODO */;
 
 static cached_log_entry_t g_cached_log_entries[MAX_LOG_ENTRIES];
 static int g_cache_order[MAX_LOG_ENTRIES];
 static uint32_t g_max_counter = 0;
+
+static void digest_set_sha256(TPM2B_DIGEST* digest,
+		const uint8_t* value /* SHA256_DIGEST_SIZE */)
+{
+	memcpy(digest->buffer, value, SHA256_DIGEST_SIZE);
+	digest->size = SHA256_DIGEST_SIZE;
+}
+
+static void name_set_handle(TPM2B_NAME* name, TPM_HANDLE handle)
+{
+	uint32_t serialized = htobe32(handle);
+	memcpy(name->name, &serialized, sizeof(serialized));
+	name->size = sizeof(serialized);
+}
 
 static cached_log_entry_t* get_first_cached_log_entry()
 {
@@ -137,8 +152,9 @@ static const uint8_t* get_data_key(int kind) {
 	pinweaver_eal_hmac_sha256_ctx_t hash;
 	if (pinweaver_eal_hmac_sha256_init(&hash, g_device_key[kind], DEVICE_KEY_SIZE))
 		return NULL;
-	if (pinweaver_eal_hmac_sha256_update(&hash, g_tree_descriptor.key_derivation_nonce,
-			sizeof(g_tree_descriptor.key_derivation_nonce))) {
+	if (pinweaver_eal_hmac_sha256_update(&hash,
+			g_tree_descriptor.descriptor.key_derivation_nonce,
+			sizeof(g_tree_descriptor.descriptor.key_derivation_nonce))) {
 		pinweaver_eal_hmac_sha256_final(&hash, g_data_key[kind]);
 		return NULL;
 	}
@@ -148,6 +164,113 @@ static const uint8_t* get_data_key(int kind) {
 	g_data_key_obtained[kind] = true;
 	return g_data_key[kind];
 }
+
+static int calc_sha256(const void* data, size_t size, void* hash)
+{
+	pinweaver_eal_sha256_ctx_t ctx;
+	if (pinweaver_eal_sha256_init(&ctx))
+		return -1;
+	if (pinweaver_eal_sha256_update(&ctx, data, size)) {
+		pinweaver_eal_sha256_final(&ctx, hash);
+		return -1;
+	}
+	return pinweaver_eal_sha256_final(&ctx, hash);
+}
+
+static void set_nv_public_area(TPM_HANDLE handle,
+		size_t data_size,
+		bool set_written,
+		TPMS_NV_PUBLIC* public_area)
+{
+	// Policy digest for nvmem spaces:
+	// - Initial state
+	//   0000000000000000000000000000000000000000000000000000000000000000
+	// - PolicyAuthValue:
+	//     <new> = sha256(<previous> || 0000016B)
+	//   8fcd2169ab92694e0c633f1ab772842b8241bbc20288981fc7ac1eddc1fddb0e
+	// - PolicyCommandCode(NV_ChangeAuth):
+	//     <new> = sha256(<previous> || 0000016C || 0000013B)
+	//   363ac945b6457c47c31f3355dba0db27de8db213d6250c6bf79685003f9fe7ab
+	const uint8_t kNvPolicy[SHA256_DIGEST_SIZE] =
+	{
+		0x36, 0x3a, 0xc9, 0x45, 0xb6, 0x45, 0x7c, 0x47,
+		0xc3, 0x1f, 0x33, 0x55, 0xdb, 0xa0, 0xdb, 0x27,
+		0xde, 0x8d, 0xb2, 0x13, 0xd6, 0x25, 0x0c, 0x6b,
+		0xf7, 0x96, 0x85, 0x00, 0x3f, 0x9f, 0xe7, 0xab,
+	};
+	memset(public_area, 0, sizeof(TPMS_NV_PUBLIC));
+	public_area->nv_index = handle;
+	public_area->name_alg = TPM_ALG_SHA256;
+	public_area->attributes = TPMA_NV_AUTHREAD | TPMA_NV_AUTHWRITE;
+	if (set_written)
+		public_area->attributes |= TPMA_NV_WRITTEN;
+	digest_set_sha256(&public_area->auth_policy, kNvPolicy);
+	public_area->data_size = data_size;
+}
+
+static int check_nv_public_area(TPM_HANDLE handle,
+		size_t expected_size,
+		const TPMS_NV_PUBLIC* public_area)
+{
+	TPMS_NV_PUBLIC expected_public_area;
+	bool written = (public_area->attributes & TPMA_NV_WRITTEN) != 0;
+	set_nv_public_area(handle, expected_size, written, &expected_public_area);
+	return memcmp(public_area, &expected_public_area,
+			sizeof(expected_public_area));
+}
+
+#if 0 /* name calculations, if needed */
+
+static int calc_sha256_name(const TSS_DST_DATA_BUF* data, TPM2B_NAME* name)
+{
+	/* Serialized TPM_ALG_SHA256 */
+	const uint8_t kSerializedAlgSha256[2] = {0x00, 0x0B};
+
+	memcpy(name->name, kSerializedAlgSha256, sizeof(kSerializedAlgSha256));
+	name->size = sizeof(kSerializedAlgSha256) + SHA256_DIGEST_SIZE;
+	uint8_t* hash = name->name + sizeof(kSerializedAlgSha256);
+	return calc_sha256(data->buffer, data->size, hash);
+}
+
+static int calc_nv_name(const TPMS_NV_PUBLIC* public_area, TPM2B_NAME* name)
+{
+	TPMS_NV_PUBLIC serialized;
+	TSS_DST_DATA_BUF buffer = {sizeof(serialized), 0, &serialized};
+	if (tss_Serialize_TPMS_NV_PUBLIC(public_area, &buffer))
+		return -1;
+	return calc_sha256_name(&buffer, name);
+}
+
+static int calc_key_name(const TPMT_PUBLIC* public_area, TPM2B_NAME* name)
+{
+	TPMT_PUBLIC serialized;
+	TSS_DST_DATA_BUF buffer =
+			{sizeof(serialized), 0, (uint8_t *)&serialized};
+	if (tss_Serialize_TPMT_PUBLIC(public_area, &buffer))
+		return -1;
+	return calc_sha256_name(&buffer, name);
+}
+
+static int calc_log_entry_name(TPM_HANDLE handle, TPM2B_NAME* name,
+		bool expect_written)
+{
+	TPMS_NV_PUBLIC public_area;
+	set_nv_public_area(handle,
+		sizeof(tpm_storage_log_entry_t),
+		expect_written, &public_area);
+	return calc_nv_name(&public_area, name);
+}
+
+static int calc_tree_descr_name(TPM2B_NAME* name, bool expect_written)
+{
+	TPMS_NV_PUBLIC public_area;
+	set_nv_public_area(TREE_DESCRIPTOR_HANDLE,
+		sizeof(struct pw_long_term_storage_t),
+		expect_written, &public_area);
+	return calc_nv_name(&public_area, name);
+}
+
+#endif /* name calculations, if needed */
 
 static void set_session_auth_value(tpm_session_t* session,
 		const TPM2B_DIGEST* auth_value)
@@ -297,8 +420,8 @@ static int start_session(tpm_session_t* session,
 		bool enable_encryption,
 		bool force_restart)
 {
-	TPM2B_DIGEST salt = { 0, };
-	TPM2B_ENCRYPTED_SECRET encrypted_salt = { 0, };
+	TPM2B_DIGEST salt = {0,};
+	TPM2B_ENCRYPTED_SECRET encrypted_salt = {0,};
   	TPMI_DH_OBJECT tpm_key = TPM_RH_NULL;
 
 	if (session->handle) {
@@ -383,14 +506,7 @@ static int start_auth_session(int kind, bool force_restart)
 static int calc_log_sensitive_data_hash(log_sensitive_data_t* data,
 		uint8_t* res /* SHA256_DIGEST_SIZE */)
 {
-	pinweaver_eal_sha256_ctx_t ctx;
-	if (pinweaver_eal_sha256_init(&ctx))
-		return -1;
-	if (pinweaver_eal_sha256_update(&ctx, &data->entry, sizeof(data->entry))) {
-		pinweaver_eal_sha256_final(&ctx, res);
-		return -1;
-	}
-	return pinweaver_eal_sha256_final(&ctx, res);
+	return calc_sha256(&data->entry, sizeof(data->entry), res);
 }
 
 static int verify_log_sensitive_data(log_sensitive_data_t* data)
@@ -505,38 +621,81 @@ static int cache_order_del_entry_num(int entry_num)
 	return -1;
 }
 
+static int get_nv_handle_info(TPM_HANDLE handle,
+		bool must_exist,
+		size_t expected_size,
+		TPM2B_NAME* name,
+		bool* written,
+		bool* exists)
+{
+	TPM2B_NV_PUBLIC public_area;
+	TPM_RC rc = tss_NV_ReadPublic(handle, NULL /* doesn't matter w/o auth */,
+		&public_area, name, /* authorization_delegate = */ NULL);
+	if (rc != TPM_RC_SUCCESS) {
+		if (rc == TPM_RC_HANDLE + TPM_RC_H + TPM_RC_1) {
+			PINWEAVER_EAL_INFO("get_nv_handle_info %#x: doesn't exist", handle);
+			if (exists)
+				*exists = false;
+			if (written)
+				*written = false;
+			return must_exist ? -1 : 0;
+		}
+		PINWEAVER_EAL_INFO("get_nv_handle_info %#x: error %#x", handle, rc);
+		return -1;
+	}
+	if (exists)
+		*exists = true;
+	if (written)
+		*written = (public_area.nv_public.attributes & TPMA_NV_WRITTEN) != 0;
+	if (check_nv_public_area(handle, expected_size, &public_area.nv_public)) {
+		PINWEAVER_EAL_INFO("get_nv_handle_info %#x: unexpected public area",
+				handle);
+		return -1;
+	}
+	return 0;
+}
+
 static int read_log_entry(TPM_HANDLE handle,
-		const TPM2B_DIGEST* name,
 		cached_log_entry_t* entry,
 		int* is_old_key)
 {
+	TPM2B_NAME name;
+	bool written;
+	const size_t size = sizeof(tpm_storage_log_entry_t);
+	if (get_nv_handle_info(handle, /* must_exist = */ true, size,
+			&name, NULL, &written))
+		return -1;
+	if (!written) {
+		PINWEAVER_EAL_INFO("read_log_entry %#x: uninitialized", handle);
+		entry->counter = 0;
+		return 0;
+	}
+
 	TPM2B_MAX_NV_BUFFER buffer;
 	tpm_storage_log_entry_t* tpm_entry =
 			(tpm_storage_log_entry_t*)buffer.buffer;
 
 	TPM_RC rc = tss_NV_Read(handle,
-			name,
+			&name,
 			handle,
-			name,
-			sizeof(tpm_storage_log_entry_t),
+			&name,
+			size,
 			0,
 			&buffer,
 			&g_auth_session.delegate);
 
-	switch (rc) {
-		case TPM_RC_SUCCESS:
-			entry->counter = tpm_entry->counter;
-			if (tpm_entry->counter > g_max_counter)
-				g_max_counter = tpm_entry->counter;
-			break;
-		case TPM_RC_NV_UNINITIALIZED:
-			PINWEAVER_EAL_INFO("read_log_entry %#x: uninitialized", handle);
-			entry->counter = 0;
-			break;
-		default:
-			PINWEAVER_EAL_INFO("read_log_entry %#x: error %#x", handle, rc);
-			return -1;
+	if (rc != TPM_RC_SUCCESS) {
+		PINWEAVER_EAL_INFO("read_log_entry %#x: error %#x", handle, rc);
+		return -1;
 	}
+	if (buffer.size != size) {
+		PINWEAVER_EAL_INFO("read_log_entry %#x: unexpected size (%u)",
+				handle, buffer.size);
+		return -1;
+	}
+	entry->counter = tpm_entry->counter;
+	if (tpm_entry->counter > g_max_counter)
+		g_max_counter = tpm_entry->counter;
 
 	if (entry->counter) {
 		if (decrypt_log_entry(tpm_entry, PINWEAVER_EAL_AUTH_CURRENT, entry)) {
@@ -561,11 +720,10 @@ static int read_and_insert_log_entry(int entry_num, int* need_writing)
 		return -1;
 
 	TPM_HANDLE handle = LOG_ENTRY_FIRST_HANDLE + entry_num;
-	const TPM2B_DIGEST* name = &kLogEntryName[entry_num];
 	cached_log_entry_t* entry = g_cached_log_entries + entry_num;
 	int is_old_key = 0;
 
-	if (read_log_entry(handle, name, entry, &is_old_key))
+	if (read_log_entry(handle, entry, &is_old_key))
 		return -1;
 
 	need_writing[entry_num] = is_old_key;
@@ -578,18 +736,24 @@ static int write_log_entry(int entry_num, tpm_storage_log_entry_t* tpm_entry)
 	memcpy(tpm_data.buffer, tpm_entry, sizeof(tpm_storage_log_entry_t));
 	tpm_data.size = sizeof(tpm_storage_log_entry_t);
 
+	TPM_HANDLE handle = LOG_ENTRY_FIRST_HANDLE + entry_num;
+	TPM2B_NAME name;
+	const size_t size = sizeof(tpm_storage_log_entry_t);
+
 	const int kMaxRetries = 3;
 	int retries;
 	for (retries = 0; retries < kMaxRetries; ++retries) {
+		if (get_nv_handle_info(handle, /* must_exist = */ true, size,
+				&name, NULL, NULL))
+			return -1;
+
 		if (start_auth_session(PINWEAVER_EAL_AUTH_CURRENT, retries > 0))
 			return -1;
 
-		TPM_HANDLE handle = LOG_ENTRY_FIRST_HANDLE + entry_num;
-		const TPM2B_DIGEST* name = &kLogEntryName[entry_num];
 		TPM_RC rc = tss_NV_Write(handle,
-				name,
+				&name,
 				handle,
-				name,
+				&name,
 				&tpm_data,
 				/* offset = */ 0,
 				&g_auth_session.delegate);
@@ -624,20 +788,20 @@ static int read_log_entries()
 	if (empty_entry) {
 		cached_log_entry_t persist_entry;
 
-		if (read_log_entry(LOG_ENTRY_PERSIST_HANDLE,
-				&kLogEntryPersistName, &persist_entry,
-				NULL)) {
+		if (read_log_entry(LOG_ENTRY_PERSIST_HANDLE, &persist_entry, NULL))
 			return -1;
-		}
 		if (persist_entry.counter) {
 			for (entry_num = 0; entry_num < MAX_LOG_ENTRIES; ++entry_num) {
-				if (g_cached_log_entries[entry_num].counter == persist_entry.counter)
+				if (g_cached_log_entries[entry_num].counter ==
+						persist_entry.counter)
 					break;
 			}
 			if (entry_num >= MAX_LOG_ENTRIES) {
 				if (cache_order_del_entry_num(empty_entry_num))
 					return -1;
-				memcpy(empty_entry, &persist_entry, sizeof(cached_log_entry_t));
+				empty_entry->counter = persist_entry.counter;
+				memcpy(&empty_entry->data, &persist_entry.data,
+						sizeof(struct pw_get_log_entry_t));
 				if (cache_order_ins_entry_num(empty_entry, empty_entry_num))
 					return -1;
 				need_writing[empty_entry_num] = 1;
@@ -674,47 +838,98 @@ static void set_initial_tree_descr()
 	g_tree_descriptor_filled = false;
 }
 
+static void set_initial_state()
+{
+	set_initial_log_entries();
+	set_initial_tree_descr();
+}
+
 static int read_tree_descr()
 {
 	TPM2B_MAX_NV_BUFFER buffer;
+	TPM2B_NAME name;
+	bool exists;
+	bool written;
+	const size_t size = sizeof(g_tree_descriptor);
+
+	if (g_tree_descriptor_filled)
+		return 0;
+
+	if (get_nv_handle_info(TREE_DESCRIPTOR_HANDLE,
+			/* must_exist = */ false, size,
+			&name, &exists, &written))
+		return -1;
+	if (!exists) {
+		PINWEAVER_EAL_INFO("read_tree_descr: no tree descr");
+		g_storage_state = TPMSS_NOT_INITIALIZED;
+		return -1;
+	}
+	if (!written) {
+		PINWEAVER_EAL_INFO("read_tree_descr: empty");
+		set_initial_state();
+		g_storage_state = TPMSS_READY;
+		return 0;
+	}
 
 	TPM_RC rc = tss_NV_Read(TREE_DESCRIPTOR_HANDLE,
-			&kTreeDescriptorName,
+			&name,
 			TREE_DESCRIPTOR_HANDLE,
-			&kTreeDescriptorName,
-			sizeof(g_tree_descriptor),
+			&name,
+			size,
 			0,
 			&buffer,
 			&g_auth_session.delegate);
-	switch (rc) {
-		case TPM_RC_SUCCESS:
-			if (buffer.size != sizeof(g_tree_descriptor)) {
-				PINWEAVER_EAL_INFO("read_tree_descr: unexpected size (%u)", buffer.size);
-				return -1;
-			}
-			memcpy(&g_tree_descriptor, buffer.buffer, sizeof(g_tree_descriptor));
-			g_tree_descriptor_filled = true;
-			break;
-		case TPM_RC_NV_UNINITIALIZED:
-			PINWEAVER_EAL_INFO("read_tree_descr: empty");
-			set_initial_log_entries();
-			set_initial_tree_descr();
-			g_storage_state = TPMSS_READY;
-			break;
-		case TPM_RC_HANDLE + TPM_RC_H + TPM_RC_1:
-		case TPM_RC_HANDLE + TPM_RC_H + TPM_RC_2:
-			PINWEAVER_EAL_INFO("read_tree_descr: no tree descr: error %#x", rc);
-			g_storage_state = TPMSS_NOT_INITIALIZED;
-			return -1;
-		case TPM_RC_BAD_AUTH + TPM_RC_S + TPM_RC_1:
-			PINWEAVER_EAL_INFO("read_tree_descr: bad auth", handle);
+	if (rc != TPM_RC_SUCCESS) {
+		if (rc == TPM_RC_BAD_AUTH + TPM_RC_S + TPM_RC_1) {
+			PINWEAVER_EAL_INFO("read_tree_descr: bad auth");
 			/* TODO: change auth old -> current */
 			return -1;
-		default:
-			PINWEAVER_EAL_INFO("read_tree_descr: error %#x", rc);
-			return -1;
+		}
+		PINWEAVER_EAL_INFO("read_tree_descr: error %#x", rc);
+		return -1;
 	}
+	if (buffer.size != size) {
+		PINWEAVER_EAL_INFO("read_tree_descr: unexpected size (%u)", buffer.size);
+		return -1;
+	}
+	memcpy(&g_tree_descriptor, buffer.buffer, sizeof(g_tree_descriptor));
+
+	g_tree_descriptor_filled = true;
 	return 0;
+}
+
+static int write_tree_descr(const tpm_storage_tree_descriptor_t *data)
+{
+	TPM2B_MAX_NV_BUFFER tpm_data;
+	const size_t size = sizeof(g_tree_descriptor);
+	memcpy(tpm_data.buffer, data, size);
+	tpm_data.size = size;
+
+	TPM2B_NAME name;
+	if (get_nv_handle_info(TREE_DESCRIPTOR_HANDLE,
+			/* must_exist = */ true, size,
+			&name, NULL, NULL))
+		return -1;
+
+	const int kMaxRetries = 3;
+	int retries;
+	for (retries = 0; retries < kMaxRetries; ++retries) {
+		if (start_auth_session(PINWEAVER_EAL_AUTH_CURRENT, retries > 0))
+			return -1;
+
+		TPM_RC rc = tss_NV_Write(TREE_DESCRIPTOR_HANDLE,
+				&name,
+				TREE_DESCRIPTOR_HANDLE,
+				&name,
+				&tpm_data,
+				/* offset = */ 0,
+				&g_auth_session.delegate);
+		if (rc == TPM_RC_SUCCESS)
+			return 0;
+		PINWEAVER_EAL_INFO("write_tree_descr: write %#x attempt %d/%d failed %#x",
+			handle, retries+1, kMaxRetries, res);
+	}
+	return -1;
 }
 
 #define PW_OBJ_CONST_SIZE 8
@@ -763,28 +978,34 @@ int pinweaver_eal_storage_start()
 {
 	const int kMaxRetries = 10;
 	int retries;
-	bool read_failed = true;
 
 	if (g_storage_state == TPMSS_READY)
 		return 0;
 
-	set_initial_log_entries();
-	set_initial_tree_descr();
+	set_initial_state();
 	g_storage_state = TPMSS_NOT_STARTED;
 
-	for (retries = 0; read_failed && retries < kMaxRetries; ++retries) {
+	for (retries = 0; retries < kMaxRetries; ++retries) {
 		if (start_auth_session(PINWEAVER_EAL_AUTH_CURRENT, true) != 0)
 			return -1;
-		read_failed = (read_tree_descr() != 0) ||
-				(read_log_entries() != 0);
-		if (g_storage_state == TPMSS_NOT_INITIALIZED)
-			return -1;
-	}
-	if (read_failed)
-		return -1;
-	g_storage_state = TPMSS_READY;
+		if (read_tree_descr()) {
+			if (g_storage_state == TPMSS_NOT_INITIALIZED)
+				return -1;
+			continue;
+		}
+		if (read_log_entries())
+			continue;
 
-	return 0;	
+		/* update restart count in the descriptor */
+		++g_tree_descriptor.restart_count;
+		if (write_tree_descr(&g_tree_descriptor))
+			return -1;
+
+		g_storage_state = TPMSS_READY;
+		return 0;
+	}
+
+	return -1;
 }
 
 int pinweaver_eal_storage_init_state(uint8_t *root_hash,
@@ -800,8 +1021,7 @@ int pinweaver_eal_storage_init_state(uint8_t *root_hash,
 
 	memcpy(root_hash, first->data.root, PW_HASH_SIZE);
 
-	/* TODO - get restart_count from TPM counter */
-	*restart_count = 0;
+	*restart_count = g_tree_descriptor.restart_count;
 	return 0;
 }
 
@@ -815,11 +1035,10 @@ int pinweaver_eal_storage_get_log(struct pw_log_storage_t *dest)
 	if (pinweaver_eal_storage_start())
 		return -1;
 
-	/* TODO: PW_LOG_ENTRY_COUNT vs MAX_LOG_ENTRIES */
 	int entry_num;
 	for (entry_num = 0;
 			entry_num < PW_LOG_ENTRY_COUNT &&
-			entry_num < MAX_LOG_ENTRIES; 
+			entry_num < MAX_LOG_ENTRIES;
 			++entry_num) {
 		int nv_num = g_cache_order[entry_num];
 		if (g_cached_log_entries[nv_num].counter != 0) {
@@ -863,37 +1082,8 @@ int pinweaver_eal_storage_set_log(const struct pw_log_storage_t *log)
 int pinweaver_eal_storage_get_tree_data(struct pw_long_term_storage_t *dest)
 {
 	pinweaver_eal_storage_start();
-	memcpy(dest, &g_tree_descriptor, sizeof(struct pw_long_term_storage_t));
+	memcpy(dest, &g_tree_descriptor.descriptor, sizeof(struct pw_long_term_storage_t));
 	return g_tree_descriptor_filled ? 0 : -1;
-}
-
-static int write_tree_descr(const struct pw_long_term_storage_t *data)
-{
-	TPM2B_MAX_NV_BUFFER tpm_data;
-	memcpy(tpm_data.buffer, data, sizeof(struct pw_long_term_storage_t));
-	tpm_data.size = sizeof(struct pw_long_term_storage_t);
-
-	const int kMaxRetries = 3;
-	int retries;
-	for (retries = 0; retries < kMaxRetries; ++retries) {
-		if (start_auth_session(PINWEAVER_EAL_AUTH_CURRENT, retries > 0))
-			return -1;
-
-		TPM_HANDLE handle = TREE_DESCRIPTOR_HANDLE;
-		const TPM2B_DIGEST* name = &kTreeDescriptorName;
-		TPM_RC rc = tss_NV_Write(handle,
-				name,
-				handle,
-				name,
-				&tpm_data,
-				/* offset = */ 0,
-				&g_auth_session.delegate);
-		if (rc == TPM_RC_SUCCESS)
-			return 0;
-		PINWEAVER_EAL_INFO("write_tree_descr: write %#x attempt %d/%d failed %#x",
-			handle, retries+1, kMaxRetries, res);
-	}
-	return -1;
 }
 
 int pinweaver_eal_storage_set_tree_data(
@@ -902,10 +1092,10 @@ int pinweaver_eal_storage_set_tree_data(
 	if (pinweaver_eal_storage_start())
 		return -1;
 
-	set_initial_log_entries();
-	memcpy(&g_tree_descriptor, data, sizeof(struct pw_long_term_storage_t));
+	set_initial_state();
+	memcpy(&g_tree_descriptor.descriptor, data, sizeof(struct pw_long_term_storage_t));
 	g_tree_descriptor_filled = true;
-	
+
 	tpm_storage_log_entry_t tpm_entry;
 	memset(&tpm_entry, 0, sizeof(tpm_entry));
 	int res = 0;
@@ -915,37 +1105,11 @@ int pinweaver_eal_storage_set_tree_data(
 			res = -1;
 	}
 	if (write_tree_descr(&g_tree_descriptor))
-		res = -1;	
+		res = -1;
 
 	return res;
 }
 
-// static void digest_copy(TPM2B_DIGEST* dest, TPM2B_DIGEST* src)
-// {
-// 	memcpy(dest, src, sizeof(TPM2B_DIGEST));
-// }
-
-static void digest_set_sha256(TPM2B_DIGEST* digest,
-		const uint8_t* value /* SHA256_DIGEST_SIZE */)
-{
-	memcpy(digest->buffer, value, SHA256_DIGEST_SIZE);
-	digest->size = SHA256_DIGEST_SIZE;
-}
-
-// static void digest_set_empty(TPM2B_DIGEST* digest)
-// {
-// 	memset(digest->buffer, 0, sizeof(TPMU_HA));
-// 	digest->size = 0;
-// }
-
-static void digest_set_handle(TPM2B_DIGEST* digest, TPM_HANDLE handle)
-{
-	uint32_t serialized = htobe32(handle);
-	memcpy(digest->buffer, &serialized, sizeof(serialized));
-	digest->size = sizeof(serialized);
-}
-
-const uint8_t kNvPolicy[SHA256_DIGEST_SIZE] = {0, }; // TODO
 static int define_space(tpm_session_t* session,
 		TPM_HANDLE handle, size_t data_size)
 {
@@ -955,14 +1119,10 @@ static int define_space(tpm_session_t* session,
 
 	TPM2B_NV_PUBLIC public_area;
 	public_area.size = sizeof(TPMS_NV_PUBLIC);
-	public_area.nv_public.nv_index = handle;
-	public_area.nv_public.name_alg = TPM_ALG_SHA256;
-	public_area.nv_public.attributes = TPMA_NV_AUTHREAD | TPMA_NV_AUTHWRITE;
-	digest_set_sha256(&public_area.nv_public.auth_policy, kNvPolicy);
-	public_area.nv_public.data_size = data_size;
+	set_nv_public_area(handle, data_size, false, &public_area.nv_public);
 
-	TPM2B_DIGEST owner_name;
-	digest_set_handle(&owner_name, TPM_RH_OWNER);
+	TPM2B_NAME owner_name;
+	name_set_handle(&owner_name, TPM_RH_OWNER);
 	TPM_RC rc = tss_NV_DefineSpace(TPM_RH_OWNER, &owner_name,
 			auth_value, &public_area, &session->delegate);
 	if (rc != TPM_RC_SUCCESS && rc != TPM_RC_NV_DEFINED) {

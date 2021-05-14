@@ -7508,7 +7508,7 @@ static TSS_DST_DATA_BUF* cmd_process_start_field(cmd_processor_t* p) {
 }
 
 static TPM_RC cmd_process_field(cmd_processor_t* p,
-                                const TPM2B_DIGEST* optional_name) {
+                                const TPM2B_NAME* optional_name) {
   p->field_bytes.max_size = p->field_bytes.size;
   dst_data_buf_skip(p->serialized_command, p->field_bytes.size, NULL);
   if (p->next_encrypt) {
@@ -7522,7 +7522,7 @@ static TPM_RC cmd_process_field(cmd_processor_t* p,
   const void* data;
   size_t size;
   if (optional_name) {
-    data = optional_name->buffer;
+    data = optional_name->name;
     size = optional_name->size;
   } else {
     data = p->field_bytes.buffer;
@@ -7766,9 +7766,9 @@ static TPM_RC rsp_process_auth_block(rsp_processor_t* p) {
 
 static TPM_RC tss_SerializeCommand_StartAuthSession(
     const TPMI_DH_OBJECT tpm_key,
-    const TPM2B_DIGEST* tpm_key_name,
+    const TPM2B_NAME* tpm_key_name,
     const TPMI_DH_ENTITY bind,
-    const TPM2B_DIGEST* bind_name,
+    const TPM2B_NAME* bind_name,
     const TPM2B_NONCE* nonce_caller,
     const TPM2B_ENCRYPTED_SECRET* encrypted_salt,
     const TPM_SE session_type,
@@ -7802,9 +7802,9 @@ static TPM_RC tss_ParseResponse_StartAuthSession(
 
 TPM_RC tss_StartAuthSession(
     const TPMI_DH_OBJECT tpm_key,
-    const TPM2B_DIGEST* tpm_key_name,
+    const TPM2B_NAME* tpm_key_name,
     const TPMI_DH_ENTITY bind,
-    const TPM2B_DIGEST* bind_name,
+    const TPM2B_NAME* bind_name,
     const TPM2B_NONCE* nonce_caller,
     const TPM2B_ENCRYPTED_SECRET* encrypted_salt,
     const TPM_SE session_type,
@@ -7829,7 +7829,7 @@ TPM_RC tss_StartAuthSession(
 
 static TPM_RC tss_SerializeCommand_ReadPublic(
     const TPMI_DH_OBJECT object_handle,
-    const TPM2B_DIGEST* object_handle_name,
+    const TPM2B_NAME* object_handle_name,
     TSS_DST_DATA_BUF* serialized_command,
     TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
   CMD_PROCESS_START(TPM_CC_ReadPublic, false, true);
@@ -7852,7 +7852,7 @@ static TPM_RC tss_ParseResponse_ReadPublic(
 }
 
 TPM_RC tss_ReadPublic(const TPMI_DH_OBJECT object_handle,
-                  const TPM2B_DIGEST* object_handle_name,
+                  const TPM2B_NAME* object_handle_name,
                   TPM2B_PUBLIC* out_public,
                   TPM2B_NAME* name,
                   TPM2B_NAME* qualified_name,
@@ -7873,7 +7873,7 @@ TPM_RC tss_ReadPublic(const TPMI_DH_OBJECT object_handle,
 
 static TPM_RC tss_SerializeCommand_PolicyCommandCode(
     const TPMI_SH_POLICY policy_session,
-    const TPM2B_DIGEST* policy_session_name,
+    const TPM2B_NAME* policy_session_name,
     const TPM_CC code,
     TSS_DST_DATA_BUF* serialized_command,
     TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
@@ -7894,7 +7894,7 @@ static TPM_RC tss_ParseResponse_PolicyCommandCode(
 
 TPM_RC tss_PolicyCommandCode(
     const TPMI_SH_POLICY policy_session,
-    const TPM2B_DIGEST* policy_session_name,
+    const TPM2B_NAME* policy_session_name,
     const TPM_CC code,
     TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
   TSS_DST_DATA_BUF command = {PINWEAVER_TSS_MAX_MESSAGE_SIZE, 0, g_message};
@@ -7913,7 +7913,7 @@ TPM_RC tss_PolicyCommandCode(
 
 static TPM_RC tss_SerializeCommand_PolicyAuthValue(
     const TPMI_SH_POLICY policy_session,
-    const TPM2B_DIGEST* policy_session_name,
+    const TPM2B_NAME* policy_session_name,
     TSS_DST_DATA_BUF* serialized_command,
     TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
   CMD_PROCESS_START(TPM_CC_PolicyAuthValue, false, false);
@@ -7930,7 +7930,7 @@ static TPM_RC tss_ParseResponse_PolicyAuthValue(
 }
 
 TPM_RC tss_PolicyAuthValue(const TPMI_SH_POLICY policy_session,
-                       const TPM2B_DIGEST* policy_session_name,
+                       const TPM2B_NAME* policy_session_name,
                        TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
   TSS_DST_DATA_BUF command = {PINWEAVER_TSS_MAX_MESSAGE_SIZE, 0, g_message};
   TPM_RC rc = tss_SerializeCommand_PolicyAuthValue(
@@ -7980,7 +7980,7 @@ TPM_RC tss_FlushContext(const TPMI_DH_CONTEXT flush_handle,
 
 static TPM_RC tss_SerializeCommand_NV_DefineSpace(
     const TPMI_RH_PROVISION auth_handle,
-    const TPM2B_DIGEST* auth_handle_name,
+    const TPM2B_NAME* auth_handle_name,
     const TPM2B_AUTH* auth,
     const TPM2B_NV_PUBLIC* public_info,
     TSS_DST_DATA_BUF* serialized_command,
@@ -8002,7 +8002,7 @@ static TPM_RC tss_ParseResponse_NV_DefineSpace(
 }
 
 TPM_RC tss_NV_DefineSpace(const TPMI_RH_PROVISION auth_handle,
-                      const TPM2B_DIGEST* auth_handle_name,
+                      const TPM2B_NAME* auth_handle_name,
                       const TPM2B_AUTH* auth,
                       const TPM2B_NV_PUBLIC* public_info,
                       TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
@@ -8022,7 +8022,7 @@ TPM_RC tss_NV_DefineSpace(const TPMI_RH_PROVISION auth_handle,
 
 static TPM_RC tss_SerializeCommand_NV_ReadPublic(
     const TPMI_RH_NV_INDEX nv_index,
-    const TPM2B_DIGEST* nv_index_name,
+    const TPM2B_NAME* nv_index_name,
     TSS_DST_DATA_BUF* serialized_command,
     TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
   CMD_PROCESS_START(TPM_CC_NV_ReadPublic, false, true);
@@ -8043,7 +8043,7 @@ static TPM_RC tss_ParseResponse_NV_ReadPublic(
 }
 
 TPM_RC tss_NV_ReadPublic(const TPMI_RH_NV_INDEX nv_index,
-                     const TPM2B_DIGEST* nv_index_name,
+                     const TPM2B_NAME* nv_index_name,
                      TPM2B_NV_PUBLIC* nv_public,
                      TPM2B_NAME* nv_name,
                      TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
@@ -8063,9 +8063,9 @@ TPM_RC tss_NV_ReadPublic(const TPMI_RH_NV_INDEX nv_index,
 
 static TPM_RC tss_SerializeCommand_NV_Write(
     const TPMI_RH_NV_AUTH auth_handle,
-    const TPM2B_DIGEST* auth_handle_name,
+    const TPM2B_NAME* auth_handle_name,
     const TPMI_RH_NV_INDEX nv_index,
-    const TPM2B_DIGEST* nv_index_name,
+    const TPM2B_NAME* nv_index_name,
     const TPM2B_MAX_NV_BUFFER* data,
     const UINT16 offset,
     TSS_DST_DATA_BUF* serialized_command,
@@ -8088,9 +8088,9 @@ static TPM_RC tss_ParseResponse_NV_Write(
 }
 
 TPM_RC tss_NV_Write(const TPMI_RH_NV_AUTH auth_handle,
-                const TPM2B_DIGEST* auth_handle_name,
+                const TPM2B_NAME* auth_handle_name,
                 const TPMI_RH_NV_INDEX nv_index,
-                const TPM2B_DIGEST* nv_index_name,
+                const TPM2B_NAME* nv_index_name,
                 const TPM2B_MAX_NV_BUFFER* data,
                 const UINT16 offset,
                 TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
@@ -8110,9 +8110,9 @@ TPM_RC tss_NV_Write(const TPMI_RH_NV_AUTH auth_handle,
 
 static TPM_RC tss_SerializeCommand_NV_Read(
     const TPMI_RH_NV_AUTH auth_handle,
-    const TPM2B_DIGEST* auth_handle_name,
+    const TPM2B_NAME* auth_handle_name,
     const TPMI_RH_NV_INDEX nv_index,
-    const TPM2B_DIGEST* nv_index_name,
+    const TPM2B_NAME* nv_index_name,
     const UINT16 size,
     const UINT16 offset,
     TSS_DST_DATA_BUF* serialized_command,
@@ -8137,9 +8137,9 @@ static TPM_RC tss_ParseResponse_NV_Read(
 }
 
 TPM_RC tss_NV_Read(const TPMI_RH_NV_AUTH auth_handle,
-               const TPM2B_DIGEST* auth_handle_name,
+               const TPM2B_NAME* auth_handle_name,
                const TPMI_RH_NV_INDEX nv_index,
-               const TPM2B_DIGEST* nv_index_name,
+               const TPM2B_NAME* nv_index_name,
                const UINT16 size,
                const UINT16 offset,
                TPM2B_MAX_NV_BUFFER* data,
@@ -8160,7 +8160,7 @@ TPM_RC tss_NV_Read(const TPMI_RH_NV_AUTH auth_handle,
 
 static TPM_RC tss_SerializeCommand_NV_ChangeAuth(
     const TPMI_RH_NV_INDEX nv_index,
-    const TPM2B_DIGEST* nv_index_name,
+    const TPM2B_NAME* nv_index_name,
     const TPM2B_AUTH* new_auth,
     TSS_DST_DATA_BUF* serialized_command,
     TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
@@ -8180,7 +8180,7 @@ static TPM_RC tss_ParseResponse_NV_ChangeAuth(
 }
 
 TPM_RC tss_NV_ChangeAuth(const TPMI_RH_NV_INDEX nv_index,
-                     const TPM2B_DIGEST* nv_index_name,
+                     const TPM2B_NAME* nv_index_name,
                      const TPM2B_AUTH* new_auth,
                      TSS_AUTHORIZATION_DELEGATE* authorization_delegate) {
   TSS_DST_DATA_BUF command = {PINWEAVER_TSS_MAX_MESSAGE_SIZE, 0, g_message};
