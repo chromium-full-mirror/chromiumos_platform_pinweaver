@@ -7691,18 +7691,18 @@ static TPM_RC rsp_process_auth_block(rsp_processor_t* p) {
     return rc;
   }
 
-  UINT32 auth_section_size;
-  rc = tss_Parse_UINT32(&p->buffer, &auth_section_size, NULL);
+  UINT32 parameter_size;
+  rc = tss_Parse_UINT32(&p->buffer, &parameter_size, NULL);
   if (rc != TPM_RC_SUCCESS) {
     return rc;
   }
-  if (auth_section_size > p->buffer.size) {
+  if (parameter_size > p->buffer.size) {
     return TPM_RC_INSUFFICIENT;
   }
-  TSS_SRC_DATA_BUF authorization_section_bytes = {auth_section_size,
-                                                p->buffer.buffer};
-  p->buffer.buffer += auth_section_size;
-  p->buffer.size -= auth_section_size;
+
+  TSS_SRC_DATA_BUF authorization_section_bytes =
+      {p->buffer.size - parameter_size, p->buffer.buffer + parameter_size};
+  p->buffer.size = parameter_size;
 
   pinweaver_eal_sha256_ctx_t hash;
   if (pinweaver_eal_sha256_init(&hash))
