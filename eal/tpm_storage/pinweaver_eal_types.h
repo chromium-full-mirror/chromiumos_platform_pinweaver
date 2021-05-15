@@ -9,6 +9,13 @@
 
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
+#include <stdio.h>
+
+#define PINWEAVER_EAL_INFO(...) \
+    do { \
+        printf(__VA_ARGS__); \
+        printf("\n"); \
+    } while(0)
 
 typedef SHA256_CTX pinweaver_eal_sha256_ctx_t;
 typedef HMAC_CTX *pinweaver_eal_hmac_sha256_ctx_t;

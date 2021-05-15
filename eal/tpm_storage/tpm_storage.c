@@ -760,7 +760,7 @@ static int write_log_entry(int entry_num, tpm_storage_log_entry_t* tpm_entry)
 		if (rc == TPM_RC_SUCCESS)
 			return 0;
 		PINWEAVER_EAL_INFO("write_log_entry: write %#x attempt %d/%d failed %#x",
-			handle, retries+1, kMaxRetries, res);
+			handle, retries+1, kMaxRetries, rc);
 	}
 	return -1;
 }
@@ -927,7 +927,7 @@ static int write_tree_descr(const tpm_storage_tree_descriptor_t *data)
 		if (rc == TPM_RC_SUCCESS)
 			return 0;
 		PINWEAVER_EAL_INFO("write_tree_descr: write %#x attempt %d/%d failed %#x",
-			handle, retries+1, kMaxRetries, res);
+			TREE_DESCRIPTOR_HANDLE, retries+1, kMaxRetries, rc);
 	}
 	return -1;
 }
