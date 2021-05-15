@@ -19,6 +19,22 @@
 
 uint8_t g_message[PINWEAVER_TSS_MAX_MESSAGE_SIZE];
 
+#if 0 /* debug helper */
+
+static void dump_buf(const char* prefix, const void* data, size_t size)
+{
+  printf("%s:\n", prefix);
+  const uint8_t* ptr = data;
+  for(size_t n = 0; n < size; ++ptr) {
+    printf("%02x ", *ptr);
+    if ((++n % 16) == 0)
+      printf("\n");
+  }
+  printf("\n");
+}
+
+#endif /* debug helper */
+
 static TPM_RC dst_data_buf_append(TSS_DST_DATA_BUF* data_buf, const void* data,
                                   size_t size) {
   if (data_buf->size >= data_buf->max_size)
@@ -7732,15 +7748,17 @@ static TPM_RC rsp_process_auth_block(rsp_processor_t* p) {
   }
 
   if (p->decrypt_first) {
+    TSS_SRC_DATA_BUF first_param =
+        {p->buffer.size, p->buffer.buffer};
     UINT16 first_param_size;
-    rc = tss_Parse_UINT16(&p->buffer, &first_param_size, NULL);
+    rc = tss_Parse_UINT16(&first_param, &first_param_size, NULL);
     if (rc != TPM_RC_SUCCESS) {
       return rc;
     }
-    if (first_param_size > p->buffer.size) {
+    if (first_param_size > first_param.size) {
       return TPM_RC_INSUFFICIENT;
     }
-    TSS_SRC_DATA_BUF first_param = {first_param_size, p->buffer.buffer};
+    first_param.size = first_param_size;
     if (tss_DecryptResponseParameter(p->authorization_delegate, &first_param)) {
       return TSS_RC_ENCRYPTION_FAILED;
     }
