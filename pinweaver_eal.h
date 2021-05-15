@@ -21,13 +21,14 @@ extern "C" {
 #endif
 
 /*
- * Functions for deriving wrap_key and hmac_key based on key_derivation_nonce.
- * TODO: temporary, to be better abstracted.
+ * Derives wrap_key and hmac_key based on key_derivation_nonce.
+ * Returns 0 on success.
  */
 int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree);
 
 /*
  * Functions for calculating SHA-256.
+ * Returns 0 on success.
  */
 int pinweaver_eal_sha256_init(pinweaver_eal_sha256_ctx_t *ctx);
 int pinweaver_eal_sha256_update(pinweaver_eal_sha256_ctx_t *ctx,
@@ -39,6 +40,7 @@ int pinweaver_eal_sha256_final(pinweaver_eal_sha256_ctx_t *ctx,
 /*
  * Functions for calculating HMAC SHA-256.
  * Only 256 bit key size is used.
+ * Returns 0 on success.
  */
 int pinweaver_eal_hmac_sha256_init(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 				   const void *key,
@@ -52,7 +54,7 @@ int pinweaver_eal_hmac_sha256_final(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 /*
  * Perform AES-256 CTR.
  * Only 256 bit key size is used.
- * Returns 1 on success, 0 otherwise.
+ * Returns 0 on success.
  */
 int pinweaver_eal_aes256_ctr(const void *key,
 			     size_t key_size, /* in bytes */
@@ -69,6 +71,7 @@ int pinweaver_eal_safe_memcmp(const void *s1, const void *s2, size_t len);
 
 /*
  * Get random bytes.
+ * Returns 0 on success.
  */
 int pinweaver_eal_rand_bytes(void *buf, size_t size);
 
@@ -78,7 +81,8 @@ int pinweaver_eal_rand_bytes(void *buf, size_t size);
 uint64_t pinweaver_eal_seconds_since_boot();
 
 /*
- * Functions for working with PCRs.
+ * Functions for calculating SHA256 of the values of the selected PCRs.
+ * Returns 0 on success.
  */
 uint8_t pinweaver_eal_get_current_pcr_digest(
 		const uint8_t bitmask[2],
@@ -86,6 +90,7 @@ uint8_t pinweaver_eal_get_current_pcr_digest(
 
 /*
  * Storage functions.
+ * Return 0 on success.
  */
 int pinweaver_eal_storage_start();
 int pinweaver_eal_storage_init_state(uint8_t *root_hash,
