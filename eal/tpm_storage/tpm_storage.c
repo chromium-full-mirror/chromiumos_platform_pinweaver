@@ -308,7 +308,7 @@ static int get_salting_key_public(TPM2B_PUBLIC* public)
 			&name,
 			&qualified_name,
 			/* delegate = */ NULL);
-	return rc == TPM_RC_SUCCESS;
+	return rc == TPM_RC_SUCCESS ? 0 : -1;
 }
 
 static int calc_salting_key_hash(TPM2B_PUBLIC* public,
