@@ -79,8 +79,8 @@ static int CreateKey(
   uint32_t counter_buf;
   TSS_DST_DATA_BUF counter = {sizeof(uint32_t), 0, (uint8_t *)&counter_buf};
   uint32_t digest_size_bits_buf;
-  TSS_DST_DATA_BUF digest_size_bits = {sizeof(uint32_t), 0
-                                     &digest_size_bits_buf};
+  TSS_DST_DATA_BUF digest_size_bits = {sizeof(uint32_t), 0,
+                                     (uint8_t *)&digest_size_bits_buf};
   const uint32_t kOne = 1;
   const uint32_t kDigestBits = 256;
 
