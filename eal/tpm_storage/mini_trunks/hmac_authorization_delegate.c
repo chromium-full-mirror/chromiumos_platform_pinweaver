@@ -337,7 +337,7 @@ int tss_InitSessionHmac(
   memcpy(&delegate->tpm_nonce_, tpm_nonce, sizeof(TPM2B_NONCE));
   memcpy(&delegate->caller_nonce_, caller_nonce, sizeof(TPM2B_NONCE));
   delegate->is_parameter_encryption_enabled_ = enable_parameter_encryption;
-  if (salt->size == 0 && bind_auth_value->size == 0) {
+  if (salt->size == 0 && (!bind_auth_value || bind_auth_value->size == 0)) {
     // SessionKey is set to the empty string for unsalted and
     // unbound sessions.
     delegate->session_key_.size = 0;

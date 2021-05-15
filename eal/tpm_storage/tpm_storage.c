@@ -503,7 +503,7 @@ static int start_session(tpm_session_t* session,
 		return -1;
 	}
 
-	if (!tss_InitSessionHmac(&session->delegate.hmac,
+	if (tss_InitSessionHmac(&session->delegate.hmac,
 			session->handle,
 			&nonce_tpm, &nonce_caller,
 			&salt, bind_authorization_value,
