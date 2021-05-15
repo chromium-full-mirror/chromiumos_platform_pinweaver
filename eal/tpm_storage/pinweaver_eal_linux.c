@@ -239,8 +239,18 @@ uint8_t pinweaver_eal_get_current_pcr_digest(
 		const uint8_t bitmask[2],
 		uint8_t sha256_of_selected_pcr[32])
 {
+	uint8_t pcr_value[SHA256_DIGEST_SIZE];
 	/* TODO */
-	return 0;
+	memset(pcr_value, 0, 32);
+
+	pinweaver_eal_sha256_ctx_t ctx;
+	if (pinweaver_eal_sha256_init(&ctx))
+		return -1;
+	if (pinweaver_eal_sha256_update(&ctx, pcr_value, sizeof(pcr_value))) {
+		pinweaver_eal_sha256_final(&ctx, sha256_of_selected_pcr);
+		return -1;
+	}
+	return pinweaver_eal_sha256_final(&ctx, sha256_of_selected_pcr);
 }
 
 static int tpm_to_openssl_ec_point(const TPMS_ECC_POINT* point,
