@@ -210,19 +210,6 @@ static void set_nv_public_area(TPM_HANDLE handle,
 	public_area->data_size = data_size;
 }
 
-static int check_nv_public_area(TPM_HANDLE handle,
-		size_t expected_size,
-		const TPMS_NV_PUBLIC* public_area)
-{
-	TPMS_NV_PUBLIC expected_public_area;
-	bool written = (public_area->attributes & TPMA_NV_WRITTEN) != 0;
-	set_nv_public_area(handle, expected_size, written, &expected_public_area);
-	return memcmp(public_area, &expected_public_area,
-			sizeof(expected_public_area));
-}
-
-#if 0 /* name calculations, if needed */
-
 static int calc_sha256_name(const TSS_DST_DATA_BUF* data, TPM2B_NAME* name)
 {
 	/* Serialized TPM_ALG_SHA256 */
@@ -237,42 +224,36 @@ static int calc_sha256_name(const TSS_DST_DATA_BUF* data, TPM2B_NAME* name)
 static int calc_nv_name(const TPMS_NV_PUBLIC* public_area, TPM2B_NAME* name)
 {
 	TPMS_NV_PUBLIC serialized;
-	TSS_DST_DATA_BUF buffer = {sizeof(serialized), 0, &serialized};
+	TSS_DST_DATA_BUF buffer = {sizeof(serialized), 0,
+			(uint8_t *)&serialized};
 	if (tss_Serialize_TPMS_NV_PUBLIC(public_area, &buffer))
 		return -1;
 	return calc_sha256_name(&buffer, name);
 }
 
-static int calc_key_name(const TPMT_PUBLIC* public_area, TPM2B_NAME* name)
-{
-	TPMT_PUBLIC serialized;
-	TSS_DST_DATA_BUF buffer =
-			{sizeof(serialized), 0, (uint8_t *)&serialized};
-	if (tss_Serialize_TPMT_PUBLIC(public_area, &buffer))
-		return -1;
-	return calc_sha256_name(&buffer, name);
-}
-
-static int calc_log_entry_name(TPM_HANDLE handle, TPM2B_NAME* name,
-		bool expect_written)
+static int calc_expected_name(TPM_HANDLE handle, size_t size,
+		bool expect_written, TPM2B_NAME* name)
 {
 	TPMS_NV_PUBLIC public_area;
 	set_nv_public_area(handle,
-		sizeof(tpm_storage_log_entry_t),
-		expect_written, &public_area);
+		size, expect_written, &public_area);
 	return calc_nv_name(&public_area, name);
 }
 
-static int calc_tree_descr_name(TPM2B_NAME* name, bool expect_written)
+static int check_nv_space(TPM_HANDLE handle,
+		TPM2B_NAME* name,
+		size_t expected_size,
+		const TPMS_NV_PUBLIC* public_area)
 {
-	TPMS_NV_PUBLIC public_area;
-	set_nv_public_area(TREE_DESCRIPTOR_HANDLE,
-		sizeof(struct pw_long_term_storage_t),
-		expect_written, &public_area);
-	return calc_nv_name(&public_area, name);
-}
+	TPM2B_NAME expected_name;
 
-#endif /* name calculations, if needed */
+	const bool written = (public_area->attributes & TPMA_NV_WRITTEN) != 0;
+	if (calc_expected_name(handle, expected_size, written, &expected_name))
+		return -1;
+	if (name->size != expected_name.size)
+		return -1;
+	return memcmp(name->name, expected_name.name, name->size);
+}
 
 static void set_session_auth_value(tpm_session_t* session,
 		const TPM2B_DIGEST* auth_value)
@@ -658,8 +639,8 @@ static int get_nv_handle_info(TPM_HANDLE handle,
 		bool must_exist,
 		size_t expected_size,
 		TPM2B_NAME* name,
-		bool* written,
-		bool* exists)
+		bool* exists,
+		bool* written)
 {
 	TPM2B_NV_PUBLIC public_area;
 	TPM_RC rc = tss_NV_ReadPublic(handle, NULL /* doesn't matter w/o auth */,
@@ -680,8 +661,8 @@ static int get_nv_handle_info(TPM_HANDLE handle,
 		*exists = true;
 	if (written)
 		*written = (public_area.nv_public.attributes & TPMA_NV_WRITTEN) != 0;
-	if (check_nv_public_area(handle, expected_size, &public_area.nv_public)) {
-		PINWEAVER_EAL_INFO("get_nv_handle_info %#x: unexpected public area",
+	if (check_nv_space(handle, name, expected_size, &public_area.nv_public)) {
+		PINWEAVER_EAL_INFO("get_nv_handle_info %#x: unexpected space name",
 				handle);
 		return -1;
 	}
