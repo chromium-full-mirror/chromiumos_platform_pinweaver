@@ -110,8 +110,10 @@ static int ensure_device_key(int kind) {
 	if (g_device_key_obtained[kind])
 		return 0;
 	int res = pinweaver_eal_get_device_key(kind, g_device_key[kind]);
-	if (res)
+	if (res) {
+		PINWEAVER_EAL_INFO("pinweaver_eal_get_device_key %d failed: %d", kind, res);
 		return res;
+	}
 	g_device_key_obtained[kind] = true;
 	return 0;
 }
@@ -327,16 +329,37 @@ static int calc_salting_key_hash(TPM2B_PUBLIC* public,
 	return pinweaver_eal_sha256_final(&ctx, hash);
 }
 
+static void dump_hash(const char* prefix, uint8_t* hash)
+{
+	char buffer[SHA256_DIGEST_SIZE*3 + 1];
+	const size_t size = sizeof(buffer);
+	char* ptr = buffer;
+	int n;
+
+	for(n = 0; n < SHA256_DIGEST_SIZE; ++n) {
+		snprintf(ptr, size - 3*n, "%02x ", hash[n]);
+		ptr += strlen(ptr);
+	}
+	*ptr = 0;
+	PINWEAVER_EAL_INFO("%s: %s", prefix, buffer);
+}
+
 static int verify_salting_key_public(TPM2B_PUBLIC* public)
 {
 	uint8_t key_hash[SHA256_DIGEST_SIZE];
 	uint8_t provisioned_hash[SHA256_DIGEST_SIZE];
 	bool committed;
 
-	if (pinweaver_eal_get_tpm_key_hash(provisioned_hash, &committed))
+	if (pinweaver_eal_get_tpm_key_hash(provisioned_hash, &committed)) {
+		PINWEAVER_EAL_INFO("verify_salting_key_public: failed to get provisioned hash");
 		return -1;
-	if (calc_salting_key_hash(public, key_hash))
+	}
+	dump_hash("Provisioned hash", provisioned_hash);
+	if (calc_salting_key_hash(public, key_hash)) {
+		PINWEAVER_EAL_INFO("verify_salting_key_public: failed to calculate key hash");
 		return -1;
+	}
+	dump_hash("Salting key hash", key_hash);
 	return pinweaver_eal_safe_memcmp(key_hash, provisioned_hash,
 			SHA256_DIGEST_SIZE);
 }
@@ -359,21 +382,29 @@ static int generate_session_salt(TPM2B_DIGEST* salt,
 		TPM2B_ENCRYPTED_SECRET* encrypted_salt)
 {
 	TPM2B_PUBLIC salting_key_public;
-	if (get_salting_key_public(&salting_key_public))
+	if (get_salting_key_public(&salting_key_public)) {
+		PINWEAVER_EAL_INFO("generate_session_salt: failed to get salting key public");
 		return -1;
-	if (verify_salting_key_public(&salting_key_public))
+	}
+	if (verify_salting_key_public(&salting_key_public)) {
+		PINWEAVER_EAL_INFO("generate_session_salt: bad salting key public");
 		return -1;
+	}
 
 	TPMS_ECC_POINT* pub_key = &salting_key_public.public_area.unique.ecc;
 	TPMS_ECC_POINT ephemeral_point;
 	TPMS_ECC_POINT z_point;
 
 	if (pinweaver_eal_generate_ecdh_points(pub_key,
-			&ephemeral_point, &z_point))
+			&ephemeral_point, &z_point)) {
+		PINWEAVER_EAL_INFO("generate_session_salt: failed to generate ECDH points");
 		return -1;
+	}
 
-	if (serialize_tpm_ec_point(&ephemeral_point, encrypted_salt))
+	if (serialize_tpm_ec_point(&ephemeral_point, encrypted_salt)) {
+		PINWEAVER_EAL_INFO("generate_session_salt: failed to serialize ECDH points");
 		return -1;
+	}
 
 	const uint8_t kMarshaledCounter[4] = {0, 0, 0, 1}; /* big-endian 1 */
 	const uint8_t kSessionKeyLabel[7] = {'S', 'E', 'C', 'R', 'E', 'T', 0};
@@ -452,7 +483,7 @@ static int start_session(tpm_session_t* session,
 	nonce_caller.size = SHA256_DIGEST_SIZE;
 	int res = pinweaver_eal_rand_bytes(nonce_caller.buffer, nonce_caller.size);
 	if (res) {
-		PINWEAVER_EAL_INFO("Failed to generate nonce");
+		PINWEAVER_EAL_INFO("start_session: failed to generate nonce");
 		return res;
 	}
 
@@ -489,8 +520,10 @@ static int start_session(tpm_session_t* session,
 static int start_auth_session(int kind, bool force_restart)
 {
 	const TPM2B_DIGEST* auth_value = get_auth_value(kind);
-	if (!auth_value)
+	if (!auth_value) {
+		PINWEAVER_EAL_INFO("start_auth_session: no auth value");
 		return -1;
+	}
 	int res = start_session(&g_auth_session, TPM_SE_HMAC, TPM_RH_NULL,
 			/* bind_auth_value = */ NULL,
 			/* salted = */ false, 
@@ -855,6 +888,7 @@ static int read_tree_descr()
 	if (g_tree_descriptor_filled)
 		return 0;
 
+	PINWEAVER_EAL_INFO("read_tree_descr: read from TPM");
 	if (get_nv_handle_info(TREE_DESCRIPTOR_HANDLE,
 			/* must_exist = */ false, size,
 			&name, &exists, &written))
@@ -982,6 +1016,7 @@ int pinweaver_eal_storage_start()
 	if (g_storage_state == TPMSS_READY)
 		return 0;
 
+	PINWEAVER_EAL_INFO("pinweaver_eal_storage_start: starting");
 	set_initial_state();
 	g_storage_state = TPMSS_NOT_STARTED;
 
@@ -1129,6 +1164,9 @@ static int define_space(tpm_session_t* session,
 		PINWEAVER_EAL_INFO("define_space %#x failed %#x", handle, rc);
 		return -1;
 	}
+	if (rc == TPM_RC_NV_DEFINED) {
+		PINWEAVER_EAL_INFO("define_space %#x: already defined", handle);
+	}
 	return 0;
 }
 
@@ -1173,15 +1211,18 @@ static int create_nvmem_spaces()
 
 int pinweaver_eal_storage_initialize_owner()
 {
+	PINWEAVER_EAL_INFO("pinweaver_eal_storage_initialize_owner");
 	if (g_storage_state == TPMSS_NOT_STARTED)
 		pinweaver_eal_storage_start();
 	if (g_storage_state != TPMSS_NOT_INITIALIZED)
 		return -1;
 
+	PINWEAVER_EAL_INFO("pinweaver_eal_storage_initialize_owner: creating spaces");
 	const int kMaxRetries = 10;
 	int retries;
 	for (retries = 0; retries < kMaxRetries; ++retries) {
 		if (create_nvmem_spaces() == 0) {
+			PINWEAVER_EAL_INFO("pinweaver_eal_storage_initialize_owner: done");
 			g_storage_state = TPMSS_READY;
 			return 0;
 		}

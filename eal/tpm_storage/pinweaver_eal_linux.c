@@ -104,8 +104,10 @@ int pinweaver_eal_aes128_cfb(const void *key,
 	int rv;
 	int len, len_final;
 
-	if (key_size != 128/8)
+	if (key_size != 128/8) {
+		PINWEAVER_EAL_INFO("pinweaver_eal_aes128_cfb: bad key size: %zu", key_size);
 		return -1;
+	}
 	ctx = EVP_CIPHER_CTX_new();
 	if (!ctx)
 		return -1;
