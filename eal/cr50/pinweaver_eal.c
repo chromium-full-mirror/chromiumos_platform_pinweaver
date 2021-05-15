@@ -111,7 +111,7 @@ int pinweaver_eal_aes256_ctr(const void *key,
 			     size_t size,
 			     void *res)
 {
-	return DCRYPTO_aes_ctr(res, key, key_size << 3, iv, data, size);
+	return DCRYPTO_aes_ctr(res, key, key_size << 3, iv, data, size) == 1 ? 0 : -1;
 }
 
 int pinweaver_eal_safe_memcmp(const void *s1, const void *s2, size_t len)

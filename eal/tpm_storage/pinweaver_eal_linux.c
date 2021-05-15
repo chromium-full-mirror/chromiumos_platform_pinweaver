@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <string.h>
@@ -20,22 +21,39 @@ static bool g_tpm_key_hash_volatile_is_set = false;
 static bool g_tpm_key_hash_is_committed = false;
 static const char *kTpmKeyHashCommitPath = "/tmp/pw_tpm_key_hash";
 
+static const char* get_openssl_error()
+{
+	return ERR_error_string(ERR_get_error(), NULL);
+}
+
 int pinweaver_eal_sha256_init(pinweaver_eal_sha256_ctx_t *ctx)
 {
-	return SHA256_Init(ctx);
+	int rv = SHA256_Init(ctx);
+	if (rv != 1) {
+		PINWEAVER_EAL_INFO("SHA256_Init failed: %d", rv);
+	}
+	return rv == 1 ? 0 : -1;
 }
 
 int pinweaver_eal_sha256_update(pinweaver_eal_sha256_ctx_t *ctx,
 				const void *data,
 				size_t size)
 {
-	return SHA256_Update(ctx, data, size);
+	int rv = SHA256_Update(ctx, data, size);
+	if (rv != 1) {
+		PINWEAVER_EAL_INFO("SHA256_Update failed: %d", rv);
+	}
+	return rv == 1 ? 0 : -1;
 }
 
 int pinweaver_eal_sha256_final(pinweaver_eal_sha256_ctx_t *ctx,
 			       void *res)
 {
-	return SHA256_Final(res, ctx);
+	int rv = SHA256_Final(res, ctx);
+	if (rv != 1) {
+		PINWEAVER_EAL_INFO("SHA256_Final failed: %d", rv);
+	}
+	return rv == 1 ? 0 : -1;
 }
 
 int pinweaver_eal_hmac_sha256_init(pinweaver_eal_hmac_sha256_ctx_t *ctx,
@@ -43,15 +61,25 @@ int pinweaver_eal_hmac_sha256_init(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 				   size_t key_size /* in bytes */)
 {
 	*ctx = HMAC_CTX_new();
-	if (!*ctx)
+	if (!*ctx) {
+		PINWEAVER_EAL_INFO("HMAC_CTX_new failed");
 		return -1;
-	return HMAC_Init_ex(*ctx, key, key_size, EVP_sha256(), NULL);
+	}
+	int rv = HMAC_Init_ex(*ctx, key, key_size, EVP_sha256(), NULL);
+	if (rv != 1) {
+		PINWEAVER_EAL_INFO("HMAC_Init_ex failed: %d", rv);
+	}
+	return rv == 1 ? 0 : -1;
 }
 int pinweaver_eal_hmac_sha256_update(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 				     const void *data,
 				     size_t size)
 {
-	return HMAC_Update(*ctx, data, size);
+	int rv = HMAC_Update(*ctx, data, size);
+	if (rv != 1) {
+		PINWEAVER_EAL_INFO("HMAC_Update failed: %d", rv);
+	}
+	return rv == 1 ? 0 : -1;
 }
 
 int pinweaver_eal_hmac_sha256_final(pinweaver_eal_hmac_sha256_ctx_t *ctx,
@@ -61,7 +89,10 @@ int pinweaver_eal_hmac_sha256_final(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 	int rv = HMAC_Final(*ctx, res, &len);
 	HMAC_CTX_free(*ctx);
 	*ctx = NULL;
-	return rv;
+	if (rv != 1) {
+		PINWEAVER_EAL_INFO("HMAC_Final failed: %d", rv);
+	}
+	return rv == 1 ? 0 : -1;
 }
 
 int pinweaver_eal_aes256_ctr(const void *key,
@@ -81,15 +112,15 @@ int pinweaver_eal_aes256_ctr(const void *key,
 	if (!ctx)
 		return -1;
 	rv = EVP_EncryptInit(ctx, EVP_aes_256_ctr(), key, iv);
-	if (rv)
+	if (rv != 1)
 		goto out;
 	rv = EVP_EncryptUpdate(ctx, res, &len, data, size);
-	if (rv)
+	if (rv != 1)
 		goto out;
 	rv = EVP_EncryptFinal(ctx, res+len, &len_final);
 out:
 	EVP_CIPHER_CTX_free(ctx);
-	return rv;
+	return rv == 1 ? 0 : -1;
 }
 
 int pinweaver_eal_aes128_cfb(const void *key,
@@ -114,27 +145,27 @@ int pinweaver_eal_aes128_cfb(const void *key,
 	switch (op_type) {
 		case PINWEAVER_EAL_DECRYPT:
 			rv = EVP_DecryptInit(ctx, EVP_aes_128_cfb(), key, iv);
-			if (rv)
+			if (rv != 1)
 				break;
 			rv = EVP_DecryptUpdate(ctx, res, &len, data, size);
-			if (rv)
+			if (rv != 1)
 				break;
 			rv = EVP_DecryptFinal(ctx, res+len, &len_final);
 			break;
 		case PINWEAVER_EAL_ENCRYPT:
 			rv = EVP_EncryptInit(ctx, EVP_aes_128_cfb(), key, iv);
-			if (rv)
+			if (rv != 1)
 				break;
 			rv = EVP_EncryptUpdate(ctx, res, &len, data, size);
-			if (rv)
+			if (rv != 1)
 				break;
 			rv = EVP_EncryptFinal(ctx, res+len, &len_final);
 			break;
 		default:
-			rv = -1;
+			rv = 0;
 	}
 	EVP_CIPHER_CTX_free(ctx);
-	return rv;
+	return rv == 1 ? 0 : -1;
 }
 
 
@@ -152,7 +183,7 @@ int pinweaver_eal_safe_memcmp(const void *s1, const void *s2, size_t len)
 
 int pinweaver_eal_rand_bytes(void *buf, size_t size)
 {
-	return RAND_bytes(buf, size);
+	return RAND_bytes(buf, size) == 1 ? 0 : -1;
 }
 
 uint64_t pinweaver_eal_seconds_since_boot()
@@ -282,7 +313,8 @@ static int tpm_to_openssl_ec_point(const TPMS_ECC_POINT* point,
 				x, y, ctx);
 	}
 	if (!res) {
-		PINWEAVER_EAL_INFO("%s: failed to convert", __func__);
+		PINWEAVER_EAL_INFO("%s: failed to convert: %s",
+				__func__, get_openssl_error());
 	}
 	BN_CTX_free(ctx);
 	return res ? -1 : 0;

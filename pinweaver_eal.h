@@ -52,6 +52,7 @@ int pinweaver_eal_hmac_sha256_final(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 /*
  * Perform AES-256 CTR.
  * Only 256 bit key size is used.
+ * Returns 1 on success, 0 otherwise.
  */
 int pinweaver_eal_aes256_ctr(const void *key,
 			     size_t key_size, /* in bytes */

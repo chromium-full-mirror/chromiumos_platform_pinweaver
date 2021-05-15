@@ -241,7 +241,7 @@ static int encrypt_leaf_data(const struct merkle_tree_t *merkle_tree,
 				 sizeof(wrapped_leaf_data->iv));
 	memcpy(&wrapped_leaf_data->pub, &leaf_data->pub,
 	       sizeof(leaf_data->pub));
-	if (!pinweaver_eal_aes256_ctr(merkle_tree->wrap_key,
+	if (pinweaver_eal_aes256_ctr(merkle_tree->wrap_key,
 				      sizeof(merkle_tree->wrap_key),
 				      wrapped_leaf_data->iv,
 				      &leaf_data->sec,
@@ -261,7 +261,7 @@ static int decrypt_leaf_data(
 	memcpy(&leaf_data->pub, imported_leaf_data->pub,
 	       MIN(imported_leaf_data->head->pub_len,
 		   sizeof(struct leaf_public_data_t)));
-	if (!pinweaver_eal_aes256_ctr(merkle_tree->wrap_key,
+	if (pinweaver_eal_aes256_ctr(merkle_tree->wrap_key,
 				      sizeof(merkle_tree->wrap_key),
 				      imported_leaf_data->iv,
 				      imported_leaf_data->cipher_text,
