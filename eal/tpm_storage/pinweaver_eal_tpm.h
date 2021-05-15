@@ -21,7 +21,14 @@
 #define LOG_ENTRY_PERSIST_HANDLE (TREE_DESCRIPTOR_HANDLE + 1)
 #define LOG_ENTRY_FIRST_HANDLE (LOG_ENTRY_PERSIST_HANDLE + 1)
 
+// Initialize TPM client.
 int pinweaver_eal_tpm_initialize();
+
+// Returns true if TPM tunnel client is connected.
+bool pinweaver_eal_tpm_connected();
+
+// Wait until TPM tunnel client is connected.
+int pinweaver_eal_tpm_wait_for_connection();
 
 // Sends a TPM command synchronously and returns the response. If a transmission
 // error occurs the response will be populated with a well-formed error
