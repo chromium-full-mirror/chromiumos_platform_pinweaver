@@ -266,8 +266,8 @@ int tss_CheckResponseAuthorizationHmac(
   if (HmacFinal(&hp, digest))
     return -1;
 
-  if (!pinweaver_eal_safe_memcmp(digest, auth_response.hmac.buffer,
-                                 SHA256_DIGEST_LENGTH)) {
+  if (pinweaver_eal_safe_memcmp(digest, auth_response.hmac.buffer,
+                                SHA256_DIGEST_LENGTH)) {
     return -1;
   }
   return 0;

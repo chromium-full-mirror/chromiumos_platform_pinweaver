@@ -7431,7 +7431,7 @@ static TPM_RC EncryptField(TSS_DST_DATA_BUF* field,
       return TPM_RC_FAILURE;
     TSS_SRC_DATA_BUF field_data = {field->size - sizeof(UINT16),
                                  field->buffer + sizeof(UINT16)};
-    if (!tss_EncryptCommandParameter(authorization_delegate, &field_data)) {
+    if (tss_EncryptCommandParameter(authorization_delegate, &field_data)) {
       return TSS_RC_ENCRYPTION_FAILED;
     }
   }
@@ -7454,7 +7454,7 @@ static TPM_RC FinalizeCommand(
     uint8_t authorization_section_buf[MAX_AUTH_SECTION_SIZE];
     TSS_DST_DATA_BUF authorization_section_bytes = {MAX_AUTH_SECTION_SIZE, 0,
                                                   authorization_section_buf};
-    if (!tss_GetCommandAuthorization(authorization_delegate,
+    if (tss_GetCommandAuthorization(authorization_delegate,
             &command_hash, is_command_parameter_encryption_possible,
             is_response_parameter_encryption_possible,
             &authorization_section_bytes)) {
@@ -7726,7 +7726,7 @@ static TPM_RC rsp_process_auth_block(rsp_processor_t* p) {
   if (!p->authorization_delegate) {
     return TSS_RC_AUTHORIZATION_FAILED;
   }
-  if (!tss_CheckResponseAuthorization(p->authorization_delegate,
+  if (tss_CheckResponseAuthorization(p->authorization_delegate,
       &response_hash, &authorization_section_bytes)) {
     return TSS_RC_AUTHORIZATION_FAILED;
   }
@@ -7741,7 +7741,7 @@ static TPM_RC rsp_process_auth_block(rsp_processor_t* p) {
       return TPM_RC_INSUFFICIENT;
     }
     TSS_SRC_DATA_BUF first_param = {first_param_size, p->buffer.buffer};
-    if (!tss_DecryptResponseParameter(p->authorization_delegate, &first_param)) {
+    if (tss_DecryptResponseParameter(p->authorization_delegate, &first_param)) {
       return TSS_RC_ENCRYPTION_FAILED;
     }
   }
