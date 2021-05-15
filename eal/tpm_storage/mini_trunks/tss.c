@@ -10,6 +10,10 @@
 #include "tss.h"
 #include "tss_serde.h"
 
+#ifndef arraysize
+#define arraysize(arr) (sizeof(arr)/sizeof(arr[0]))
+#endif
+
 #define MAX_AUTH_SECTION_SIZE (3 * sizeof(TPMS_AUTH_COMMAND))
 #define SIZE_OFFSET 2
 
@@ -1100,7 +1104,7 @@ TPM_RC tss_Serialize_TPM2B_DIGEST(const TPM2B_DIGEST* value, TSS_DST_DATA_BUF* b
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -1122,7 +1126,7 @@ TPM_RC tss_Parse_TPM2B_DIGEST(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2015,7 +2019,7 @@ TPM_RC tss_Serialize_TPMU_HA(const TPMU_HA* value,
   TPM_RC result = TPM_RC_SUCCESS;
 
   if (selector == TPM_ALG_SHA384) {
-    if (sizeof(&value->sha384) < SHA384_DIGEST_SIZE) {
+    if (sizeof(value->sha384) < SHA384_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA384_DIGEST_SIZE; ++i) {
@@ -2027,7 +2031,7 @@ TPM_RC tss_Serialize_TPMU_HA(const TPMU_HA* value,
   }
 
   if (selector == TPM_ALG_SHA1) {
-    if (sizeof(&value->sha1) < SHA1_DIGEST_SIZE) {
+    if (sizeof(value->sha1) < SHA1_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA1_DIGEST_SIZE; ++i) {
@@ -2039,7 +2043,7 @@ TPM_RC tss_Serialize_TPMU_HA(const TPMU_HA* value,
   }
 
   if (selector == TPM_ALG_SM3_256) {
-    if (sizeof(&value->sm3_256) < SM3_256_DIGEST_SIZE) {
+    if (sizeof(value->sm3_256) < SM3_256_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SM3_256_DIGEST_SIZE; ++i) {
@@ -2055,7 +2059,7 @@ TPM_RC tss_Serialize_TPMU_HA(const TPMU_HA* value,
   }
 
   if (selector == TPM_ALG_SHA256) {
-    if (sizeof(&value->sha256) < SHA256_DIGEST_SIZE) {
+    if (sizeof(value->sha256) < SHA256_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA256_DIGEST_SIZE; ++i) {
@@ -2067,7 +2071,7 @@ TPM_RC tss_Serialize_TPMU_HA(const TPMU_HA* value,
   }
 
   if (selector == TPM_ALG_SHA512) {
-    if (sizeof(&value->sha512) < SHA512_DIGEST_SIZE) {
+    if (sizeof(value->sha512) < SHA512_DIGEST_SIZE) {
       return TPM_RC_INSUFFICIENT;
     }
     for (uint32_t i = 0; i < SHA512_DIGEST_SIZE; ++i) {
@@ -2192,7 +2196,7 @@ TPM_RC tss_Serialize_TPM2B_DATA(const TPM2B_DATA* value, TSS_DST_DATA_BUF* buffe
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2214,7 +2218,7 @@ TPM_RC tss_Parse_TPM2B_DATA(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2234,7 +2238,7 @@ TPM_RC tss_Serialize_TPM2B_EVENT(const TPM2B_EVENT* value, TSS_DST_DATA_BUF* buf
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2256,7 +2260,7 @@ TPM_RC tss_Parse_TPM2B_EVENT(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2277,7 +2281,7 @@ TPM_RC tss_Serialize_TPM2B_MAX_BUFFER(const TPM2B_MAX_BUFFER* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2299,7 +2303,7 @@ TPM_RC tss_Parse_TPM2B_MAX_BUFFER(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2320,7 +2324,7 @@ TPM_RC tss_Serialize_TPM2B_MAX_NV_BUFFER(const TPM2B_MAX_NV_BUFFER* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2342,7 +2346,7 @@ TPM_RC tss_Parse_TPM2B_MAX_NV_BUFFER(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2363,7 +2367,7 @@ TPM_RC tss_Serialize_TPM2B_TIMEOUT(const TPM2B_TIMEOUT* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2385,7 +2389,7 @@ TPM_RC tss_Parse_TPM2B_TIMEOUT(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2405,7 +2409,7 @@ TPM_RC tss_Serialize_TPM2B_IV(const TPM2B_IV* value, TSS_DST_DATA_BUF* buffer) {
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2427,7 +2431,7 @@ TPM_RC tss_Parse_TPM2B_IV(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2447,7 +2451,7 @@ TPM_RC tss_Serialize_TPM2B_NAME(const TPM2B_NAME* value, TSS_DST_DATA_BUF* buffe
     return result;
   }
 
-  if (sizeof(&value->name) < value->size) {
+  if (arraysize(value->name) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2469,7 +2473,7 @@ TPM_RC tss_Parse_TPM2B_NAME(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->name) < value->size) {
+  if (arraysize(value->name) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -2490,7 +2494,7 @@ TPM_RC tss_Serialize_TPMS_PCR_SELECT(const TPMS_PCR_SELECT* value,
     return result;
   }
 
-  if (sizeof(&value->pcr_select) < value->sizeof_select) {
+  if (arraysize(value->pcr_select) < value->sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->sizeof_select; ++i) {
@@ -2512,7 +2516,7 @@ TPM_RC tss_Parse_TPMS_PCR_SELECT(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->pcr_select) < value->sizeof_select) {
+  if (arraysize(value->pcr_select) < value->sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint8_t i = 0; i < value->sizeof_select; ++i) {
@@ -2538,7 +2542,7 @@ TPM_RC tss_Serialize_TPMS_PCR_SELECTION(const TPMS_PCR_SELECTION* value,
     return result;
   }
 
-  if (sizeof(&value->pcr_select) < value->sizeof_select) {
+  if (arraysize(value->pcr_select) < value->sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->sizeof_select; ++i) {
@@ -2565,7 +2569,7 @@ TPM_RC tss_Parse_TPMS_PCR_SELECTION(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->pcr_select) < value->sizeof_select) {
+  if (arraysize(value->pcr_select) < value->sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->sizeof_select; ++i) {
@@ -2828,7 +2832,7 @@ TPM_RC tss_Serialize_TPMS_TAGGED_PCR_SELECT(const TPMS_TAGGED_PCR_SELECT* value,
     return result;
   }
 
-  if (sizeof(&value->pcr_select) < value->sizeof_select) {
+  if (arraysize(value->pcr_select) < value->sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->sizeof_select; ++i) {
@@ -2855,7 +2859,7 @@ TPM_RC tss_Parse_TPMS_TAGGED_PCR_SELECT(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->pcr_select) < value->sizeof_select) {
+  if (arraysize(value->pcr_select) < value->sizeof_select) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->sizeof_select; ++i) {
@@ -2875,7 +2879,7 @@ TPM_RC tss_Serialize_TPML_CC(const TPML_CC* value, TSS_DST_DATA_BUF* buffer) {
     return result;
   }
 
-  if (sizeof(&value->command_codes) < value->count) {
+  if (arraysize(value->command_codes) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -2897,7 +2901,7 @@ TPM_RC tss_Parse_TPML_CC(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->command_codes) < value->count) {
+  if (arraysize(value->command_codes) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -2917,7 +2921,7 @@ TPM_RC tss_Serialize_TPML_CCA(const TPML_CCA* value, TSS_DST_DATA_BUF* buffer) {
     return result;
   }
 
-  if (sizeof(&value->command_attributes) < value->count) {
+  if (arraysize(value->command_attributes) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -2939,7 +2943,7 @@ TPM_RC tss_Parse_TPML_CCA(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->command_attributes) < value->count) {
+  if (arraysize(value->command_attributes) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -2959,7 +2963,7 @@ TPM_RC tss_Serialize_TPML_ALG(const TPML_ALG* value, TSS_DST_DATA_BUF* buffer) {
     return result;
   }
 
-  if (sizeof(&value->algorithms) < value->count) {
+  if (arraysize(value->algorithms) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -2981,7 +2985,7 @@ TPM_RC tss_Parse_TPML_ALG(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->algorithms) < value->count) {
+  if (arraysize(value->algorithms) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3001,7 +3005,7 @@ TPM_RC tss_Serialize_TPML_HANDLE(const TPML_HANDLE* value, TSS_DST_DATA_BUF* buf
     return result;
   }
 
-  if (sizeof(&value->handle) < value->count) {
+  if (arraysize(value->handle) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3023,7 +3027,7 @@ TPM_RC tss_Parse_TPML_HANDLE(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->handle) < value->count) {
+  if (arraysize(value->handle) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3043,7 +3047,7 @@ TPM_RC tss_Serialize_TPML_DIGEST(const TPML_DIGEST* value, TSS_DST_DATA_BUF* buf
     return result;
   }
 
-  if (sizeof(&value->digests) < value->count) {
+  if (arraysize(value->digests) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3065,7 +3069,7 @@ TPM_RC tss_Parse_TPML_DIGEST(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->digests) < value->count) {
+  if (arraysize(value->digests) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3086,7 +3090,7 @@ TPM_RC tss_Serialize_TPML_DIGEST_VALUES(const TPML_DIGEST_VALUES* value,
     return result;
   }
 
-  if (sizeof(&value->digests) < value->count) {
+  if (arraysize(value->digests) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3108,7 +3112,7 @@ TPM_RC tss_Parse_TPML_DIGEST_VALUES(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->digests) < value->count) {
+  if (arraysize(value->digests) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3129,7 +3133,7 @@ TPM_RC tss_Serialize_TPM2B_DIGEST_VALUES(const TPM2B_DIGEST_VALUES* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -3151,7 +3155,7 @@ TPM_RC tss_Parse_TPM2B_DIGEST_VALUES(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -3172,7 +3176,7 @@ TPM_RC tss_Serialize_TPML_PCR_SELECTION(const TPML_PCR_SELECTION* value,
     return result;
   }
 
-  if (sizeof(&value->pcr_selections) < value->count) {
+  if (arraysize(value->pcr_selections) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3194,7 +3198,7 @@ TPM_RC tss_Parse_TPML_PCR_SELECTION(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->pcr_selections) < value->count) {
+  if (arraysize(value->pcr_selections) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3216,7 +3220,7 @@ TPM_RC tss_Serialize_TPML_ALG_PROPERTY(const TPML_ALG_PROPERTY* value,
     return result;
   }
 
-  if (sizeof(&value->alg_properties) < value->count) {
+  if (arraysize(value->alg_properties) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3238,7 +3242,7 @@ TPM_RC tss_Parse_TPML_ALG_PROPERTY(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->alg_properties) < value->count) {
+  if (arraysize(value->alg_properties) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3260,7 +3264,7 @@ TPM_RC tss_Serialize_TPML_TAGGED_TPM_PROPERTY(const TPML_TAGGED_TPM_PROPERTY* va
     return result;
   }
 
-  if (sizeof(&value->tpm_property) < value->count) {
+  if (arraysize(value->tpm_property) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3282,7 +3286,7 @@ TPM_RC tss_Parse_TPML_TAGGED_TPM_PROPERTY(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->tpm_property) < value->count) {
+  if (arraysize(value->tpm_property) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3304,7 +3308,7 @@ TPM_RC tss_Serialize_TPML_TAGGED_PCR_PROPERTY(const TPML_TAGGED_PCR_PROPERTY* va
     return result;
   }
 
-  if (sizeof(&value->pcr_property) < value->count) {
+  if (arraysize(value->pcr_property) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3326,7 +3330,7 @@ TPM_RC tss_Parse_TPML_TAGGED_PCR_PROPERTY(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->pcr_property) < value->count) {
+  if (arraysize(value->pcr_property) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3348,7 +3352,7 @@ TPM_RC tss_Serialize_TPML_ECC_CURVE(const TPML_ECC_CURVE* value,
     return result;
   }
 
-  if (sizeof(&value->ecc_curves) < value->count) {
+  if (arraysize(value->ecc_curves) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -3370,7 +3374,7 @@ TPM_RC tss_Parse_TPML_ECC_CURVE(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->ecc_curves) < value->count) {
+  if (arraysize(value->ecc_curves) < value->count) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->count; ++i) {
@@ -4113,7 +4117,7 @@ TPM_RC tss_Serialize_TPM2B_ATTEST(const TPM2B_ATTEST* value, TSS_DST_DATA_BUF* b
     return result;
   }
 
-  if (sizeof(&value->attestation_data) < value->size) {
+  if (arraysize(value->attestation_data) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -4135,7 +4139,7 @@ TPM_RC tss_Parse_TPM2B_ATTEST(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->attestation_data) < value->size) {
+  if (arraysize(value->attestation_data) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -4503,7 +4507,7 @@ TPM_RC tss_Serialize_TPM2B_SYM_KEY(const TPM2B_SYM_KEY* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -4525,7 +4529,7 @@ TPM_RC tss_Parse_TPM2B_SYM_KEY(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -4569,7 +4573,7 @@ TPM_RC tss_Serialize_TPM2B_SENSITIVE_DATA(const TPM2B_SENSITIVE_DATA* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -4591,7 +4595,7 @@ TPM_RC tss_Parse_TPM2B_SENSITIVE_DATA(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -5500,7 +5504,7 @@ TPM_RC tss_Serialize_TPM2B_PUBLIC_KEY_RSA(const TPM2B_PUBLIC_KEY_RSA* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -5522,7 +5526,7 @@ TPM_RC tss_Parse_TPM2B_PUBLIC_KEY_RSA(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -5543,7 +5547,7 @@ TPM_RC tss_Serialize_TPM2B_PRIVATE_KEY_RSA(const TPM2B_PRIVATE_KEY_RSA* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -5565,7 +5569,7 @@ TPM_RC tss_Parse_TPM2B_PRIVATE_KEY_RSA(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -5586,7 +5590,7 @@ TPM_RC tss_Serialize_TPM2B_ECC_PARAMETER(const TPM2B_ECC_PARAMETER* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -5608,7 +5612,7 @@ TPM_RC tss_Parse_TPM2B_ECC_PARAMETER(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -6131,7 +6135,7 @@ TPM_RC tss_Serialize_TPM2B_ENCRYPTED_SECRET(const TPM2B_ENCRYPTED_SECRET* value,
     return result;
   }
 
-  if (sizeof(&value->secret) < value->size) {
+  if (arraysize(value->secret) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -6153,7 +6157,7 @@ TPM_RC tss_Parse_TPM2B_ENCRYPTED_SECRET(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->secret) < value->size) {
+  if (arraysize(value->secret) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -6635,7 +6639,7 @@ TPM_RC tss_Serialize_TPM2B_PRIVATE_VENDOR_SPECIFIC(
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -6657,7 +6661,7 @@ TPM_RC tss_Parse_TPM2B_PRIVATE_VENDOR_SPECIFIC(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -6894,7 +6898,7 @@ TPM_RC tss_Serialize_TPM2B_PRIVATE(const TPM2B_PRIVATE* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -6916,7 +6920,7 @@ TPM_RC tss_Parse_TPM2B_PRIVATE(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -6969,7 +6973,7 @@ TPM_RC tss_Serialize_TPM2B_ID_OBJECT(const TPM2B_ID_OBJECT* value,
     return result;
   }
 
-  if (sizeof(&value->credential) < value->size) {
+  if (arraysize(value->credential) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -6991,7 +6995,7 @@ TPM_RC tss_Parse_TPM2B_ID_OBJECT(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->credential) < value->size) {
+  if (arraysize(value->credential) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -7123,7 +7127,7 @@ TPM_RC tss_Serialize_TPM2B_CONTEXT_SENSITIVE(const TPM2B_CONTEXT_SENSITIVE* valu
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -7145,7 +7149,7 @@ TPM_RC tss_Parse_TPM2B_CONTEXT_SENSITIVE(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -7200,7 +7204,7 @@ TPM_RC tss_Serialize_TPM2B_CONTEXT_DATA(const TPM2B_CONTEXT_DATA* value,
     return result;
   }
 
-  if (sizeof(&value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
@@ -7222,7 +7226,7 @@ TPM_RC tss_Parse_TPM2B_CONTEXT_DATA(TSS_SRC_DATA_BUF* buffer,
     return result;
   }
 
-  if (sizeof(value->buffer) < value->size) {
+  if (arraysize(value->buffer) < value->size) {
     return TPM_RC_INSUFFICIENT;
   }
   for (uint32_t i = 0; i < value->size; ++i) {
