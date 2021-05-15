@@ -1111,6 +1111,8 @@ int pinweaver_eal_storage_set_tree_data(
 	set_initial_state();
 	memcpy(&g_tree_descriptor.descriptor, data, sizeof(struct pw_long_term_storage_t));
 	g_tree_descriptor_filled = true;
+	g_data_key_obtained[PINWEAVER_EAL_AUTH_CURRENT] = false;
+	g_data_key_obtained[PINWEAVER_EAL_AUTH_PREVIOUS] = false;
 
 	tpm_storage_log_entry_t tpm_entry;
 	memset(&tpm_entry, 0, sizeof(tpm_entry));
