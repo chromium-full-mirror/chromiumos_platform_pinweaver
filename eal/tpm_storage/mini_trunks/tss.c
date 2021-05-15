@@ -7594,11 +7594,15 @@ static TPM_RC cmd_process_finish(cmd_processor_t* p) {
   do { \
     TSS_DST_DATA_BUF* field_bytes = cmd_process_start_field(&p); \
     TPM_RC rc = tss_Serialize_##type((data), field_bytes); \
-    if (rc != TPM_RC_SUCCESS) \
+    if (rc != TPM_RC_SUCCESS) { \
+      PINWEAVER_EAL_INFO("Failed to serialize %s %s", #type, #data); \
       return rc; \
+    } \
     rc = cmd_process_field(&p, (name)); \
-    if (rc != TPM_RC_SUCCESS) \
+    if (rc != TPM_RC_SUCCESS) { \
+      PINWEAVER_EAL_INFO("Failed to process %s %s", #type, #data); \
       return rc; \
+    } \
   } while(0)
 
 #define CMD_PROCESS_VAL(field, type) \
@@ -7615,8 +7619,10 @@ static TPM_RC cmd_process_finish(cmd_processor_t* p) {
   do { \
     TPM_RC rc = cmd_process_start(&p, (cc), (cmd_enc), (rsp_enc), \
         serialized_command, authorization_delegate); \
-    if (rc != TPM_RC_SUCCESS) \
+    if (rc != TPM_RC_SUCCESS) { \
+      PINWEAVER_EAL_INFO("Failed to start processing for cmd %#x", cc); \
       return rc; \
+    } \
   } while(0)
 
 #define CMD_PROCESS_FINISH() \
@@ -7747,22 +7753,27 @@ static TPM_RC rsp_process_auth_block(rsp_processor_t* p) {
   do { \
     TPM_RC rc = rsp_process_start(&p, response, cc, decrypt_first, \
                                   authorization_delegate); \
-    if (rc != TPM_RC_SUCCESS) \
+    if (rc != TPM_RC_SUCCESS) { \
       return rc; \
+    } \
   } while(0)
 
 #define RSP_PROCESS_AUTH_BLOCK() \
   do { \
     TPM_RC rc = rsp_process_auth_block(&p); \
-    if (rc != TPM_RC_SUCCESS) \
+    if (rc != TPM_RC_SUCCESS) { \
+      PINWEAVER_EAL_INFO("Failed to process auth block"); \
       return rc; \
+    } \
   } while(0)
 
 #define RSP_PROCESS_FIELD(field, type) \
   do { \
     TPM_RC rc = tss_Parse_##type(&p.buffer, field, NULL); \
-    if (rc != TPM_RC_SUCCESS) \
+    if (rc != TPM_RC_SUCCESS) { \
+      PINWEAVER_EAL_INFO("Failed to parse %s %s", #type, #field); \
       return rc; \
+    } \
   } while(0)
 
 #define RSP_PROCESS_FINISH() \
