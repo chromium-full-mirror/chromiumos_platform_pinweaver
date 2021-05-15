@@ -1198,7 +1198,7 @@ static int create_nvmem_spaces()
 			break;
 		if (define_space(&salted_session,
 				TREE_DESCRIPTOR_HANDLE,
-				sizeof(struct pw_long_term_storage_t)))
+				sizeof(g_tree_descriptor)))
 			break;
 
 		PINWEAVER_EAL_INFO("create_nvmem_spaces: success");
