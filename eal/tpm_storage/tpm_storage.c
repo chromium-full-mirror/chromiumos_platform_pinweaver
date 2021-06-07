@@ -1197,6 +1197,8 @@ int pinweaver_eal_storage_initialize_owner()
 	PINWEAVER_EAL_INFO("pinweaver_eal_storage_initialize_owner");
 	if (g_storage_state == TPMSS_NOT_STARTED)
 		pinweaver_eal_storage_start();
+	if (g_storage_state == TPMSS_READY)
+		return 0;
 	if (g_storage_state != TPMSS_NOT_INITIALIZED)
 		return -1;
 
