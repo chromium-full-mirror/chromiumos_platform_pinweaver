@@ -425,7 +425,7 @@ static int validate_pcr_value(const struct valid_pcr_value_t
 	return PW_ERR_PCR_NOT_MATCH;
 }
 
-static int expected_payload_len(int minor_version)
+static uint32_t expected_payload_len(int minor_version)
 {
 	switch (minor_version) {
 	case 0:
@@ -1294,6 +1294,7 @@ int make_compatible_request(struct merkle_tree_t *merkle_tree,
 				PW_VALID_PCR_CRITERIA_SIZE;
 		}
 		/* Fallthrough to make compatible from next version */
+		__attribute__((fallthrough));
 	case PW_PROTOCOL_VERSION:
 		return 1;
 	}
