@@ -75,7 +75,7 @@ static int CreateKey(
     const TSS_SRC_DATA_BUF* label,
     const TPM2B_NONCE* nonce_newer,
     const TPM2B_NONCE* nonce_older,
-    uint8_t* key /* size=SHA256_DIGEST_LENGTH */) {
+    uint8_t* key /* size=SHA256_DIGEST_SIZE */) {
   uint32_t counter_buf;
   TSS_DST_DATA_BUF counter = {sizeof(uint32_t), 0, (uint8_t *)&counter_buf};
   uint32_t digest_size_bits_buf;
@@ -198,7 +198,7 @@ int tss_GetCommandAuthorizationHmac(
   HmacUpdate(&hp, attributes_bytes.buffer, attributes_bytes.size);
   if (HmacFinal(&hp, auth.hmac.buffer))
     return -1;
-  auth.hmac.size = SHA256_DIGEST_LENGTH;
+  auth.hmac.size = SHA256_DIGEST_SIZE;
 
   TPM_RC serialize_error = tss_Serialize_TPMS_AUTH_COMMAND(&auth, authorization);
   if (serialize_error != TPM_RC_SUCCESS) {
@@ -256,7 +256,7 @@ int tss_CheckResponseAuthorizationHmac(
     }
   }
 
-  unsigned char digest[SHA256_DIGEST_LENGTH];
+  unsigned char digest[SHA256_DIGEST_SIZE];
   HMAC_PROCESSOR hp;
   HmacInit(&hp, &hmac_key);
   HmacUpdate(&hp, response_hash->buffer, response_hash->size);
@@ -267,7 +267,7 @@ int tss_CheckResponseAuthorizationHmac(
     return -1;
 
   if (pinweaver_eal_safe_memcmp(digest, auth_response.hmac.buffer,
-                                SHA256_DIGEST_LENGTH)) {
+                                SHA256_DIGEST_SIZE)) {
     return -1;
   }
   return 0;
