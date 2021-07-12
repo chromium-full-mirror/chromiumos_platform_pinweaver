@@ -785,7 +785,6 @@ static int read_log_entries()
 	int need_writing[MAX_LOG_ENTRIES] = {0, };
 	cached_log_entry_t* empty_entry = NULL;
 	int empty_entry_num = -1;
-	cached_log_entry_t* entry;
 
 	if (g_storage_state == TPMSS_READY)
 		return 0;
@@ -793,6 +792,7 @@ static int read_log_entries()
 	for (entry_num = 0; entry_num < MAX_LOG_ENTRIES; ++entry_num) {
 		if (read_and_insert_log_entry(entry_num, need_writing))
 			return -1;
+		cached_log_entry_t* entry = &g_cached_log_entries[entry_num];
 		if (empty_entry == NULL && entry->counter == 0) {
 			empty_entry_num = entry_num;
 			empty_entry = entry;
