@@ -137,6 +137,7 @@ static const TPM2B_DIGEST* get_auth_value(int kind) {
 	}
 	if (pinweaver_eal_hmac_sha256_final(&hash, g_auth_value[kind].buffer))
 		return NULL;
+	g_auth_value[kind].size = SHA256_DIGEST_SIZE;
 
 	g_auth_value_obtained[kind] = true;
 	return &g_auth_value[kind];
