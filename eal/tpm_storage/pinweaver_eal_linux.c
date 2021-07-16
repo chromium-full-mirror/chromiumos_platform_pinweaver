@@ -195,10 +195,18 @@ uint64_t pinweaver_eal_seconds_since_boot()
 	return (uint64_t)si.uptime;
 }
 
+int g_device_key_fill[3] = {
+	0x01,
+	0x00,
+	0xFF
+};
+
 int pinweaver_eal_get_device_key(int kind,
 		void* key /* 256-bit */)
 {
-	/* TODO */
+	if (kind < 0 || kind >= 3)
+		return -1;
+	memset(key, g_device_key_fill[kind], 256/8);
 	return 0;
 }
 
