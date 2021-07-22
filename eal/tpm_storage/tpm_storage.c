@@ -312,7 +312,7 @@ static int calc_salting_key_hash(TPM2B_PUBLIC* public,
 	return pinweaver_eal_sha256_final(&ctx, hash);
 }
 
-static void dump_hash(const char* prefix, uint8_t* hash)
+static void dump_hash(const char* prefix, const uint8_t* hash)
 {
 	char buffer[SHA256_DIGEST_SIZE*3 + 1];
 	const size_t size = sizeof(buffer);
