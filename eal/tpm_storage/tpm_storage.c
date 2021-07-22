@@ -204,7 +204,8 @@ static void set_nv_public_area(TPM_HANDLE handle,
 	memset(public_area, 0, sizeof(TPMS_NV_PUBLIC));
 	public_area->nv_index = handle;
 	public_area->name_alg = TPM_ALG_SHA256;
-	public_area->attributes = TPMA_NV_AUTHREAD | TPMA_NV_AUTHWRITE;
+	public_area->attributes =
+			TPMA_NV_AUTHREAD | TPMA_NV_AUTHWRITE | TPMA_NV_NO_DA;
 	if (set_written)
 		public_area->attributes |= TPMA_NV_WRITTEN;
 	digest_set_sha256(&public_area->auth_policy, kNvPolicy);
