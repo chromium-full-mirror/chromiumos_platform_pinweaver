@@ -265,6 +265,15 @@ static void set_session_auth_value(tpm_session_t* session,
 			auth_value->buffer, auth_value->size);
 }
 
+static void set_future_session_auth_value(tpm_session_t* session,
+		const TPM2B_DIGEST* auth_value)
+{
+	session->delegate.hmac.future_authorization_value_.size = auth_value->size;
+	memcpy(session->delegate.hmac.future_authorization_value_.buffer,
+			auth_value->buffer, auth_value->size);
+	session->delegate.hmac.future_authorization_value_set_ = true;
+}
+
 static void close_session(tpm_session_t* session)
 {
 	if (session->handle) {
@@ -519,6 +528,51 @@ static int start_auth_session(int kind, bool force_restart)
 	return 0;
 }
 
+static int start_change_auth_session(tpm_session_t* change_auth_session)
+{
+	if (!change_auth_session)
+		return -1;
+
+	const TPM2B_DIGEST* auth_value = get_auth_value(PINWEAVER_EAL_AUTH_PREVIOUS);
+	if (!auth_value) {
+		PINWEAVER_EAL_INFO("start_change_auth_session: no auth value");
+		return -1;
+	}
+
+	// Note: using policy session with enable_encryption = true doesn't work
+	// for cr50 until https://crrev.com/c/3048088, but should work for TPM2.0
+	// rev 1.38+. We do need enable_encryption = true here to avoid exposing the
+	// new auth value.
+	int res = start_session(change_auth_session, TPM_SE_POLICY,
+			TPM_RH_NULL,
+			/* bind_auth_value = */ NULL,
+			/* salted = */ true,
+			/* enable_encryption = */ true,
+			/* force_restart = */ true);
+	if (res)
+		return res;
+
+	TPM_RC rc = tss_PolicyAuthValue(change_auth_session->handle, NULL, NULL);
+	if (rc != TPM_RC_SUCCESS) {
+		PINWEAVER_EAL_INFO(
+				"start_change_auth_session: PolicyAuthValue error %#x", rc);
+		close_session(change_auth_session);
+		return -1;
+	}
+	set_session_auth_value(change_auth_session, auth_value);
+
+	rc = tss_PolicyCommandCode(change_auth_session->handle, NULL,
+			TPM_CC_NV_ChangeAuth, NULL);
+	if (rc != TPM_RC_SUCCESS) {
+		PINWEAVER_EAL_INFO(
+				"start_change_auth_session: PolicyCommandCode error %#x", rc);
+		close_session(change_auth_session);
+		return -1;
+	}
+
+	return 0;
+}
+
 static int calc_log_sensitive_data_hash(log_sensitive_data_t* data,
 		uint8_t* res /* SHA256_DIGEST_SIZE */)
 {
@@ -545,11 +599,12 @@ static int decrypt_log_entry(const tpm_storage_log_entry_t* tpm_entry, int kind,
 	if (pinweaver_eal_aes256_ctr(key, DATA_KEY_SIZE, tpm_entry->iv,
 			tpm_entry->encrypted_data, sizeof(log_sensitive_data_t),
 			&plaintext)) {
-		PINWEAVER_EAL_INFO("decrypt_log_entry(%d): AES failed", kind);
+		PINWEAVER_EAL_INFO("decrypt_log_entry: AES failed, kind=%d", kind);
 		return -1;
 	}
 	if (verify_log_sensitive_data(&plaintext) != 0) {
-		PINWEAVER_EAL_INFO("decrypt_log_entry(%d): verification failed", kind);
+		PINWEAVER_EAL_INFO("decrypt_log_entry: verification failed, kind=%d",
+				kind);
 		return -1;
 	}
 
@@ -721,6 +776,7 @@ static int read_log_entry(TPM_HANDLE handle,
 				entry->counter = 0;
 				return -1;
 			}
+			PINWEAVER_EAL_INFO("read_log_entry %#x: decrypted with old key", handle);
 			if (is_old_key)
 				*is_old_key = 1;
 		}
@@ -746,13 +802,13 @@ static int read_and_insert_log_entry(int entry_num, int* need_writing)
 	return cache_order_ins_entry_num(entry, entry_num);
 }
 
-static int write_log_entry(int entry_num, tpm_storage_log_entry_t* tpm_entry)
+static int write_log_entry_by_handle(TPM_HANDLE handle,
+		tpm_storage_log_entry_t* tpm_entry)
 {
 	TPM2B_MAX_NV_BUFFER tpm_data;
 	memcpy(tpm_data.buffer, tpm_entry, sizeof(tpm_storage_log_entry_t));
 	tpm_data.size = sizeof(tpm_storage_log_entry_t);
 
-	TPM_HANDLE handle = LOG_ENTRY_FIRST_HANDLE + entry_num;
 	TPM2B_NAME name;
 	const size_t size = sizeof(tpm_storage_log_entry_t);
 
@@ -781,12 +837,39 @@ static int write_log_entry(int entry_num, tpm_storage_log_entry_t* tpm_entry)
 	return -1;
 }
 
+static int write_log_entry(int entry_num, tpm_storage_log_entry_t* tpm_entry)
+{
+	return write_log_entry_by_handle(LOG_ENTRY_FIRST_HANDLE + entry_num,
+			tpm_entry);
+}
+
+static int clear_persist_entry()
+{
+	tpm_storage_log_entry_t tpm_entry = { 0, };
+	return write_log_entry_by_handle(LOG_ENTRY_PERSIST_HANDLE, &tpm_entry);
+}
+
+static int write_back_log_entry(int entry_num, bool use_persist)
+{
+	PINWEAVER_EAL_INFO("write_back_log_entry %d", entry_num);
+	tpm_storage_log_entry_t tpm_entry;
+	cached_log_entry_t* entry = &g_cached_log_entries[entry_num];
+	if (encrypt_log_entry(&entry->data, entry->counter, &tpm_entry))
+		return -1;
+	if (use_persist) {
+		if (write_log_entry_by_handle(LOG_ENTRY_PERSIST_HANDLE, &tpm_entry))
+			return -1;
+	}
+	return write_log_entry(entry_num, &tpm_entry);
+}
+
 static int read_log_entries()
 {
 	int entry_num;
 	int need_writing[MAX_LOG_ENTRIES] = {0, };
 	cached_log_entry_t* empty_entry = NULL;
 	int empty_entry_num = -1;
+	bool do_clear_persist_entry = false;
 
 	if (g_storage_state == TPMSS_READY)
 		return 0;
@@ -820,20 +903,25 @@ static int read_log_entries()
 						sizeof(struct pw_get_log_entry_t));
 				if (cache_order_ins_entry_num(empty_entry, empty_entry_num))
 					return -1;
-				need_writing[empty_entry_num] = 1;
+				if (write_back_log_entry(empty_entry_num,
+						/* use_persist = */ false)) {
+					return -1;
+				}
+				do_clear_persist_entry = true;
 			}
 		}
 	}
 
 	for (entry_num = 0; entry_num < MAX_LOG_ENTRIES; ++entry_num) {
-		if (!need_writing[entry_num])
-			continue;
-		tpm_storage_log_entry_t tpm_entry;
-		cached_log_entry_t* entry = &g_cached_log_entries[entry_num];
-		if (encrypt_log_entry(&entry->data, entry->counter, &tpm_entry))
-			return -1;
-		if (write_log_entry(entry_num, &tpm_entry))
-			return -1;
+		if (need_writing[entry_num]) {
+			do_clear_persist_entry = true;
+			if (write_back_log_entry(entry_num, /* use_persist = */ true))
+				return -1;
+		}
+	}
+
+	if (do_clear_persist_entry) {
+		clear_persist_entry();  // ignore errors
 	}
 
 	return 0;
@@ -860,6 +948,59 @@ static void set_initial_state()
 	set_initial_tree_descr();
 }
 
+static int change_auth_handle(TPM_HANDLE handle, size_t size)
+{
+	TPM2B_NAME name;
+	const TPM2B_DIGEST* new_auth_value = get_auth_value(PINWEAVER_EAL_AUTH_CURRENT);
+
+	if (!new_auth_value) {
+		PINWEAVER_EAL_INFO("change_auth_handle: no new auth value");
+		return -1;
+	}
+
+	bool exists, written;
+	if (get_nv_handle_info(handle,
+			/* must_exist = */ false, size,
+			&name, &exists, &written))
+		return -1;
+	PINWEAVER_EAL_INFO("change_auth_handle %#x: exists=%d written=%d\n",
+			handle, exists, written);
+
+	tpm_session_t change_auth_session = { 0, };
+	if (start_change_auth_session(&change_auth_session))
+		return -1;
+	set_future_session_auth_value(&change_auth_session, new_auth_value);
+	TPM_RC rc = tss_NV_ChangeAuth(handle, &name, new_auth_value,
+			&change_auth_session.delegate);
+	if (rc != TPM_RC_SUCCESS) {
+		PINWEAVER_EAL_INFO("change_auth_handle %#x: error %#x - ignoring",
+				handle, rc);
+	}
+	close_session(&change_auth_session);
+	return 0;
+}
+
+static int change_auth()
+{
+	int entry_num;
+
+	for (entry_num = 0; entry_num < MAX_LOG_ENTRIES; ++entry_num) {
+		if (change_auth_handle(LOG_ENTRY_FIRST_HANDLE + entry_num,
+				sizeof(tpm_storage_log_entry_t)))
+			return -1;
+	}
+	if (change_auth_handle(LOG_ENTRY_PERSIST_HANDLE,
+			sizeof(tpm_storage_log_entry_t)))
+		return -1;
+	if (change_auth_handle(TREE_DESCRIPTOR_HANDLE,
+			sizeof(g_tree_descriptor)))
+		return -1;
+
+	if (start_auth_session(PINWEAVER_EAL_AUTH_CURRENT, true))
+		return -1;
+	return 0;
+}
+
 static int read_tree_descr()
 {
 	TPM2B_MAX_NV_BUFFER buffer;
@@ -881,12 +1022,6 @@ static int read_tree_descr()
 		g_storage_state = TPMSS_NOT_INITIALIZED;
 		return -1;
 	}
-	if (!written) {
-		PINWEAVER_EAL_INFO("read_tree_descr: empty");
-		set_initial_state();
-		g_storage_state = TPMSS_READY;
-		return 0;
-	}
 
 	TPM_RC rc = tss_NV_Read(TREE_DESCRIPTOR_HANDLE,
 			&name,
@@ -897,13 +1032,31 @@ static int read_tree_descr()
 			&buffer,
 			&g_auth_session.delegate);
 	if (rc != TPM_RC_SUCCESS) {
-		if (rc == TPM_RC_BAD_AUTH + TPM_RC_S + TPM_RC_1) {
-			PINWEAVER_EAL_INFO("read_tree_descr: bad auth");
-			/* TODO: change auth old -> current */
+		if ((rc == TPM_RC_BAD_AUTH + TPM_RC_S + TPM_RC_1) ||
+		    (rc == TPM_RC_AUTH_FAIL + TPM_RC_S + TPM_RC_1)) {
+			PINWEAVER_EAL_INFO("read_tree_descr: change auth (%#x)", rc);
+			if (change_auth())
+				return -1;
+			PINWEAVER_EAL_INFO("read_tree_descr: change auth done");
+			rc = tss_NV_Read(TREE_DESCRIPTOR_HANDLE,
+					&name,
+					TREE_DESCRIPTOR_HANDLE,
+					&name,
+					size,
+					0,
+					&buffer,
+					&g_auth_session.delegate);
+		}
+		if (rc == TPM_RC_NV_UNINITIALIZED) {
+			PINWEAVER_EAL_INFO("read_tree_descr: empty");
+			set_initial_state();
+			g_storage_state = TPMSS_READY;
+			return 0;
+		}
+		if (rc != TPM_RC_SUCCESS) {
+			PINWEAVER_EAL_INFO("read_tree_descr: error %#x", rc);
 			return -1;
 		}
-		PINWEAVER_EAL_INFO("read_tree_descr: error %#x", rc);
-		return -1;
 	}
 	if (buffer.size != size) {
 		PINWEAVER_EAL_INFO("read_tree_descr: unexpected size (%u)", buffer.size);
