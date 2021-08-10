@@ -20,6 +20,15 @@
 extern "C" {
 #endif
 
+/* Implements memcpy_s on all platforms
+ */
+int pinweaver_eal_memcpy_s(
+    void * dest,
+    size_t destsz,
+    const void * src,
+    size_t count
+);
+
 /*
  * Derives wrap_key and hmac_key based on key_derivation_nonce.
  * Returns 0 on success.

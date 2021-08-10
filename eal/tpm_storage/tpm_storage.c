@@ -3,6 +3,11 @@
  * found in the LICENSE file.
  */
 
+#if defined(__STDC_LIB_EXT1__)
+#define __STDC_WANT_LIB_EXT1__ 1
+#define HAS_MEMCPY_S
+#endif
+
 #include <stdbool.h>
 #include <string.h>
 
@@ -10,6 +15,46 @@
 #include "pinweaver_eal.h"
 #include "pinweaver_eal_tpm.h"
 #include "tss_serde.h"
+
+#if defined(HAS_MEMCPY_S)
+int pinweaver_eal_memcpy_s(
+    void * dest,
+    size_t destsz,
+    const void * src,
+    size_t count
+) {
+	return memcpy_s(dest, destsz, src, count);
+}
+#else
+#include <errno.h>
+
+int pinweaver_eal_memcpy_s(
+    void * dest,
+    size_t destsz,
+    const void * src,
+    size_t count
+)
+{
+	if (count == 0)
+		return 0;
+
+	if (dest == NULL)
+		return EINVAL;
+
+	if (src == NULL) {
+		memset(dest, 0, destsz);
+		return EINVAL;
+	}
+
+	if (destsz < count) {
+		memset(dest, 0, destsz);
+		return ERANGE;
+	}
+
+    memcpy(dest, src, count);
+    return 0;
+}
+#endif
 
 /* Make sure the largest possible message would fit in 2K
  */

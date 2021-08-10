@@ -19,6 +19,33 @@
  */
 BUILD_ASSERT(PW_MAX_MESSAGE_SIZE + sizeof(struct tpm_cmd_header) <= 2048);
 
+int pinweaver_eal_memcpy_s(
+    void * dest,
+    size_t destsz,
+    const void * src,
+    size_t count
+)
+{
+	if (count == 0)
+		return 0;
+
+	if (dest == NULL)
+		return -1;
+
+	if (src == NULL) {
+		memset(dest, 0, destsz);
+		return -1;
+	}
+
+	if (destsz < count) {
+		memset(dest, 0, destsz);
+		return -1;
+	}
+
+    memcpy(dest, src, count);
+    return 0;
+}
+
 int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree)
 {
 	struct APPKEY_CTX ctx;
