@@ -127,52 +127,83 @@ static int create_merkle_tree(struct bits_per_level_t bits_per_level,
 	merkle_tree->bits_per_level = bits_per_level;
 	merkle_tree->height = height;
 
+	int ret;
+
 	/* Initialize the root hash. */
 	for (hx = 0; hx < height.v; ++hx) {
-		pinweaver_eal_sha256_init(&ctx);
-		for (kx = 0; kx < fan_out; ++kx)
-			pinweaver_eal_sha256_update(&ctx, temp_hash,
-						    PW_HASH_SIZE);
-		pinweaver_eal_sha256_final(&ctx, temp_hash);
+		ret = pinweaver_eal_sha256_init(&ctx);
+		if (ret)
+			return ret;
+		for (kx = 0; kx < fan_out; ++kx) {
+			ret = pinweaver_eal_sha256_update(&ctx, temp_hash,
+							  PW_HASH_SIZE);
+			if (ret) {
+				pinweaver_eal_sha256_final(&ctx, temp_hash);
+				return ret;
+			}
+		}
+		ret = pinweaver_eal_sha256_final(&ctx, temp_hash);
+		if (ret)
+			return ret;
 	}
 	memcpy(merkle_tree->root, temp_hash, PW_HASH_SIZE);
 
-	pinweaver_eal_rand_bytes(merkle_tree->key_derivation_nonce,
-				 sizeof(merkle_tree->key_derivation_nonce));
+	ret = pinweaver_eal_rand_bytes(
+		merkle_tree->key_derivation_nonce,
+		sizeof(merkle_tree->key_derivation_nonce));
+	if (ret)
+		return ret;
 	return pinweaver_eal_derive_keys(merkle_tree);
 }
 
 /* Computes the HMAC for an encrypted leaf using the key in the merkle_tree. */
-static void compute_hmac(
-		const struct merkle_tree_t *merkle_tree,
-		const struct imported_leaf_data_t *imported_leaf_data,
-		uint8_t result[PW_HASH_SIZE])
+static int compute_hmac(const struct merkle_tree_t *merkle_tree,
+			const struct imported_leaf_data_t *imported_leaf_data,
+			uint8_t result[PW_HASH_SIZE])
 {
+	int ret;
 	pinweaver_eal_hmac_sha256_ctx_t hmac;
 
-	pinweaver_eal_hmac_sha256_init(&hmac, merkle_tree->hmac_key,
-				       sizeof(merkle_tree->hmac_key));
-	pinweaver_eal_hmac_sha256_update(&hmac,
-					 imported_leaf_data->head,
-					 sizeof(*imported_leaf_data->head));
-	pinweaver_eal_hmac_sha256_update(&hmac,
-					 imported_leaf_data->iv,
-					 sizeof(PW_WRAP_BLOCK_SIZE));
-	pinweaver_eal_hmac_sha256_update(&hmac,
-					 imported_leaf_data->pub,
-					 imported_leaf_data->head->pub_len);
-	pinweaver_eal_hmac_sha256_update(&hmac,
-					 imported_leaf_data->cipher_text,
-					 imported_leaf_data->head->sec_len);
-	pinweaver_eal_hmac_sha256_final(&hmac, result);
+	ret = pinweaver_eal_hmac_sha256_init(&hmac, merkle_tree->hmac_key,
+					     sizeof(merkle_tree->hmac_key));
+	if (ret)
+		return ret;
+	ret = pinweaver_eal_hmac_sha256_update(
+		&hmac, imported_leaf_data->head,
+		sizeof(*imported_leaf_data->head));
+	if (ret) {
+		pinweaver_eal_hmac_sha256_final(&hmac, result);
+		return ret;
+	}
+	ret = pinweaver_eal_hmac_sha256_update(&hmac, imported_leaf_data->iv,
+					       sizeof(PW_WRAP_BLOCK_SIZE));
+	if (ret) {
+		pinweaver_eal_hmac_sha256_final(&hmac, result);
+		return ret;
+	}
+	ret = pinweaver_eal_hmac_sha256_update(
+		&hmac, imported_leaf_data->pub,
+		imported_leaf_data->head->pub_len);
+	if (ret) {
+		pinweaver_eal_hmac_sha256_final(&hmac, result);
+		return ret;
+	}
+	ret = pinweaver_eal_hmac_sha256_update(
+		&hmac, imported_leaf_data->cipher_text,
+		imported_leaf_data->head->sec_len);
+	if (ret) {
+		pinweaver_eal_hmac_sha256_final(&hmac, result);
+		return ret;
+	}
+	return pinweaver_eal_hmac_sha256_final(&hmac, result);
 }
 
 /* Computes the root hash for the specified path and child hash. */
-static void compute_root_hash(const struct merkle_tree_t *merkle_tree,
-			      struct label_t path,
-			      const uint8_t hashes[][PW_HASH_SIZE],
-			      const uint8_t child_hash[PW_HASH_SIZE],
-			      uint8_t new_root[PW_HASH_SIZE])
+static int compute_root_hash(const struct merkle_tree_t *merkle_tree,
+			     struct label_t path,
+			     const uint8_t hashes[][PW_HASH_SIZE],
+			     const uint8_t child_hash[PW_HASH_SIZE],
+			     uint8_t new_root[PW_HASH_SIZE])
 {
 	/* This is one less than the fan out, the number of sibling hashes. */
 	const uint16_t num_aux = (1 << merkle_tree->bits_per_level.v) - 1;
@@ -181,17 +212,22 @@ static void compute_root_hash(const struct merkle_tree_t *merkle_tree,
 	uint8_t hx = 0;
 	uint64_t index = path.v;
 
-	compute_hash(hashes, num_aux,
-		     (struct index_t){index & path_suffix_mask},
-		     child_hash, temp_hash);
+	if (compute_hash(hashes, num_aux,
+			 (struct index_t){ index & path_suffix_mask },
+			 child_hash, temp_hash)) {
+		return PW_ERR_CRYPTO_FAILURE;
+	}
 	for (hx = 1; hx < merkle_tree->height.v; ++hx) {
 		hashes += num_aux;
 		index = index >> merkle_tree->bits_per_level.v;
-		compute_hash(hashes, num_aux,
-			     (struct index_t){index & path_suffix_mask},
-			     temp_hash, temp_hash);
+		if (compute_hash(hashes, num_aux,
+				 (struct index_t){ index & path_suffix_mask },
+				 temp_hash, temp_hash)) {
+			return PW_ERR_CRYPTO_FAILURE;
+		}
 	}
 	memcpy(new_root, temp_hash, sizeof(temp_hash));
+	return EC_SUCCESS;
 }
 
 /* Checks to see the specified path is valid. The length of the path should be
@@ -206,7 +242,9 @@ static int authenticate_path(const struct merkle_tree_t *merkle_tree,
 {
 	uint8_t parent[PW_HASH_SIZE];
 
-	compute_root_hash(merkle_tree, path, hashes, child_hash, parent);
+	if (compute_root_hash(merkle_tree, path, hashes, child_hash, parent) !=
+	    0)
+		return PW_ERR_CRYPTO_FAILURE;
 	if (memcmp(parent, merkle_tree->root, sizeof(parent)) != 0)
 		return PW_ERR_PATH_AUTH_FAILED;
 	return EC_SUCCESS;
@@ -237,8 +275,10 @@ static int encrypt_leaf_data(const struct merkle_tree_t *merkle_tree,
 	 * a new IV should be generated and stored as part of the log for a
 	 * replay to be possible.
 	 */
-	pinweaver_eal_rand_bytes(wrapped_leaf_data->iv,
-				 sizeof(wrapped_leaf_data->iv));
+	if (pinweaver_eal_rand_bytes(wrapped_leaf_data->iv,
+				     sizeof(wrapped_leaf_data->iv))) {
+		return PW_ERR_CRYPTO_FAILURE;
+	}
 	memcpy(&wrapped_leaf_data->pub, &leaf_data->pub,
 	       sizeof(leaf_data->pub));
 	if (pinweaver_eal_aes256_ctr(merkle_tree->wrap_key,
@@ -301,11 +341,14 @@ static int handle_leaf_update(
 
 	import_leaf((const struct unimported_leaf_data_t *)wrapped_leaf_data,
 		    &ptrs);
-	compute_hmac(merkle_tree, &ptrs, wrapped_leaf_data->hmac);
+	ret = compute_hmac(merkle_tree, &ptrs, wrapped_leaf_data->hmac);
+	if (ret)
+		return ret;
 
-	compute_root_hash(merkle_tree, leaf_data->pub.label,
-			  hashes, wrapped_leaf_data->hmac,
-			  new_root);
+	ret = compute_root_hash(merkle_tree, leaf_data->pub.label, hashes,
+				wrapped_leaf_data->hmac, new_root);
+	if (ret)
+		return ret;
 
 	return EC_SUCCESS;
 }
@@ -500,7 +543,9 @@ static int validate_request_with_wrapped_leaf(
 	if (ret != EC_SUCCESS)
 		return ret;
 
-	compute_hmac(merkle_tree, imported_leaf_data, hmac);
+	ret = compute_hmac(merkle_tree, imported_leaf_data, hmac);
+	if (ret != EC_SUCCESS)
+		return ret;
 	/* Safe memcmp is used here to prevent an attacker from being able to
 	 * brute force a valid HMAC for a crafted wrapped_leaf_data.
 	 * memcmp provides an attacker a timing side-channel they can use to
@@ -895,8 +940,10 @@ static int pw_handle_remove_leaf(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS)
 		return ret;
 
-	compute_root_hash(merkle_tree, request->leaf_location,
-			  request->path_hashes, empty_hash, new_root);
+	ret = compute_root_hash(merkle_tree, request->leaf_location,
+				request->path_hashes, empty_hash, new_root);
+	if (ret != EC_SUCCESS)
+		return ret;
 
 	ret = log_remove_leaf(request->leaf_location, new_root);
 	if (ret != EC_SUCCESS)
@@ -1185,7 +1232,9 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 	if (log.entries[x].type.v != PW_TRY_AUTH)
 		return PW_ERR_TYPE_INVALID;
 
-	compute_hmac(merkle_tree, &imported_leaf_data, hmac);
+	ret = compute_hmac(merkle_tree, &imported_leaf_data, hmac);
+	if (ret != EC_SUCCESS)
+		return ret;
 	if (pinweaver_eal_safe_memcmp(hmac,
 				      request->unimported_leaf_data.hmac,
 				      sizeof(hmac)))
@@ -1248,22 +1297,39 @@ int get_path_auxiliary_hash_count(const struct merkle_tree_t *merkle_tree)
  * ARRAY_SIZE(hashes) == num_hashes
  * 0 <= location <= num_hashes
  */
-void compute_hash(const uint8_t hashes[][PW_HASH_SIZE], uint16_t num_hashes,
-		  struct index_t location,
-		  const uint8_t child_hash[PW_HASH_SIZE],
-		  uint8_t result[PW_HASH_SIZE])
+int compute_hash(const uint8_t hashes[][PW_HASH_SIZE], uint16_t num_hashes,
+		 struct index_t location,
+		 const uint8_t child_hash[PW_HASH_SIZE],
+		 uint8_t result[PW_HASH_SIZE])
 {
+	int ret;
 	pinweaver_eal_sha256_ctx_t ctx;
 
-	pinweaver_eal_sha256_init(&ctx);
+	ret = pinweaver_eal_sha256_init(&ctx);
+	if (ret)
+		return ret;
 	if (location.v > 0)
 		pinweaver_eal_sha256_update(&ctx, hashes[0],
 					    PW_HASH_SIZE * location.v);
-	pinweaver_eal_sha256_update(&ctx, child_hash, PW_HASH_SIZE);
-	if (location.v < num_hashes)
-		pinweaver_eal_sha256_update(&ctx, hashes[location.v],
-				PW_HASH_SIZE * (num_hashes - location.v));
-	pinweaver_eal_sha256_final(&ctx, result);
+	if (ret) {
+		pinweaver_eal_sha256_final(&ctx, result);
+		return ret;
+	}
+	ret = pinweaver_eal_sha256_update(&ctx, child_hash, PW_HASH_SIZE);
+	if (ret) {
+		pinweaver_eal_sha256_final(&ctx, result);
+		return ret;
+	}
+	if (location.v < num_hashes) {
+		ret = pinweaver_eal_sha256_update(
+			&ctx, hashes[location.v],
+			PW_HASH_SIZE * (num_hashes - location.v));
+		if (ret) {
+			pinweaver_eal_sha256_final(&ctx, result);
+			return ret;
+		}
+	}
+	return pinweaver_eal_sha256_final(&ctx, result);
 }
 
 /* If a request from older protocol comes, this method should make it
