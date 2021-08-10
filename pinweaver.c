@@ -824,7 +824,7 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 {
 	int ret = EC_SUCCESS;
 	struct leaf_data_t leaf_data = {};
-	struct wrapped_leaf_data_t wrapped_leaf_data;
+	struct wrapped_leaf_data_t wrapped_leaf_data = {};
 	const uint8_t empty_hash[PW_HASH_SIZE] = {};
 	uint8_t new_root[PW_HASH_SIZE];
 
