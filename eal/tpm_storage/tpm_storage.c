@@ -1123,6 +1123,14 @@ static int derive_pw_key(const uint8_t* device_key /* DEVICE_KEY_SIZE=256-bit */
 	return pinweaver_eal_hmac_sha256_final(&hash, result);
 }
 
+static void *secure_memset(void *ptr, int value, size_t num)
+{
+	volatile unsigned char *v_ptr = ptr;
+	while (num--)
+		*(v_ptr++) = value;
+	return ptr;
+}
+
 int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree)
 {
 	const uint8_t kWrapKeyConst[PW_OBJ_CONST_SIZE] = 
@@ -1140,6 +1148,9 @@ int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree)
 	if (derive_pw_key(device_key, kHmacKeyConst,
 			merkle_tree->key_derivation_nonce, merkle_tree->hmac_key))
 		return -1;
+
+        // Do not leave the content of the deivce key on the stack.
+	secure_memset(device_key, 0, sizeof(device_key));
 
 	return 0;
 }
