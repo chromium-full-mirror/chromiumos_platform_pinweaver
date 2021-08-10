@@ -1230,7 +1230,7 @@ int pinweaver_eal_storage_start()
 	return -1;
 }
 
-int pinweaver_eal_storage_init_state(uint8_t *root_hash,
+int pinweaver_eal_storage_init_state(uint8_t root_hash[PW_HASH_SIZE],
 				     uint32_t *restart_count)
 {
 	if (pinweaver_eal_storage_start())

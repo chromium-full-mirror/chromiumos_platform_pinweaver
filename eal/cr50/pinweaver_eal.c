@@ -191,7 +191,7 @@ static int pinweaver_eal_storage_get_log_var(struct tuple **var_ptr,
 	return EC_SUCCESS;
 }
 
-int pinweaver_eal_storage_init_state(uint8_t *root_hash,
+int pinweaver_eal_storage_init_state(uint8_t root_hash[PW_HASH_SIZE],
 				     uint32_t *restart_count)
 {
 	struct tuple *var;
