@@ -1482,13 +1482,20 @@ int make_compatible_request(struct merkle_tree_t *merkle_tree,
 				(&request->data.insert_leaf00.path_hashes);
 			unsigned char *dest = (unsigned char *)
 				(&request->data.insert_leaf.path_hashes);
-			const int hash_count =
-				get_path_auxiliary_hash_count(merkle_tree);
-			const uint16_t hashes_size = hash_count * PW_HASH_SIZE;
-
-			memmove(dest, src, hashes_size);
-			memset(&request->data.insert_leaf.valid_pcr_criteria,
-				0, PW_VALID_PCR_CRITERIA_SIZE);
+			const uint16_t src_size =
+				request->header.data_length -
+				offsetof(struct pw_request_insert_leaf00_t,
+					 path_hashes);
+			if (offsetof(struct pw_request_insert_leaf_t,
+				     path_hashes) +
+				    PW_MAX_MESSAGE_SIZE >
+			    4096) {
+				/* The total length of request overflowed. */
+				return 0;
+			}
+			memmove(dest, src, src_size);
+			memset(&request->data.insert_leaf.valid_pcr_criteria, 0,
+			       PW_VALID_PCR_CRITERIA_SIZE);
 			request->header.data_length +=
 				PW_VALID_PCR_CRITERIA_SIZE;
 		}
