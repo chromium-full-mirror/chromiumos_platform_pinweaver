@@ -253,7 +253,8 @@ static int authenticate_path(const struct merkle_tree_t *merkle_tree,
 	if (compute_root_hash(merkle_tree, path, hashes, child_hash, parent) !=
 	    0)
 		return PW_ERR_CRYPTO_FAILURE;
-	if (memcmp(parent, merkle_tree->root, sizeof(parent)) != 0)
+	if (pinweaver_eal_safe_memcmp(parent, merkle_tree->root,
+				      sizeof(parent)) != 0)
 		return PW_ERR_PATH_AUTH_FAILED;
 	return EC_SUCCESS;
 }
@@ -485,9 +486,9 @@ static int validate_pcr_value(const struct valid_pcr_value_t
 		/* Check if the curent PCR digest is the same as expected by
 		 * criteria.
 		 */
-		if (memcmp(sha256_of_selected_pcr,
-			   valid_pcr_criteria[index].digest,
-			   SHA256_DIGEST_SIZE) == 0) {
+		if (pinweaver_eal_safe_memcmp(sha256_of_selected_pcr,
+					      valid_pcr_criteria[index].digest,
+					      SHA256_DIGEST_SIZE) == 0) {
 			return EC_SUCCESS;
 		}
 	}
@@ -691,7 +692,8 @@ static int find_relevant_entry(const struct pw_log_storage_t *log,
 	for (*index = 0; *index < PW_LOG_ENTRY_COUNT; ++*index) {
 		if (log->entries[*index].type.v == PW_MT_INVALID)
 			break;
-		if (memcmp(root, log->entries[*index].root, PW_HASH_SIZE) == 0)
+		if (pinweaver_eal_safe_memcmp(root, log->entries[*index].root,
+					      PW_HASH_SIZE) == 0)
 			return EC_SUCCESS;
 	}
 	--*index;
@@ -1386,7 +1388,7 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS)
 		return ret;
 
-	if (memcmp(root, log.entries[x].root, PW_HASH_SIZE))
+	if (pinweaver_eal_safe_memcmp(root, log.entries[x].root, PW_HASH_SIZE))
 		return PW_ERR_PATH_AUTH_FAILED;
 
 	ret = pinweaver_eal_memcpy_s(&response->unimported_leaf_data,
