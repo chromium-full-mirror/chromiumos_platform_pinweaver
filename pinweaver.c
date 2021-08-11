@@ -146,7 +146,11 @@ static int create_merkle_tree(struct bits_per_level_t bits_per_level,
 		if (ret)
 			return ret;
 	}
-	memcpy(merkle_tree->root, temp_hash, PW_HASH_SIZE);
+	ret = pinweaver_eal_memcpy_s(merkle_tree->root,
+				     sizeof(merkle_tree->root), temp_hash,
+				     PW_HASH_SIZE);
+	if (ret != EC_SUCCESS)
+		return ret;
 
 	ret = pinweaver_eal_rand_bytes(
 		merkle_tree->key_derivation_nonce,
@@ -211,6 +215,7 @@ static int compute_root_hash(const struct merkle_tree_t *merkle_tree,
 	uint8_t temp_hash[PW_HASH_SIZE];
 	uint8_t hx = 0;
 	uint64_t index = path.v;
+	int ret;
 
 	if (compute_hash(hashes, num_aux,
 			 (struct index_t){ index & path_suffix_mask },
@@ -226,7 +231,10 @@ static int compute_root_hash(const struct merkle_tree_t *merkle_tree,
 			return PW_ERR_CRYPTO_FAILURE;
 		}
 	}
-	memcpy(new_root, temp_hash, sizeof(temp_hash));
+	ret = pinweaver_eal_memcpy_s(new_root, PW_HASH_SIZE, temp_hash,
+				     sizeof(temp_hash));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 	return EC_SUCCESS;
 }
 
@@ -265,6 +273,7 @@ static int encrypt_leaf_data(const struct merkle_tree_t *merkle_tree,
 			     const struct leaf_data_t *leaf_data,
 			     struct wrapped_leaf_data_t *wrapped_leaf_data)
 {
+	int ret;
 	/* Generate a random IV.
 	 *
 	 * If fields are appended to struct leaf_sensitive_data_t, an encryption
@@ -279,8 +288,11 @@ static int encrypt_leaf_data(const struct merkle_tree_t *merkle_tree,
 				     sizeof(wrapped_leaf_data->iv))) {
 		return PW_ERR_CRYPTO_FAILURE;
 	}
-	memcpy(&wrapped_leaf_data->pub, &leaf_data->pub,
-	       sizeof(leaf_data->pub));
+	ret = pinweaver_eal_memcpy_s(&wrapped_leaf_data->pub,
+				     sizeof(wrapped_leaf_data->pub),
+				     &leaf_data->pub, sizeof(leaf_data->pub));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 	if (pinweaver_eal_aes256_ctr(merkle_tree->wrap_key,
 				      sizeof(merkle_tree->wrap_key),
 				      wrapped_leaf_data->iv,
@@ -298,9 +310,13 @@ static int decrypt_leaf_data(
 		const struct imported_leaf_data_t *imported_leaf_data,
 		struct leaf_data_t *leaf_data)
 {
-	memcpy(&leaf_data->pub, imported_leaf_data->pub,
-	       MIN(imported_leaf_data->head->pub_len,
-		   sizeof(struct leaf_public_data_t)));
+	int ret;
+	ret = pinweaver_eal_memcpy_s(&leaf_data->pub, sizeof(leaf_data->pub),
+				     imported_leaf_data->pub,
+				     MIN(imported_leaf_data->head->pub_len,
+					 sizeof(struct leaf_public_data_t)));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 	if (pinweaver_eal_aes256_ctr(merkle_tree->wrap_key,
 				      sizeof(merkle_tree->wrap_key),
 				      imported_leaf_data->iv,
@@ -330,13 +346,25 @@ static int handle_leaf_update(
 		if (ret != EC_SUCCESS)
 			return ret;
 	} else {
-		memcpy(wrapped_leaf_data->iv, optional_old_wrapped_data->iv,
-		       sizeof(wrapped_leaf_data->iv));
-		memcpy(&wrapped_leaf_data->pub, &leaf_data->pub,
-		       sizeof(leaf_data->pub));
-		memcpy(wrapped_leaf_data->cipher_text,
-		       optional_old_wrapped_data->cipher_text,
-		       sizeof(wrapped_leaf_data->cipher_text));
+		ret = pinweaver_eal_memcpy_s(wrapped_leaf_data->iv,
+					     sizeof(wrapped_leaf_data->iv),
+					     optional_old_wrapped_data->iv,
+					     sizeof(wrapped_leaf_data->iv));
+		if (ret != EC_SUCCESS)
+			return PW_ERR_INTERNAL_FAILURE;
+		ret = pinweaver_eal_memcpy_s(&wrapped_leaf_data->pub,
+					     sizeof(wrapped_leaf_data->pub),
+					     &leaf_data->pub,
+					     sizeof(leaf_data->pub));
+		if (ret != EC_SUCCESS)
+			return PW_ERR_INTERNAL_FAILURE;
+		ret = pinweaver_eal_memcpy_s(
+			wrapped_leaf_data->cipher_text,
+			sizeof(wrapped_leaf_data->cipher_text),
+			optional_old_wrapped_data->cipher_text,
+			sizeof(wrapped_leaf_data->cipher_text));
+		if (ret != EC_SUCCESS)
+			return PW_ERR_INTERNAL_FAILURE;
 	}
 
 	import_leaf((const struct unimported_leaf_data_t *)wrapped_leaf_data,
@@ -698,9 +726,13 @@ static int load_merkle_tree(struct merkle_tree_t *merkle_tree)
 
 		merkle_tree->bits_per_level = tree.bits_per_level;
 		merkle_tree->height = tree.height;
-		memcpy(merkle_tree->key_derivation_nonce,
-		       tree.key_derivation_nonce,
-		       sizeof(tree.key_derivation_nonce));
+		ret = pinweaver_eal_memcpy_s(
+			merkle_tree->key_derivation_nonce,
+			sizeof(merkle_tree->key_derivation_nonce),
+			tree.key_derivation_nonce,
+			sizeof(tree.key_derivation_nonce));
+		if (ret != EC_SUCCESS)
+			return ret;
 		ret = pinweaver_eal_derive_keys(merkle_tree);
 		if (ret != EC_SUCCESS)
 			return ret;
@@ -732,9 +764,12 @@ int store_merkle_tree(const struct merkle_tree_t *merkle_tree)
 		data.storage_version = PW_STORAGE_VERSION;
 		data.bits_per_level = merkle_tree->bits_per_level;
 		data.height = merkle_tree->height;
-		memcpy(data.key_derivation_nonce,
-		       merkle_tree->key_derivation_nonce,
-		       sizeof(data.key_derivation_nonce));
+		ret = pinweaver_eal_memcpy_s(data.key_derivation_nonce,
+					     sizeof(data.key_derivation_nonce),
+					     merkle_tree->key_derivation_nonce,
+					     sizeof(data.key_derivation_nonce));
+		if (ret != EC_SUCCESS)
+			return ret;
 
 		ret = pinweaver_eal_storage_set_tree_data(&data);
 		if (ret != EC_SUCCESS)
@@ -748,8 +783,11 @@ int store_merkle_tree(const struct merkle_tree_t *merkle_tree)
 
 		log.storage_version = PW_STORAGE_VERSION;
 		entry->type.v = PW_RESET_TREE;
-		memcpy(entry->root, merkle_tree->root,
-		       sizeof(merkle_tree->root));
+		ret = pinweaver_eal_memcpy_s(entry->root, sizeof(entry->root),
+					     merkle_tree->root,
+					     sizeof(merkle_tree->root));
+		if (ret != EC_SUCCESS)
+			return ret;
 
 		ret = store_log_data(&log);
 		if (ret == EC_SUCCESS)
@@ -786,8 +824,14 @@ int log_insert_leaf(struct label_t label, const uint8_t root[PW_HASH_SIZE],
 
 	entry->type.v = PW_INSERT_LEAF;
 	entry->label.v = label.v;
-	memcpy(entry->root, root, sizeof(entry->root));
-	memcpy(entry->leaf_hmac, hmac, sizeof(entry->leaf_hmac));
+	ret = pinweaver_eal_memcpy_s(entry->root, sizeof(entry->root), root,
+				     sizeof(entry->root));
+	if (ret != EC_SUCCESS)
+		return ret;
+	ret = pinweaver_eal_memcpy_s(entry->leaf_hmac, sizeof(entry->leaf_hmac),
+				     hmac, sizeof(entry->leaf_hmac));
+	if (ret != EC_SUCCESS)
+		return ret;
 
 	return store_log_data(&log);
 }
@@ -804,7 +848,10 @@ int log_remove_leaf(struct label_t label, const uint8_t root[PW_HASH_SIZE])
 
 	entry->type.v = PW_REMOVE_LEAF;
 	entry->label.v = label.v;
-	memcpy(entry->root, root, sizeof(entry->root));
+	ret = pinweaver_eal_memcpy_s(entry->root, sizeof(entry->root), root,
+				     sizeof(entry->root));
+	if (ret != EC_SUCCESS)
+		return ret;
 
 	return store_log_data(&log);
 }
@@ -822,9 +869,16 @@ int log_auth(struct label_t label, const uint8_t root[PW_HASH_SIZE], int code,
 
 	entry->type.v = PW_TRY_AUTH;
 	entry->label.v = label.v;
-	memcpy(entry->root, root, sizeof(entry->root));
+	ret = pinweaver_eal_memcpy_s(entry->root, sizeof(entry->root), root,
+				     sizeof(entry->root));
+	if (ret != EC_SUCCESS)
+		return ret;
 	entry->return_code = code;
-	memcpy(&entry->timestamp, &timestamp, sizeof(entry->timestamp));
+	ret = pinweaver_eal_memcpy_s(&entry->timestamp,
+				     sizeof(entry->timestamp), &timestamp,
+				     sizeof(entry->timestamp));
+	if (ret != EC_SUCCESS)
+		return ret;
 
 	return store_log_data(&log);
 }
@@ -857,7 +911,10 @@ static int pw_handle_reset_tree(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS)
 		return ret;
 
-	memcpy(merkle_tree, &new_tree, sizeof(new_tree));
+	ret = pinweaver_eal_memcpy_s(merkle_tree, sizeof(*merkle_tree),
+				     &new_tree, sizeof(new_tree));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 	return EC_SUCCESS;
 }
 
@@ -889,17 +946,36 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 
 	memset(&leaf_data, 0, sizeof(leaf_data));
 	leaf_data.pub.label.v = request->label.v;
-	memcpy(&leaf_data.pub.valid_pcr_criteria, request->valid_pcr_criteria,
-	       sizeof(request->valid_pcr_criteria));
-	memcpy(&leaf_data.pub.delay_schedule, &request->delay_schedule,
-	       sizeof(request->delay_schedule));
-	memcpy(&leaf_data.sec.low_entropy_secret, &request->low_entropy_secret,
-	       sizeof(request->low_entropy_secret));
-	memcpy(&leaf_data.sec.high_entropy_secret,
-	       &request->high_entropy_secret,
-	       sizeof(request->high_entropy_secret));
-	memcpy(&leaf_data.sec.reset_secret, &request->reset_secret,
-	       sizeof(request->reset_secret));
+	ret = pinweaver_eal_memcpy_s(&leaf_data.pub.valid_pcr_criteria,
+				     sizeof(leaf_data.pub.valid_pcr_criteria),
+				     request->valid_pcr_criteria,
+				     sizeof(request->valid_pcr_criteria));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
+	ret = pinweaver_eal_memcpy_s(&leaf_data.pub.delay_schedule,
+				     sizeof(leaf_data.pub.delay_schedule),
+				     &request->delay_schedule,
+				     sizeof(request->delay_schedule));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
+	ret = pinweaver_eal_memcpy_s(&leaf_data.sec.low_entropy_secret,
+				     sizeof(leaf_data.sec.low_entropy_secret),
+				     &request->low_entropy_secret,
+				     sizeof(request->low_entropy_secret));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
+	ret = pinweaver_eal_memcpy_s(&leaf_data.sec.high_entropy_secret,
+				     sizeof(leaf_data.sec.high_entropy_secret),
+				     &request->high_entropy_secret,
+				     sizeof(request->high_entropy_secret));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
+	ret = pinweaver_eal_memcpy_s(&leaf_data.sec.reset_secret,
+				     sizeof(leaf_data.sec.reset_secret),
+				     &request->reset_secret,
+				     sizeof(request->reset_secret));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
 	ret = handle_leaf_update(merkle_tree, &leaf_data, request->path_hashes,
 				 &wrapped_leaf_data, new_root, NULL);
@@ -911,10 +987,18 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS)
 		return ret;
 
-	memcpy(merkle_tree->root, new_root, sizeof(new_root));
+	ret = pinweaver_eal_memcpy_s(merkle_tree->root,
+				     sizeof(merkle_tree->root), new_root,
+				     sizeof(new_root));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
-	memcpy(&response->unimported_leaf_data, &wrapped_leaf_data,
-	       sizeof(wrapped_leaf_data));
+	ret = pinweaver_eal_memcpy_s(&response->unimported_leaf_data,
+				     sizeof(wrapped_leaf_data),
+				     &wrapped_leaf_data,
+				     sizeof(wrapped_leaf_data));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
 	*response_size = sizeof(*response) + PW_LEAF_PAYLOAD_SIZE;
 
@@ -949,7 +1033,11 @@ static int pw_handle_remove_leaf(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS)
 		return ret;
 
-	memcpy(merkle_tree->root, new_root, sizeof(new_root));
+	ret = pinweaver_eal_memcpy_s(merkle_tree->root,
+				     sizeof(merkle_tree->root), new_root,
+				     sizeof(new_root));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 	return ret;
 }
 
@@ -1011,8 +1099,10 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS) {
 		*data_length = sizeof(*response) + PW_LEAF_PAYLOAD_SIZE;
 		memset(response, 0, *data_length);
-		memcpy(&response->seconds_to_wait, &seconds_to_wait,
-		       sizeof(seconds_to_wait));
+		pinweaver_eal_memcpy_s(&response->seconds_to_wait,
+				       sizeof(response->seconds_to_wait),
+				       &seconds_to_wait,
+				       sizeof(seconds_to_wait));
 		return ret;
 	}
 
@@ -1047,7 +1137,9 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 	ret = log_auth(wrapped_leaf_data.pub.label, new_root,
 		       results_table[auth_result].ret, leaf_data.pub.timestamp);
 	if (ret != EC_SUCCESS) {
-		memcpy(new_root, merkle_tree->root, sizeof(merkle_tree->root));
+		pinweaver_eal_memcpy_s(new_root, sizeof(new_root),
+				       merkle_tree->root,
+				       sizeof(merkle_tree->root));
 		return ret;
 	}
 	/**********************************************************************/
@@ -1055,21 +1147,35 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 	 * runtime of the code paths to diverge.
 	 */
 
-	memcpy(merkle_tree->root, new_root, sizeof(new_root));
+	ret = pinweaver_eal_memcpy_s(merkle_tree->root,
+				     sizeof(merkle_tree->root), new_root,
+				     sizeof(new_root));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
 	*data_length = sizeof(*response) + PW_LEAF_PAYLOAD_SIZE;
 	memset(response, 0, *data_length);
 
-	memcpy(&response->unimported_leaf_data, &wrapped_leaf_data,
-	       sizeof(wrapped_leaf_data));
+	ret = pinweaver_eal_memcpy_s(&response->unimported_leaf_data,
+				     sizeof(wrapped_leaf_data),
+				     &wrapped_leaf_data,
+				     sizeof(wrapped_leaf_data));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
-	memcpy(&response->high_entropy_secret,
-	       results_table[auth_result].secret,
-	       sizeof(response->high_entropy_secret));
+	ret = pinweaver_eal_memcpy_s(&response->high_entropy_secret,
+				     sizeof(response->high_entropy_secret),
+				     results_table[auth_result].secret,
+				     sizeof(response->high_entropy_secret));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
-	memcpy(&response->reset_secret,
-	       results_table[auth_result].reset_secret,
-	       sizeof(response->reset_secret));
+	ret = pinweaver_eal_memcpy_s(&response->reset_secret,
+				     sizeof(response->reset_secret),
+				     results_table[auth_result].reset_secret,
+				     sizeof(response->reset_secret));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
 	return results_table[auth_result].ret;
 }
@@ -1119,14 +1225,25 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS)
 		return ret;
 
-	memcpy(merkle_tree->root, new_root, sizeof(new_root));
+	ret = pinweaver_eal_memcpy_s(merkle_tree->root,
+				     sizeof(merkle_tree->root), new_root,
+				     sizeof(new_root));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
-	memcpy(&response->unimported_leaf_data, &wrapped_leaf_data,
-	       sizeof(wrapped_leaf_data));
+	ret = pinweaver_eal_memcpy_s(&response->unimported_leaf_data,
+				     sizeof(wrapped_leaf_data),
+				     &wrapped_leaf_data,
+				     sizeof(wrapped_leaf_data));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
-	memcpy(response->high_entropy_secret,
-	       leaf_data.sec.high_entropy_secret,
-	       sizeof(response->high_entropy_secret));
+	ret = pinweaver_eal_memcpy_s(response->high_entropy_secret,
+				     sizeof(response->high_entropy_secret),
+				     leaf_data.sec.high_entropy_secret,
+				     sizeof(response->high_entropy_secret));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
 	*response_size = sizeof(*response) + PW_LEAF_PAYLOAD_SIZE;
 
@@ -1174,7 +1291,11 @@ static int pw_handle_get_log(const struct merkle_tree_t *merkle_tree,
 
 	/* Copy the entries in reverse order. */
 	while (1) {
-		memcpy(&response[x], &log.entries[x], sizeof(log.entries[x]));
+		ret = pinweaver_eal_memcpy_s(&response[x], sizeof(response[x]),
+					     &log.entries[x],
+					     sizeof(log.entries[x]));
+		if (ret != EC_SUCCESS)
+			return PW_ERR_INTERNAL_FAILURE;
 		*response_size += sizeof(log.entries[x]);
 		if (x == 0)
 			break;
@@ -1252,8 +1373,12 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 		leaf_data.pub.attempt_count.v = 0;
 	else
 		++leaf_data.pub.attempt_count.v;
-	memcpy(&leaf_data.pub.timestamp, &log.entries[x].timestamp,
-	       sizeof(leaf_data.pub.timestamp));
+	ret = pinweaver_eal_memcpy_s(&leaf_data.pub.timestamp,
+				     sizeof(leaf_data.pub.timestamp),
+				     &log.entries[x].timestamp,
+				     sizeof(leaf_data.pub.timestamp));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
 	ret = handle_leaf_update(merkle_tree, &leaf_data,
 				 imported_leaf_data.hashes, &wrapped_leaf_data,
@@ -1264,8 +1389,12 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 	if (memcmp(root, log.entries[x].root, PW_HASH_SIZE))
 		return PW_ERR_PATH_AUTH_FAILED;
 
-	memcpy(&response->unimported_leaf_data, &wrapped_leaf_data,
-	       sizeof(wrapped_leaf_data));
+	ret = pinweaver_eal_memcpy_s(&response->unimported_leaf_data,
+				     sizeof(wrapped_leaf_data),
+				     &wrapped_leaf_data,
+				     sizeof(wrapped_leaf_data));
+	if (ret != EC_SUCCESS)
+		return PW_ERR_INTERNAL_FAILURE;
 
 	*response_size = sizeof(*response) + PW_LEAF_PAYLOAD_SIZE;
 
@@ -1507,8 +1636,12 @@ cleanup:
 	response->header.version = PW_PROTOCOL_VERSION;
 	response->header.data_length = resp_length;
 	response->header.result_code = ret;
-	memcpy(&response->header.root, merkle_tree->root,
-	       sizeof(merkle_tree->root));
+	if (pinweaver_eal_memcpy_s(&response->header.root,
+				   sizeof(response->header.root),
+				   merkle_tree->root,
+				   sizeof(merkle_tree->root))) {
+		ret = PW_ERR_INTERNAL_FAILURE;
+	}
 
 	make_compatible_response(version, type.v, response);
 

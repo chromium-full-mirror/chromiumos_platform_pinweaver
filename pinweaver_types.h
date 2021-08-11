@@ -51,6 +51,7 @@ enum pw_error_codes_enum {
 	PW_ERR_NV_LENGTH_MISMATCH,
 	PW_ERR_NV_VERSION_MISMATCH,
 	PW_ERR_PCR_NOT_MATCH,
+	PW_ERR_INTERNAL_FAILURE,
 };
 
 /* Represents the log2(fan out) of a tree. */
