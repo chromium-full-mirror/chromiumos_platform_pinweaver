@@ -527,6 +527,9 @@ static int validate_leaf_header(const struct leaf_header_t *head,
 	if (payload_len != leaf_payload_len + aux_hash_len * PW_HASH_SIZE)
 		return PW_ERR_LENGTH_INVALID;
 
+	if (head->sec_len < sizeof(struct leaf_sensitive_data_t))
+		return PW_ERR_LENGTH_INVALID;
+
 	return EC_SUCCESS;
 }
 
