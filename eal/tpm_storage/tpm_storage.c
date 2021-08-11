@@ -11,10 +11,13 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "mini_trunks/tss.h"
-#include "pinweaver_eal.h"
-#include "pinweaver_eal_tpm.h"
-#include "tss_serde.h"
+#include "tpm_storage_internal.h"
+
+#if defined(TEST_TPM_STORAGE)
+#define TESTABLE_STATIC
+#else
+#define TESTABLE_STATIC static
+#endif
 
 #if defined(HAS_MEMCPY_S)
 int pinweaver_eal_memcpy_s(
@@ -60,65 +63,27 @@ int pinweaver_eal_memcpy_s(
  */
 BUILD_ASSERT(PW_MAX_MESSAGE_SIZE + 10 <= PINWEAVER_TSS_MAX_MESSAGE_SIZE);
 
-typedef enum {
-	TPMSS_NOT_STARTED = 0,		// initial state
-	TPMSS_NOT_INITIALIZED = 1,	// NV indices not created after changing the owner
-	TPMSS_READY = 2,		// ready for PinWeaver commands
-} tpm_storage_state_t;
-static tpm_storage_state_t g_storage_state = TPMSS_NOT_STARTED;
+TESTABLE_STATIC tpm_storage_state_t g_storage_state = TPMSS_NOT_STARTED;
 
-typedef struct tpm_session_t {
-	TPM_HANDLE handle;
-	TSS_AUTHORIZATION_DELEGATE delegate;
-} tpm_session_t;
-static tpm_session_t g_auth_session = { 0, };
+TESTABLE_STATIC tpm_session_t g_auth_session = { 0, };
 
-typedef struct PW_PACKED tpm_storage_tree_descriptor_t {
-	uint16_t version;
-	uint32_t restart_count;
-	struct pw_long_term_storage_t descriptor;
-} tpm_storage_tree_descriptor_t;
+TESTABLE_STATIC struct tpm_storage_tree_descriptor_t g_tree_descriptor;
+TESTABLE_STATIC bool g_tree_descriptor_filled = false;
 
-static struct tpm_storage_tree_descriptor_t g_tree_descriptor;
-static bool g_tree_descriptor_filled = false;
+TESTABLE_STATIC bool g_auth_value_obtained[2] = {false, false};
+TESTABLE_STATIC TPM2B_DIGEST g_auth_value[2];
 
-static bool g_auth_value_obtained[2] = {false, false};
-static TPM2B_DIGEST g_auth_value[2];
+TESTABLE_STATIC uint8_t g_device_key[2][DEVICE_KEY_SIZE];
+TESTABLE_STATIC bool g_device_key_obtained[2] = {false, false};
 
-#define DEVICE_KEY_SIZE SHA256_DIGEST_SIZE
-static uint8_t g_device_key[2][DEVICE_KEY_SIZE];
-static bool g_device_key_obtained[2] = {false, false};
+TESTABLE_STATIC uint8_t g_data_key[2][DATA_KEY_SIZE];
+TESTABLE_STATIC bool g_data_key_obtained[2] = {false, false};
 
-#define DATA_KEY_SIZE SHA256_DIGEST_SIZE
-static uint8_t g_data_key[2][DATA_KEY_SIZE];
-static bool g_data_key_obtained[2] = {false, false};
+TESTABLE_STATIC cached_log_entry_t g_cached_log_entries[MAX_LOG_ENTRIES];
+TESTABLE_STATIC int g_cache_order[MAX_LOG_ENTRIES];
+TESTABLE_STATIC uint32_t g_max_counter = 0;
 
-typedef struct PW_PACKED log_sensitive_data_t {
-	struct pw_get_log_entry_t entry;
-	uint8_t hash[SHA256_DIGEST_SIZE];
-} log_sensitive_data_t;
-
-#define LOG_ENTRY_IV_SIZE SHA256_DIGEST_SIZE
-typedef struct PW_PACKED tpm_storage_log_entry_t {
-	uint16_t version;
-	uint32_t counter;
-	uint8_t iv[LOG_ENTRY_IV_SIZE];
-	uint8_t encrypted_data[sizeof(log_sensitive_data_t)];
-} tpm_storage_log_entry_t;
-
-typedef struct cached_log_entry_t {
-	struct pw_get_log_entry_t data;
-	uint32_t counter;
-} cached_log_entry_t;
-
-#define MAX_LOG_ENTRIES 5
-#define LOG_ENTRY_PERSIST MAX_LOG_ENTRIES
-
-static cached_log_entry_t g_cached_log_entries[MAX_LOG_ENTRIES];
-static int g_cache_order[MAX_LOG_ENTRIES];
-static uint32_t g_max_counter = 0;
-
-static void digest_set_sha256(TPM2B_DIGEST* digest,
+TESTABLE_STATIC void digest_set_sha256(TPM2B_DIGEST* digest,
 		const uint8_t* value /* SHA256_DIGEST_SIZE */)
 {
 	pinweaver_eal_memcpy_s(digest->buffer, sizeof(digest->buffer),
@@ -126,7 +91,7 @@ static void digest_set_sha256(TPM2B_DIGEST* digest,
 	digest->size = SHA256_DIGEST_SIZE;
 }
 
-static void name_set_handle(TPM2B_NAME* name, TPM_HANDLE handle)
+TESTABLE_STATIC void name_set_handle(TPM2B_NAME* name, TPM_HANDLE handle)
 {
 	uint32_t serialized = htobe32(handle);
 	pinweaver_eal_memcpy_s(name->name, sizeof(name->name),
@@ -134,7 +99,7 @@ static void name_set_handle(TPM2B_NAME* name, TPM_HANDLE handle)
 	name->size = sizeof(serialized);
 }
 
-static cached_log_entry_t* get_first_cached_log_entry()
+TESTABLE_STATIC cached_log_entry_t* get_first_cached_log_entry()
 {
 	int num = g_cache_order[0];
 
@@ -143,7 +108,7 @@ static cached_log_entry_t* get_first_cached_log_entry()
 	return &g_cached_log_entries[num];
 }
 
-static int get_last_cached_log_entry_num()
+TESTABLE_STATIC int get_last_cached_log_entry_num()
 {
 	int num = g_cache_order[MAX_LOG_ENTRIES - 1];
 
@@ -152,7 +117,7 @@ static int get_last_cached_log_entry_num()
 	return num;
 }
 
-static int ensure_device_key(int kind) {
+TESTABLE_STATIC int ensure_device_key(int kind) {
 	kind = kind ? 1 : 0;
 	if (g_device_key_obtained[kind])
 		return 0;
@@ -165,7 +130,7 @@ static int ensure_device_key(int kind) {
 	return 0;
 }
 
-static const TPM2B_DIGEST* get_auth_value(int kind) {
+TESTABLE_STATIC const TPM2B_DIGEST* get_auth_value(int kind) {
 	const size_t kAuthValueLabelSize = 6;
 	const char* kAuthValueLabel = "PW_ATH";
 
@@ -190,7 +155,7 @@ static const TPM2B_DIGEST* get_auth_value(int kind) {
 	return &g_auth_value[kind];
 }
 
-static const uint8_t* get_data_key(int kind) {
+TESTABLE_STATIC const uint8_t* get_data_key(int kind) {
 	kind = kind ? 1 : 0;
 	if (g_data_key_obtained[kind])
 		return g_data_key[kind];
@@ -215,7 +180,7 @@ static const uint8_t* get_data_key(int kind) {
 	return g_data_key[kind];
 }
 
-static int calc_sha256(const void* data, size_t size, void* hash)
+TESTABLE_STATIC int calc_sha256(const void* data, size_t size, void* hash)
 {
 	pinweaver_eal_sha256_ctx_t ctx;
 	if (pinweaver_eal_sha256_init(&ctx))
@@ -227,7 +192,7 @@ static int calc_sha256(const void* data, size_t size, void* hash)
 	return pinweaver_eal_sha256_final(&ctx, hash);
 }
 
-static void set_nv_public_area(TPM_HANDLE handle,
+TESTABLE_STATIC void set_nv_public_area(TPM_HANDLE handle,
 		size_t data_size,
 		bool set_written,
 		TPMS_NV_PUBLIC* public_area)
@@ -259,7 +224,8 @@ static void set_nv_public_area(TPM_HANDLE handle,
 	public_area->data_size = data_size;
 }
 
-static int calc_sha256_name(const TSS_DST_DATA_BUF* data, TPM2B_NAME* name)
+TESTABLE_STATIC int calc_sha256_name(const TSS_DST_DATA_BUF* data,
+		TPM2B_NAME* name)
 {
 	/* Serialized TPM_ALG_SHA256 */
 	const uint8_t kSerializedAlgSha256[2] = {0x00, 0x0B};
@@ -272,7 +238,8 @@ static int calc_sha256_name(const TSS_DST_DATA_BUF* data, TPM2B_NAME* name)
 	return calc_sha256(data->buffer, data->size, hash);
 }
 
-static int calc_nv_name(const TPMS_NV_PUBLIC* public_area, TPM2B_NAME* name)
+TESTABLE_STATIC int calc_nv_name(const TPMS_NV_PUBLIC* public_area,
+		TPM2B_NAME* name)
 {
 	TPMS_NV_PUBLIC serialized;
 	TSS_DST_DATA_BUF buffer = {sizeof(serialized), 0,
@@ -282,7 +249,7 @@ static int calc_nv_name(const TPMS_NV_PUBLIC* public_area, TPM2B_NAME* name)
 	return calc_sha256_name(&buffer, name);
 }
 
-static int calc_expected_name(TPM_HANDLE handle, size_t size,
+TESTABLE_STATIC int calc_expected_name(TPM_HANDLE handle, size_t size,
 		bool expect_written, TPM2B_NAME* name)
 {
 	TPMS_NV_PUBLIC public_area;
@@ -291,7 +258,7 @@ static int calc_expected_name(TPM_HANDLE handle, size_t size,
 	return calc_nv_name(&public_area, name);
 }
 
-static int check_nv_space(TPM_HANDLE handle,
+TESTABLE_STATIC int check_nv_space(TPM_HANDLE handle,
 		TPM2B_NAME* name,
 		size_t expected_size,
 		const TPMS_NV_PUBLIC* public_area)
@@ -306,7 +273,7 @@ static int check_nv_space(TPM_HANDLE handle,
 	return memcmp(name->name, expected_name.name, name->size);
 }
 
-static void set_session_auth_value(tpm_session_t* session,
+TESTABLE_STATIC void set_session_auth_value(tpm_session_t* session,
 		const TPM2B_DIGEST* auth_value)
 {
 	session->delegate.hmac.entity_authorization_value_.size = auth_value->size;
@@ -316,7 +283,7 @@ static void set_session_auth_value(tpm_session_t* session,
 			auth_value->buffer, auth_value->size);
 }
 
-static void set_future_session_auth_value(tpm_session_t* session,
+TESTABLE_STATIC void set_future_session_auth_value(tpm_session_t* session,
 		const TPM2B_DIGEST* auth_value)
 {
 	session->delegate.hmac.future_authorization_value_.size = auth_value->size;
@@ -327,7 +294,7 @@ static void set_future_session_auth_value(tpm_session_t* session,
 	session->delegate.hmac.future_authorization_value_set_ = true;
 }
 
-static void close_session(tpm_session_t* session)
+TESTABLE_STATIC void close_session(tpm_session_t* session)
 {
 	if (session->handle) {
 		tss_FlushContext(session->handle, NULL);
@@ -335,7 +302,7 @@ static void close_session(tpm_session_t* session)
 	}
 }
 
-static int start_session(tpm_session_t* session,
+TESTABLE_STATIC int start_session(tpm_session_t* session,
 		TPM_SE session_type,
 		TPMI_DH_ENTITY bind_entity,
 		const TPM2B_DIGEST* bind_authorization_value,
@@ -343,7 +310,7 @@ static int start_session(tpm_session_t* session,
 		bool enable_encryption,
 		bool force_restart);
 
-static int get_salting_key_public(TPM2B_PUBLIC* public)
+TESTABLE_STATIC int get_salting_key_public(TPM2B_PUBLIC* public)
 {
 	TPM2B_NAME name;
 	TPM2B_NAME qualified_name;
@@ -356,7 +323,7 @@ static int get_salting_key_public(TPM2B_PUBLIC* public)
 	return rc == TPM_RC_SUCCESS ? 0 : -1;
 }
 
-static int calc_salting_key_hash(TPM2B_PUBLIC* public,
+TESTABLE_STATIC int calc_salting_key_hash(TPM2B_PUBLIC* public,
 		uint8_t* hash /* SHA256_DIGEST_SIZE */)
 {
 	TPMS_ECC_POINT* pub_key = &public->public_area.unique.ecc;
@@ -374,7 +341,7 @@ static int calc_salting_key_hash(TPM2B_PUBLIC* public,
 	return pinweaver_eal_sha256_final(&ctx, hash);
 }
 
-static void dump_hash(const char* prefix, const uint8_t* hash)
+TESTABLE_STATIC void dump_hash(const char* prefix, const uint8_t* hash)
 {
 	char buffer[SHA256_DIGEST_SIZE*3 + 1];
 	const size_t size = sizeof(buffer);
@@ -389,7 +356,7 @@ static void dump_hash(const char* prefix, const uint8_t* hash)
 	PINWEAVER_EAL_INFO("%s: %s", prefix, buffer);
 }
 
-static int verify_salting_key_public(TPM2B_PUBLIC* public)
+TESTABLE_STATIC int verify_salting_key_public(TPM2B_PUBLIC* public)
 {
 	uint8_t key_hash[SHA256_DIGEST_SIZE];
 	uint8_t provisioned_hash[SHA256_DIGEST_SIZE];
@@ -409,7 +376,7 @@ static int verify_salting_key_public(TPM2B_PUBLIC* public)
 			SHA256_DIGEST_SIZE);
 }
 
-static int serialize_tpm_ec_point(
+TESTABLE_STATIC int serialize_tpm_ec_point(
 		const TPMS_ECC_POINT* point,
 		TPM2B_ENCRYPTED_SECRET* serialized)
 {
@@ -423,7 +390,7 @@ static int serialize_tpm_ec_point(
 	return 0;
 }
 
-static int generate_session_salt(TPM2B_DIGEST* salt,
+TESTABLE_STATIC int generate_session_salt(TPM2B_DIGEST* salt,
 		TPM2B_ENCRYPTED_SECRET* encrypted_salt)
 {
 	TPM2B_PUBLIC salting_key_public;
@@ -488,7 +455,7 @@ static int generate_session_salt(TPM2B_DIGEST* salt,
 	return 0;
 }
 
-static int start_session(tpm_session_t* session,
+TESTABLE_STATIC int start_session(tpm_session_t* session,
 		TPM_SE session_type,
 		TPMI_DH_ENTITY bind_entity,
 		const TPM2B_DIGEST* bind_authorization_value,
@@ -562,7 +529,7 @@ static int start_session(tpm_session_t* session,
 	return 0;
 }
 
-static int start_auth_session(int kind, bool force_restart)
+TESTABLE_STATIC int start_auth_session(int kind, bool force_restart)
 {
 	const TPM2B_DIGEST* auth_value = get_auth_value(kind);
 	if (!auth_value) {
@@ -581,7 +548,8 @@ static int start_auth_session(int kind, bool force_restart)
 	return 0;
 }
 
-static int start_change_auth_session(tpm_session_t* change_auth_session)
+TESTABLE_STATIC int start_change_auth_session(
+		tpm_session_t* change_auth_session)
 {
 	if (!change_auth_session)
 		return -1;
@@ -626,13 +594,13 @@ static int start_change_auth_session(tpm_session_t* change_auth_session)
 	return 0;
 }
 
-static int calc_log_sensitive_data_hash(log_sensitive_data_t* data,
+TESTABLE_STATIC int calc_log_sensitive_data_hash(log_sensitive_data_t* data,
 		uint8_t* res /* SHA256_DIGEST_SIZE */)
 {
 	return calc_sha256(&data->entry, sizeof(data->entry), res);
 }
 
-static int verify_log_sensitive_data(log_sensitive_data_t* data)
+TESTABLE_STATIC int verify_log_sensitive_data(log_sensitive_data_t* data)
 {
 	uint8_t res[SHA256_DIGEST_SIZE];
 	if (calc_log_sensitive_data_hash(data, res))
@@ -642,7 +610,9 @@ static int verify_log_sensitive_data(log_sensitive_data_t* data)
 	return 0;
 }
 
-static int decrypt_log_entry(const tpm_storage_log_entry_t* tpm_entry, int kind, cached_log_entry_t* entry)
+TESTABLE_STATIC int decrypt_log_entry(
+		const tpm_storage_log_entry_t* tpm_entry, int kind,
+		cached_log_entry_t* entry)
 {
 	const uint8_t* key = get_data_key(kind);
 	if (key == NULL)
@@ -665,7 +635,8 @@ static int decrypt_log_entry(const tpm_storage_log_entry_t* tpm_entry, int kind,
 			&plaintext.entry, sizeof(struct pw_get_log_entry_t));
 }
 
-static int encrypt_log_entry(const struct pw_get_log_entry_t* log_entry,
+TESTABLE_STATIC int encrypt_log_entry(
+		const struct pw_get_log_entry_t* log_entry,
 		uint32_t counter, tpm_storage_log_entry_t* tpm_entry)
 {
 	log_sensitive_data_t plaintext;
@@ -697,7 +668,7 @@ static int encrypt_log_entry(const struct pw_get_log_entry_t* log_entry,
 	return 0;
 }
 
-static int cache_order_ins(int pos, int entry_num)
+TESTABLE_STATIC int cache_order_ins(int pos, int entry_num)
 {
 	if (pos < 0 || pos >= MAX_LOG_ENTRIES)
 		return -1;
@@ -707,7 +678,8 @@ static int cache_order_ins(int pos, int entry_num)
 	return 0;
 }
 
-static int cache_order_ins_entry_num(cached_log_entry_t* entry, int entry_num)
+TESTABLE_STATIC int cache_order_ins_entry_num(cached_log_entry_t* entry,
+		int entry_num)
 {
 	int pos;
 	for (pos = 0; pos < MAX_LOG_ENTRIES; ++pos) {
@@ -729,7 +701,7 @@ static int cache_order_ins_entry_num(cached_log_entry_t* entry, int entry_num)
 	return cache_order_ins(pos, entry_num);
 }
 
-static int cache_order_del(int pos)
+TESTABLE_STATIC int cache_order_del(int pos)
 {
 	if (pos < 0 || pos >= MAX_LOG_ENTRIES)
 		return -1;
@@ -739,7 +711,7 @@ static int cache_order_del(int pos)
 	return 0;
 }
 
-static int cache_order_del_entry_num(int entry_num)
+TESTABLE_STATIC int cache_order_del_entry_num(int entry_num)
 {
 	int pos;
 	for (pos = 0; pos < MAX_LOG_ENTRIES; ++pos) {
@@ -749,7 +721,7 @@ static int cache_order_del_entry_num(int entry_num)
 	return -1;
 }
 
-static int get_nv_handle_info(TPM_HANDLE handle,
+TESTABLE_STATIC int get_nv_handle_info(TPM_HANDLE handle,
 		bool must_exist,
 		size_t expected_size,
 		TPM2B_NAME* name,
@@ -783,7 +755,7 @@ static int get_nv_handle_info(TPM_HANDLE handle,
 	return 0;
 }
 
-static int read_log_entry(TPM_HANDLE handle,
+TESTABLE_STATIC int read_log_entry(TPM_HANDLE handle,
 		cached_log_entry_t* entry,
 		int* is_old_key)
 {
@@ -841,7 +813,7 @@ static int read_log_entry(TPM_HANDLE handle,
 	return 0;
 }
 
-static int read_and_insert_log_entry(int entry_num, int* need_writing)
+TESTABLE_STATIC int read_and_insert_log_entry(int entry_num, int* need_writing)
 {
 	if (entry_num < 0 || entry_num >= MAX_LOG_ENTRIES)
 		return -1;
@@ -859,7 +831,7 @@ static int read_and_insert_log_entry(int entry_num, int* need_writing)
 	return cache_order_ins_entry_num(entry, entry_num);
 }
 
-static int write_log_entry_by_handle(TPM_HANDLE handle,
+TESTABLE_STATIC int write_log_entry_by_handle(TPM_HANDLE handle,
 		tpm_storage_log_entry_t* tpm_entry)
 {
 	TPM2B_MAX_NV_BUFFER tpm_data;
@@ -896,19 +868,20 @@ static int write_log_entry_by_handle(TPM_HANDLE handle,
 	return -1;
 }
 
-static int write_log_entry(int entry_num, tpm_storage_log_entry_t* tpm_entry)
+TESTABLE_STATIC int write_log_entry(int entry_num,
+		tpm_storage_log_entry_t* tpm_entry)
 {
 	return write_log_entry_by_handle(LOG_ENTRY_FIRST_HANDLE + entry_num,
 			tpm_entry);
 }
 
-static int clear_persist_entry()
+TESTABLE_STATIC int clear_persist_entry()
 {
 	tpm_storage_log_entry_t tpm_entry = { 0, };
 	return write_log_entry_by_handle(LOG_ENTRY_PERSIST_HANDLE, &tpm_entry);
 }
 
-static int write_back_log_entry(int entry_num, bool use_persist)
+TESTABLE_STATIC int write_back_log_entry(int entry_num, bool use_persist)
 {
 	PINWEAVER_EAL_INFO("write_back_log_entry %d", entry_num);
 	tpm_storage_log_entry_t tpm_entry;
@@ -922,7 +895,7 @@ static int write_back_log_entry(int entry_num, bool use_persist)
 	return write_log_entry(entry_num, &tpm_entry);
 }
 
-static int read_log_entries()
+TESTABLE_STATIC int read_log_entries()
 {
 	int entry_num;
 	int need_writing[MAX_LOG_ENTRIES] = {0, };
@@ -989,7 +962,7 @@ static int read_log_entries()
 	return 0;
 }
 
-static void set_initial_log_entries()
+TESTABLE_STATIC void set_initial_log_entries()
 {
 	int entry_num;
 	for (entry_num = 0; entry_num < MAX_LOG_ENTRIES; ++entry_num) {
@@ -998,19 +971,19 @@ static void set_initial_log_entries()
 	}
 }
 
-static void set_initial_tree_descr()
+TESTABLE_STATIC void set_initial_tree_descr()
 {
 	memset(&g_tree_descriptor, 0, sizeof(g_tree_descriptor));
 	g_tree_descriptor_filled = false;
 }
 
-static void set_initial_state()
+TESTABLE_STATIC void set_initial_state()
 {
 	set_initial_log_entries();
 	set_initial_tree_descr();
 }
 
-static int change_auth_handle(TPM_HANDLE handle, size_t size)
+TESTABLE_STATIC int change_auth_handle(TPM_HANDLE handle, size_t size)
 {
 	TPM2B_NAME name;
 	const TPM2B_DIGEST* new_auth_value = get_auth_value(PINWEAVER_EAL_AUTH_CURRENT);
@@ -1042,7 +1015,7 @@ static int change_auth_handle(TPM_HANDLE handle, size_t size)
 	return 0;
 }
 
-static int change_auth()
+TESTABLE_STATIC int change_auth()
 {
 	int entry_num;
 
@@ -1063,7 +1036,7 @@ static int change_auth()
 	return 0;
 }
 
-static int read_tree_descr()
+TESTABLE_STATIC int read_tree_descr()
 {
 	TPM2B_MAX_NV_BUFFER buffer;
 	TPM2B_NAME name;
@@ -1134,7 +1107,7 @@ static int read_tree_descr()
 	return 0;
 }
 
-static int write_tree_descr(const tpm_storage_tree_descriptor_t *data)
+TESTABLE_STATIC int write_tree_descr(const tpm_storage_tree_descriptor_t *data)
 {
 	TPM2B_MAX_NV_BUFFER tpm_data;
 	const size_t size = sizeof(g_tree_descriptor);
@@ -1170,9 +1143,8 @@ static int write_tree_descr(const tpm_storage_tree_descriptor_t *data)
 	return -1;
 }
 
-#define PW_OBJ_CONST_SIZE 8
-#define PW_NONCE_SIZE (128/8)
-static int derive_pw_key(const uint8_t* device_key /* DEVICE_KEY_SIZE=256-bit */,
+TESTABLE_STATIC int derive_pw_key(
+		const uint8_t* device_key /* DEVICE_KEY_SIZE=256-bit */,
 		const uint8_t* object_const /* PW_OBJ_CONST_SIZE */,
 		const uint8_t* nonce /* PW_NONCE_SIZE */,
 		uint8_t* result /* SHA256_DIGEST_SIZE */)
@@ -1191,7 +1163,7 @@ static int derive_pw_key(const uint8_t* device_key /* DEVICE_KEY_SIZE=256-bit */
 	return pinweaver_eal_hmac_sha256_final(&hash, result);
 }
 
-static void *secure_memset(void *ptr, int value, size_t num)
+TESTABLE_STATIC void *secure_memset(void *ptr, int value, size_t num)
 {
 	volatile unsigned char *v_ptr = ptr;
 	while (num--)
@@ -1277,7 +1249,8 @@ int pinweaver_eal_storage_init_state(uint8_t *root_hash,
 	return 0;
 }
 
-static void log_entry_set_default(struct pw_get_log_entry_t* entry)
+TESTABLE_STATIC void log_entry_set_default(
+		struct pw_get_log_entry_t* entry)
 {
 	memset(entry, 0, sizeof(struct pw_get_log_entry_t));
 }
@@ -1373,7 +1346,7 @@ int pinweaver_eal_storage_set_tree_data(
 	return res;
 }
 
-static int define_space(tpm_session_t* session,
+TESTABLE_STATIC int define_space(tpm_session_t* session,
 		TPM_HANDLE handle, size_t data_size)
 {
 	const TPM2B_DIGEST* auth_value = get_auth_value(0);
@@ -1398,7 +1371,7 @@ static int define_space(tpm_session_t* session,
 	return 0;
 }
 
-static int create_nvmem_spaces()
+TESTABLE_STATIC int create_nvmem_spaces()
 {
 	tpm_session_t salted_session = { 0, };
 	if (start_session(&salted_session, TPM_SE_HMAC, TPM_RH_NULL,
