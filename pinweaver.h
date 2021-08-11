@@ -199,10 +199,10 @@ void import_leaf(const struct unimported_leaf_data_t *unimported,
 int get_path_auxiliary_hash_count(const struct merkle_tree_t *merkle_tree);
 
 /* Computes the parent hash for an array of child hashes. */
-void compute_hash(const uint8_t hashes[][PW_HASH_SIZE], uint16_t num_hashes,
-		  struct index_t location,
-		  const uint8_t child_hash[PW_HASH_SIZE],
-		  uint8_t result[PW_HASH_SIZE]);
+int compute_hash(const uint8_t hashes[][PW_HASH_SIZE], uint16_t num_hashes,
+		 struct index_t location,
+		 const uint8_t child_hash[PW_HASH_SIZE],
+		 uint8_t result[PW_HASH_SIZE]);
 
 /* This should only be used in tests. */
 void force_restart_count(uint32_t mock_value);
