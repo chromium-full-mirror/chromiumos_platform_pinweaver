@@ -121,14 +121,16 @@ static uint32_t g_max_counter = 0;
 static void digest_set_sha256(TPM2B_DIGEST* digest,
 		const uint8_t* value /* SHA256_DIGEST_SIZE */)
 {
-	memcpy(digest->buffer, value, SHA256_DIGEST_SIZE);
+	pinweaver_eal_memcpy_s(digest->buffer, sizeof(digest->buffer),
+			value, SHA256_DIGEST_SIZE);
 	digest->size = SHA256_DIGEST_SIZE;
 }
 
 static void name_set_handle(TPM2B_NAME* name, TPM_HANDLE handle)
 {
 	uint32_t serialized = htobe32(handle);
-	memcpy(name->name, &serialized, sizeof(serialized));
+	pinweaver_eal_memcpy_s(name->name, sizeof(name->name),
+			&serialized, sizeof(serialized));
 	name->size = sizeof(serialized);
 }
 
@@ -262,7 +264,9 @@ static int calc_sha256_name(const TSS_DST_DATA_BUF* data, TPM2B_NAME* name)
 	/* Serialized TPM_ALG_SHA256 */
 	const uint8_t kSerializedAlgSha256[2] = {0x00, 0x0B};
 
-	memcpy(name->name, kSerializedAlgSha256, sizeof(kSerializedAlgSha256));
+	if (pinweaver_eal_memcpy_s(name->name, sizeof(name->name),
+			kSerializedAlgSha256, sizeof(kSerializedAlgSha256)))
+		return -1;
 	name->size = sizeof(kSerializedAlgSha256) + SHA256_DIGEST_SIZE;
 	uint8_t* hash = name->name + sizeof(kSerializedAlgSha256);
 	return calc_sha256(data->buffer, data->size, hash);
@@ -306,7 +310,9 @@ static void set_session_auth_value(tpm_session_t* session,
 		const TPM2B_DIGEST* auth_value)
 {
 	session->delegate.hmac.entity_authorization_value_.size = auth_value->size;
-	memcpy(session->delegate.hmac.entity_authorization_value_.buffer,
+	pinweaver_eal_memcpy_s(
+			session->delegate.hmac.entity_authorization_value_.buffer,
+			sizeof(session->delegate.hmac.entity_authorization_value_.buffer),
 			auth_value->buffer, auth_value->size);
 }
 
@@ -314,7 +320,9 @@ static void set_future_session_auth_value(tpm_session_t* session,
 		const TPM2B_DIGEST* auth_value)
 {
 	session->delegate.hmac.future_authorization_value_.size = auth_value->size;
-	memcpy(session->delegate.hmac.future_authorization_value_.buffer,
+	pinweaver_eal_memcpy_s(
+			session->delegate.hmac.future_authorization_value_.buffer,
+			sizeof(session->delegate.hmac.future_authorization_value_.buffer),
 			auth_value->buffer, auth_value->size);
 	session->delegate.hmac.future_authorization_value_set_ = true;
 }
@@ -653,8 +661,8 @@ static int decrypt_log_entry(const tpm_storage_log_entry_t* tpm_entry, int kind,
 		return -1;
 	}
 
-	memcpy(&entry->data, &plaintext.entry, sizeof(struct pw_get_log_entry_t));
-	return 0;
+	return pinweaver_eal_memcpy_s(&entry->data, sizeof(entry->data),
+			&plaintext.entry, sizeof(struct pw_get_log_entry_t));
 }
 
 static int encrypt_log_entry(const struct pw_get_log_entry_t* log_entry,
@@ -665,7 +673,11 @@ static int encrypt_log_entry(const struct pw_get_log_entry_t* log_entry,
 	if (key == NULL)
 		return -1;
 
-	memcpy(&plaintext.entry, log_entry, sizeof(struct pw_get_log_entry_t));
+	if (pinweaver_eal_memcpy_s(&plaintext.entry, sizeof(plaintext.entry),
+			log_entry, sizeof(struct pw_get_log_entry_t))) {
+		PINWEAVER_EAL_INFO("encrypt_log_entry: entry copy failed");
+		return -1;
+	}
 	if (calc_log_sensitive_data_hash(&plaintext, plaintext.hash)) {
 		PINWEAVER_EAL_INFO("encrypt_log_entry: hash failed");
 		return -1;
@@ -851,7 +863,9 @@ static int write_log_entry_by_handle(TPM_HANDLE handle,
 		tpm_storage_log_entry_t* tpm_entry)
 {
 	TPM2B_MAX_NV_BUFFER tpm_data;
-	memcpy(tpm_data.buffer, tpm_entry, sizeof(tpm_storage_log_entry_t));
+	if (pinweaver_eal_memcpy_s(tpm_data.buffer, sizeof(tpm_data.buffer),
+			tpm_entry, sizeof(tpm_storage_log_entry_t)))
+		return -1;
 	tpm_data.size = sizeof(tpm_storage_log_entry_t);
 
 	TPM2B_NAME name;
@@ -944,8 +958,11 @@ static int read_log_entries()
 				if (cache_order_del_entry_num(empty_entry_num))
 					return -1;
 				empty_entry->counter = persist_entry.counter;
-				memcpy(&empty_entry->data, &persist_entry.data,
-						sizeof(struct pw_get_log_entry_t));
+				if (pinweaver_eal_memcpy_s(&empty_entry->data,
+						sizeof(empty_entry->data),
+						&persist_entry.data,
+						sizeof(struct pw_get_log_entry_t)))
+					return -1;
 				if (cache_order_ins_entry_num(empty_entry, empty_entry_num))
 					return -1;
 				if (write_back_log_entry(empty_entry_num,
@@ -1107,7 +1124,11 @@ static int read_tree_descr()
 		PINWEAVER_EAL_INFO("read_tree_descr: unexpected size (%u)", buffer.size);
 		return -1;
 	}
-	memcpy(&g_tree_descriptor, buffer.buffer, sizeof(g_tree_descriptor));
+	if (pinweaver_eal_memcpy_s(&g_tree_descriptor, sizeof(g_tree_descriptor),
+			buffer.buffer, sizeof(g_tree_descriptor))) {
+		PINWEAVER_EAL_INFO("read_tree_descr: failed to copy descriptor");
+		return -1;
+	}
 
 	g_tree_descriptor_filled = true;
 	return 0;
@@ -1117,7 +1138,9 @@ static int write_tree_descr(const tpm_storage_tree_descriptor_t *data)
 {
 	TPM2B_MAX_NV_BUFFER tpm_data;
 	const size_t size = sizeof(g_tree_descriptor);
-	memcpy(tpm_data.buffer, data, size);
+	if (pinweaver_eal_memcpy_s(tpm_data.buffer, sizeof(tpm_data.buffer),
+			data, size))
+		return -1;
 	tpm_data.size = size;
 
 	TPM2B_NAME name;
@@ -1246,7 +1269,9 @@ int pinweaver_eal_storage_init_state(uint8_t *root_hash,
 	if (!first)
 		return -1;
 
-	memcpy(root_hash, first->data.root, PW_HASH_SIZE);
+	if (pinweaver_eal_memcpy_s(root_hash, PW_HASH_SIZE,
+			first->data.root, PW_HASH_SIZE))
+		return -1;
 
 	*restart_count = g_tree_descriptor.restart_count;
 	return 0;
@@ -1269,9 +1294,11 @@ int pinweaver_eal_storage_get_log(struct pw_log_storage_t *dest)
 			++entry_num) {
 		int nv_num = g_cache_order[entry_num];
 		if (g_cached_log_entries[nv_num].counter != 0) {
-			memcpy(&dest->entries[entry_num],
+			if (pinweaver_eal_memcpy_s(&dest->entries[entry_num],
+					sizeof(dest->entries[entry_num]),
 					&g_cached_log_entries[nv_num].data,
-					sizeof(struct pw_get_log_entry_t));
+					sizeof(struct pw_get_log_entry_t)))
+				return -1;
 		} else {
 			log_entry_set_default(&dest->entries[entry_num]);
 		}
@@ -1297,7 +1324,9 @@ int pinweaver_eal_storage_set_log(const struct pw_log_storage_t *log)
 		return -1;
 
 	cached_log_entry_t* entry = &g_cached_log_entries[entry_num];
-	memcpy(&entry->data, &log->entries[0], sizeof(struct pw_get_log_entry_t));
+	if (pinweaver_eal_memcpy_s(&entry->data, sizeof(entry->data),
+			&log->entries[0], sizeof(struct pw_get_log_entry_t)))
+		return -1;
 	entry->counter = counter;
 	memmove(g_cache_order + 1, g_cache_order,
 		(MAX_LOG_ENTRIES - 1) * sizeof(g_cache_order[0]));
@@ -1309,7 +1338,9 @@ int pinweaver_eal_storage_set_log(const struct pw_log_storage_t *log)
 int pinweaver_eal_storage_get_tree_data(struct pw_long_term_storage_t *dest)
 {
 	pinweaver_eal_storage_start();
-	memcpy(dest, &g_tree_descriptor.descriptor, sizeof(struct pw_long_term_storage_t));
+	if (pinweaver_eal_memcpy_s(dest, sizeof(struct pw_long_term_storage_t),
+			&g_tree_descriptor.descriptor, sizeof(struct pw_long_term_storage_t)))
+		return -1;
 	return g_tree_descriptor_filled ? 0 : -1;
 }
 
@@ -1320,7 +1351,10 @@ int pinweaver_eal_storage_set_tree_data(
 		return -1;
 
 	set_initial_state();
-	memcpy(&g_tree_descriptor.descriptor, data, sizeof(struct pw_long_term_storage_t));
+	if (pinweaver_eal_memcpy_s(&g_tree_descriptor.descriptor,
+			sizeof(g_tree_descriptor.descriptor), data,
+			sizeof(struct pw_long_term_storage_t)))
+		return -1;
 	g_tree_descriptor_filled = true;
 	g_data_key_obtained[PINWEAVER_EAL_AUTH_CURRENT] = false;
 	g_data_key_obtained[PINWEAVER_EAL_AUTH_PREVIOUS] = false;
