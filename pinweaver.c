@@ -436,7 +436,8 @@ static int validate_delay_schedule(const struct delay_schedule_entry_t
 	size_t x;
 
 	/* The first entry should not be useless. */
-	if (delay_schedule[0].time_diff.v == 0)
+	if (delay_schedule[0].attempt_count.v == 0 ||
+	    delay_schedule[0].time_diff.v == 0)
 		return PW_ERR_DELAY_SCHEDULE_INVALID;
 
 	for (x = PW_SCHED_COUNT - 1; x > 0; --x) {
