@@ -62,9 +62,13 @@ static void HmacKeyInit(HMAC_KEY* key) {
   key->size = 0;
 }
 
-static void HmacKeyAppend(HMAC_KEY* key, const TPM2B_DIGEST* data) {
-  memcpy(key->buffer + key->size, data->buffer, data->size);
+static int HmacKeyAppend(HMAC_KEY* key, const TPM2B_DIGEST* data) {
+  if (pinweaver_eal_memcpy_s(key->buffer + key->size, sizeof(key->buffer),
+      data->buffer, data->size)) {
+    return -1;
+  }
   key->size += data->size;
+  return 0;
 }
 
 // This method implements the key derivation function used in the TPM.
@@ -114,8 +118,12 @@ static int AesOperation(
   const TSS_SRC_DATA_BUF kLabelCFB = {LABEL_SIZE, (uint8_t *)"CFB"};
   HMAC_KEY hmac_key;
   HmacKeyInit(&hmac_key);
-  HmacKeyAppend(&hmac_key, &delegate->session_key_);
-  HmacKeyAppend(&hmac_key, &delegate->entity_authorization_value_);
+  if (HmacKeyAppend(&hmac_key, &delegate->session_key_)) {
+    return -1;
+  }
+  if (HmacKeyAppend(&hmac_key, &delegate->entity_authorization_value_)) {
+    return -1;
+  }
   uint8_t compound_key[SESSION_KEY_SIZE];
   if (CreateKey(delegate,
                 &hmac_key,
@@ -127,15 +135,24 @@ static int AesOperation(
   }
   unsigned char aes_key[AES_KEY_SIZE];
   unsigned char aes_iv[AES_IV_SIZE];
-  memcpy(aes_key, &compound_key[0], AES_KEY_SIZE);
-  memcpy(aes_iv, &compound_key[AES_KEY_SIZE], AES_IV_SIZE);
+  if (pinweaver_eal_memcpy_s(aes_key, AES_KEY_SIZE, &compound_key[0],
+      AES_KEY_SIZE)) {
+    return -1;
+  }
+  if (pinweaver_eal_memcpy_s(aes_iv, AES_IV_SIZE, &compound_key[AES_KEY_SIZE],
+      AES_IV_SIZE)) {
+    return -1;
+  }
   unsigned char decrypted[MAX_DECRYPT_SIZE];
   if (pinweaver_eal_aes128_cfb(aes_key, AES_KEY_SIZE, aes_iv,
                                parameter->buffer, parameter->size,
                                operation_type, decrypted) != 0) {
     return -1;
   }
-  memcpy(parameter->buffer, decrypted, parameter->size);
+  if (pinweaver_eal_memcpy_s(parameter->buffer, parameter->size,
+      decrypted, parameter->size)) {
+    return -1;
+  }
   return 0;
 }
 
@@ -185,9 +202,13 @@ int tss_GetCommandAuthorizationHmac(
 
   HMAC_KEY hmac_key;
   HmacKeyInit(&hmac_key);
-  HmacKeyAppend(&hmac_key, &delegate->session_key_);
+  if (HmacKeyAppend(&hmac_key, &delegate->session_key_)) {
+    return -1;
+  }
   if (!delegate->use_entity_authorization_for_encryption_only_) {
-    HmacKeyAppend(&hmac_key, &delegate->entity_authorization_value_);
+    if (HmacKeyAppend(&hmac_key, &delegate->entity_authorization_value_)) {
+      return -1;
+    }
   }
 
   HMAC_PROCESSOR hp;
@@ -244,15 +265,21 @@ int tss_CheckResponseAuthorizationHmac(
 
   HMAC_KEY hmac_key;
   HmacKeyInit(&hmac_key);
-  HmacKeyAppend(&hmac_key, &delegate->session_key_);
+  if (HmacKeyAppend(&hmac_key, &delegate->session_key_)) {
+    return -1;
+  }
   if (!delegate->use_entity_authorization_for_encryption_only_) {
     // In a special case with TPM2_HierarchyChangeAuth, we need to use the
     // auth_value that was set.
     if (delegate->future_authorization_value_set_) {
-      HmacKeyAppend(&hmac_key, &delegate->future_authorization_value_);
+      if (HmacKeyAppend(&hmac_key, &delegate->future_authorization_value_)) {
+        return -1;
+      }
       delegate->future_authorization_value_set_ = false;
     } else {
-      HmacKeyAppend(&hmac_key, &delegate->entity_authorization_value_);
+      if (HmacKeyAppend(&hmac_key, &delegate->entity_authorization_value_)) {
+        return -1;
+      }
     }
   }
 
@@ -312,8 +339,10 @@ int tss_GetTpmNonceHmac(
     return -1;
   if (nonce->max_size < delegate->tpm_nonce_.size)
     return -1;
-  memcpy(nonce->buffer, &delegate->tpm_nonce_.buffer,
-         delegate->tpm_nonce_.size);
+  if (pinweaver_eal_memcpy_s(nonce->buffer, nonce->max_size,
+      &delegate->tpm_nonce_.buffer, delegate->tpm_nonce_.size)) {
+    return -1;
+  }
   nonce->size = delegate->tpm_nonce_.size;
   return 0;
 }
@@ -334,8 +363,14 @@ int tss_InitSessionHmac(
       || tpm_nonce->size > NONCE_MAX_SIZE) {
     return -1;
   }
-  memcpy(&delegate->tpm_nonce_, tpm_nonce, sizeof(TPM2B_NONCE));
-  memcpy(&delegate->caller_nonce_, caller_nonce, sizeof(TPM2B_NONCE));
+  if (pinweaver_eal_memcpy_s(&delegate->tpm_nonce_, sizeof(TPM2B_NONCE),
+      tpm_nonce, sizeof(TPM2B_NONCE))) {
+    return -1;
+  }
+  if (pinweaver_eal_memcpy_s(&delegate->caller_nonce_, sizeof(TPM2B_NONCE),
+      caller_nonce, sizeof(TPM2B_NONCE))) {
+    return -1;
+  }
   delegate->is_parameter_encryption_enabled_ = enable_parameter_encryption;
   if (salt->size == 0 && (!bind_auth_value || bind_auth_value->size == 0)) {
     // SessionKey is set to the empty string for unsalted and
@@ -346,9 +381,13 @@ int tss_InitSessionHmac(
     HMAC_KEY hmac_key;
     HmacKeyInit(&hmac_key);
     if (bind_auth_value) {
-      HmacKeyAppend(&hmac_key, bind_auth_value);
+      if (HmacKeyAppend(&hmac_key, bind_auth_value)) {
+        return -1;
+      }
     }
-    HmacKeyAppend(&hmac_key, salt);
+    if (HmacKeyAppend(&hmac_key, salt)) {
+      return -1;
+    }
     if (CreateKey(delegate, &hmac_key, &kLabelATH,
                   &delegate->tpm_nonce_, &delegate->caller_nonce_,
                   delegate->session_key_.buffer)) {

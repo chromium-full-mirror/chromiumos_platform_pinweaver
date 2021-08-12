@@ -43,7 +43,10 @@ static TPM_RC dst_data_buf_append(TSS_DST_DATA_BUF* data_buf, const void* data,
       || size > data_buf->max_size) {
     return TPM_RC_INSUFFICIENT;
   }
-  memcpy(data_buf->buffer + data_buf->size, data, size);
+  if (pinweaver_eal_memcpy_s(data_buf->buffer + data_buf->size,
+      data_buf->max_size - data_buf->size, data, size)) {
+    return TPM_RC_INSUFFICIENT;
+  }
   data_buf->size += size;
   return TPM_RC_SUCCESS;
 }
@@ -601,7 +604,10 @@ TPM_RC tss_Parse_uint8_t(TSS_SRC_DATA_BUF* buffer,
   if (buffer->size < sizeof(uint8_t))
     return TPM_RC_INSUFFICIENT;
   uint8_t value_net = 0;
-  memcpy(&value_net, buffer->buffer, sizeof(uint8_t));
+  if (pinweaver_eal_memcpy_s(&value_net, sizeof(value_net), buffer->buffer,
+      sizeof(uint8_t))) {
+    return TPM_RC_INSUFFICIENT;
+  }
   switch (sizeof(uint8_t)) {
     case 2:
       *value = be16toh(value_net);
@@ -642,7 +648,10 @@ TPM_RC tss_Parse_int8_t(TSS_SRC_DATA_BUF* buffer,
   if (buffer->size < sizeof(int8_t))
     return TPM_RC_INSUFFICIENT;
   int8_t value_net = 0;
-  memcpy(&value_net, buffer->buffer, sizeof(int8_t));
+  if (pinweaver_eal_memcpy_s(&value_net, sizeof(value_net), buffer->buffer,
+      sizeof(int8_t))) {
+    return TPM_RC_INSUFFICIENT;
+  }
   switch (sizeof(int8_t)) {
     case 2:
       *value = be16toh(value_net);
@@ -681,7 +690,10 @@ TPM_RC tss_Parse_int(TSS_SRC_DATA_BUF* buffer, int* value, TSS_DST_DATA_BUF* val
   if (buffer->size < sizeof(int))
     return TPM_RC_INSUFFICIENT;
   int value_net = 0;
-  memcpy(&value_net, buffer->buffer, sizeof(int));
+  if (pinweaver_eal_memcpy_s(&value_net, sizeof(value_net), buffer->buffer,
+      sizeof(int))) {
+    return TPM_RC_INSUFFICIENT;
+  }
   switch (sizeof(int)) {
     case 2:
       *value = be16toh(value_net);
@@ -722,7 +734,10 @@ TPM_RC tss_Parse_uint16_t(TSS_SRC_DATA_BUF* buffer,
   if (buffer->size < sizeof(uint16_t))
     return TPM_RC_INSUFFICIENT;
   uint16_t value_net = 0;
-  memcpy(&value_net, buffer->buffer, sizeof(uint16_t));
+  if (pinweaver_eal_memcpy_s(&value_net, sizeof(value_net), buffer->buffer,
+      sizeof(uint16_t))) {
+    return TPM_RC_INSUFFICIENT;
+  }
   switch (sizeof(uint16_t)) {
     case 2:
       *value = be16toh(value_net);
@@ -763,7 +778,10 @@ TPM_RC tss_Parse_int16_t(TSS_SRC_DATA_BUF* buffer,
   if (buffer->size < sizeof(int16_t))
     return TPM_RC_INSUFFICIENT;
   int16_t value_net = 0;
-  memcpy(&value_net, buffer->buffer, sizeof(int16_t));
+  if (pinweaver_eal_memcpy_s(&value_net, sizeof(value_net), buffer->buffer,
+      sizeof(int16_t))) {
+    return TPM_RC_INSUFFICIENT;
+  }
   switch (sizeof(int16_t)) {
     case 2:
       *value = be16toh(value_net);
@@ -804,7 +822,10 @@ TPM_RC tss_Parse_uint32_t(TSS_SRC_DATA_BUF* buffer,
   if (buffer->size < sizeof(uint32_t))
     return TPM_RC_INSUFFICIENT;
   uint32_t value_net = 0;
-  memcpy(&value_net, buffer->buffer, sizeof(uint32_t));
+  if (pinweaver_eal_memcpy_s(&value_net, sizeof(value_net), buffer->buffer,
+      sizeof(uint32_t))) {
+    return TPM_RC_INSUFFICIENT;
+  }
   switch (sizeof(uint32_t)) {
     case 2:
       *value = be16toh(value_net);
@@ -845,7 +866,10 @@ TPM_RC tss_Parse_int32_t(TSS_SRC_DATA_BUF* buffer,
   if (buffer->size < sizeof(int32_t))
     return TPM_RC_INSUFFICIENT;
   int32_t value_net = 0;
-  memcpy(&value_net, buffer->buffer, sizeof(int32_t));
+  if (pinweaver_eal_memcpy_s(&value_net, sizeof(value_net), buffer->buffer,
+      sizeof(int32_t))) {
+    return TPM_RC_INSUFFICIENT;
+  }
   switch (sizeof(int32_t)) {
     case 2:
       *value = be16toh(value_net);
@@ -886,7 +910,10 @@ TPM_RC tss_Parse_uint64_t(TSS_SRC_DATA_BUF* buffer,
   if (buffer->size < sizeof(uint64_t))
     return TPM_RC_INSUFFICIENT;
   uint64_t value_net = 0;
-  memcpy(&value_net, buffer->buffer, sizeof(uint64_t));
+  if (pinweaver_eal_memcpy_s(&value_net, sizeof(value_net), buffer->buffer,
+      sizeof(uint64_t))) {
+    return TPM_RC_INSUFFICIENT;
+  }
   switch (sizeof(uint64_t)) {
     case 2:
       *value = be16toh(value_net);
@@ -927,7 +954,10 @@ TPM_RC tss_Parse_int64_t(TSS_SRC_DATA_BUF* buffer,
   if (buffer->size < sizeof(int64_t))
     return TPM_RC_INSUFFICIENT;
   int64_t value_net = 0;
-  memcpy(&value_net, buffer->buffer, sizeof(int64_t));
+  if (pinweaver_eal_memcpy_s(&value_net, sizeof(value_net), buffer->buffer,
+      sizeof(int64_t))) {
+    return TPM_RC_INSUFFICIENT;
+  }
   switch (sizeof(int64_t)) {
     case 2:
       *value = be16toh(value_net);
