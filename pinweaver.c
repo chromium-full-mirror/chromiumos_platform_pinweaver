@@ -1063,7 +1063,7 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 	int ret = EC_SUCCESS;
 	struct leaf_data_t leaf_data = {};
 	struct imported_leaf_data_t imported_leaf_data;
-	struct wrapped_leaf_data_t wrapped_leaf_data;
+	struct wrapped_leaf_data_t wrapped_leaf_data = {};
 	struct time_diff_t seconds_to_wait;
 	uint8_t zeros[PW_SECRET_SIZE] = {};
 	uint8_t new_root[PW_HASH_SIZE];
@@ -1195,7 +1195,7 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 	int ret = EC_SUCCESS;
 	struct leaf_data_t leaf_data = {};
 	struct imported_leaf_data_t imported_leaf_data;
-	struct wrapped_leaf_data_t wrapped_leaf_data;
+	struct wrapped_leaf_data_t wrapped_leaf_data = {};
 	uint8_t new_root[PW_HASH_SIZE];
 
 	if (req_size < sizeof(*request))
@@ -1322,7 +1322,7 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 	struct pw_log_storage_t log;
 	struct leaf_data_t leaf_data = {};
 	struct imported_leaf_data_t imported_leaf_data;
-	struct wrapped_leaf_data_t wrapped_leaf_data;
+	struct wrapped_leaf_data_t wrapped_leaf_data = {};
 	uint8_t hmac[PW_HASH_SIZE];
 	uint8_t root[PW_HASH_SIZE];
 
