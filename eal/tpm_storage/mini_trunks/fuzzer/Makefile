@@ -18,7 +18,7 @@ TOP_PATH = $(abspath $(CURDIR)/../../../..)
 TPM_STORAGE_PATH = $(TOP_PATH)/eal/tpm_storage
 MINI_TRUNKS_PATH = $(TPM_STORAGE_PATH)/mini_trunks
 
-TARGET = $(BUILD_PATH)/tpm_storage_test
+TARGET = $(BUILD_PATH)/mini_trunks_test
 TARGET_PROFRAW = $(TARGET).profraw
 TARGET_PROFDATA = $(TARGET).profdata
 COV_REPORT = $(BUILD_PATH)/coverage_report.html
