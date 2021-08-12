@@ -228,11 +228,11 @@ int pinweaver_eal_hmac_sha256_update(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 
 int pinweaver_eal_hmac_sha256_final(pinweaver_eal_hmac_sha256_ctx_t *ctx,
                                     void *res) {
-  if (g_data_provider->ConsumeBool())
-    return -1;
   unsigned int len;
   int rv = HMAC_Final(*ctx, (unsigned char *)res, &len);
   HMAC_CTX_free(*ctx);
+  if (g_data_provider->ConsumeBool())
+    return -1;
   *ctx = NULL;
   return rv == 1 ? 0 : -1;
 }
@@ -292,7 +292,7 @@ int pinweaver_eal_rand_bytes(void *buf, size_t size) {
   if (g_data_provider->ConsumeBool())
     return -1;
   std::string str = g_data_provider->ConsumeBytesAsString(size);
-  memcpy(buf, str.data(), size);
+  memcpy(buf, str.data(), str.size());
   return 0;
 }
 
