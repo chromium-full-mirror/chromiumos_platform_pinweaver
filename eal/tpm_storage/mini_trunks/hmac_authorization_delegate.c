@@ -52,8 +52,9 @@ static int HmacFinal(
   HMAC_PROCESSOR* p,
   void* result
 ) {
-  if (p->init_res)
+  if (p->init_res) {
     return p->init_res;
+  }
   p->res |= pinweaver_eal_hmac_sha256_final(&p->hmac, result);
   return p->res;
 }
@@ -113,6 +114,13 @@ static int AesOperation(
     const TPM2B_NONCE* nonce_older,
     int operation_type) {
   if (parameter->size > MAX_DECRYPT_SIZE) {
+    return -1;
+  }
+  if (delegate->session_key_.size > sizeof(delegate->session_key_.buffer)) {
+    return -1;
+  }
+  if (delegate->entity_authorization_value_.size >
+      sizeof(delegate->entity_authorization_value_.buffer)) {
     return -1;
   }
   const TSS_SRC_DATA_BUF kLabelCFB = {LABEL_SIZE, (uint8_t *)"CFB"};
@@ -175,6 +183,10 @@ int tss_GetCommandAuthorizationHmac(
     authorization->size = 0;
     return -1;
   }
+  if (delegate->caller_nonce_.size > sizeof(delegate->caller_nonce_.buffer)) {
+    authorization->size = 0;
+    return -1;
+  }
   TPMS_AUTH_COMMAND auth;
   auth.session_handle = delegate->session_handle_;
   if (!delegate->nonce_generated_) {
@@ -200,6 +212,16 @@ int tss_GetCommandAuthorizationHmac(
     return -1;
   }
 
+  if (delegate->session_key_.size > sizeof(delegate->session_key_.buffer)) {
+    authorization->size = 0;
+    return -1;
+  }
+  if (delegate->entity_authorization_value_.size >
+      sizeof(delegate->entity_authorization_value_.buffer)) {
+    authorization->size = 0;
+    return -1;
+  }
+
   HMAC_KEY hmac_key;
   HmacKeyInit(&hmac_key);
   if (HmacKeyAppend(&hmac_key, &delegate->session_key_)) {
@@ -209,6 +231,11 @@ int tss_GetCommandAuthorizationHmac(
     if (HmacKeyAppend(&hmac_key, &delegate->entity_authorization_value_)) {
       return -1;
     }
+  }
+
+  if (delegate->tpm_nonce_.size > sizeof(delegate->tpm_nonce_.buffer)) {
+    authorization->size = 0;
+    return -1;
   }
 
   HMAC_PROCESSOR hp;
@@ -263,6 +290,10 @@ int tss_CheckResponseAuthorizationHmac(
     return -1;
   }
 
+  if (delegate->session_key_.size > sizeof(delegate->session_key_.buffer)) {
+    return -1;
+  }
+
   HMAC_KEY hmac_key;
   HmacKeyInit(&hmac_key);
   if (HmacKeyAppend(&hmac_key, &delegate->session_key_)) {
@@ -309,6 +340,12 @@ int tss_EncryptCommandParameterHmac(
   if (!delegate->is_parameter_encryption_enabled_) {
     // No parameter encryption enabled.
     return 0;
+  }
+  if (delegate->caller_nonce_.size > sizeof(delegate->caller_nonce_.buffer)) {
+    return -1;
+  }
+  if (delegate->tpm_nonce_.size > sizeof(delegate->tpm_nonce_.buffer)) {
+    return -1;
   }
   RegenerateCallerNonce(delegate);
   delegate->nonce_generated_ = true;

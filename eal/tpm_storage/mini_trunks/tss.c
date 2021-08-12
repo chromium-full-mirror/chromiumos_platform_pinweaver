@@ -7574,6 +7574,8 @@ static TPM_RC cmd_process_field(cmd_processor_t* p,
   if (optional_name) {
     data = optional_name->name;
     size = optional_name->size;
+    if (size > sizeof(optional_name->name))
+      return TPM_RC_INSUFFICIENT;
   } else {
     data = p->field_bytes.buffer;
     size = p->field_bytes.size;
