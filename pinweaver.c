@@ -1440,12 +1440,13 @@ int compute_hash(const uint8_t hashes[][PW_HASH_SIZE], uint16_t num_hashes,
 	ret = pinweaver_eal_sha256_init(&ctx);
 	if (ret)
 		return ret;
-	if (location.v > 0)
-		pinweaver_eal_sha256_update(&ctx, hashes[0],
-					    PW_HASH_SIZE * location.v);
-	if (ret) {
-		pinweaver_eal_sha256_final(&ctx, result);
-		return ret;
+	if (location.v > 0) {
+		ret = pinweaver_eal_sha256_update(&ctx, hashes[0],
+						  PW_HASH_SIZE * location.v);
+		if (ret) {
+			pinweaver_eal_sha256_final(&ctx, result);
+			return ret;
+		}
 	}
 	ret = pinweaver_eal_sha256_update(&ctx, child_hash, PW_HASH_SIZE);
 	if (ret) {
