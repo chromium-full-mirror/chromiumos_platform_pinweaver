@@ -1490,9 +1490,8 @@ int make_compatible_request(struct merkle_tree_t *merkle_tree,
 				offsetof(struct pw_request_insert_leaf00_t,
 					 path_hashes);
 			if (offsetof(struct pw_request_insert_leaf_t,
-				     path_hashes) +
-				    PW_MAX_MESSAGE_SIZE >
-			    4096) {
+				     path_hashes) + src_size >
+			    PW_MAX_MESSAGE_SIZE) {
 				/* The total length of request overflowed. */
 				return 0;
 			}
