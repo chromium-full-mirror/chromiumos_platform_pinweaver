@@ -328,6 +328,11 @@ TESTABLE_STATIC int calc_salting_key_hash(TPM2B_PUBLIC* public,
 {
 	TPMS_ECC_POINT* pub_key = &public->public_area.unique.ecc;
 	pinweaver_eal_sha256_ctx_t ctx;
+
+	if (pub_key->x.size > sizeof(pub_key->x.buffer) ||
+			pub_key->y.size > sizeof(pub_key->y.buffer)) {
+		return -1;
+	}
 	if (pinweaver_eal_sha256_init(&ctx))
 		return -1;
 	if (pinweaver_eal_sha256_update(&ctx, pub_key->x.buffer, pub_key->x.size)) {
@@ -410,6 +415,14 @@ TESTABLE_STATIC int generate_session_salt(TPM2B_DIGEST* salt,
 	if (pinweaver_eal_generate_ecdh_points(pub_key,
 			&ephemeral_point, &z_point)) {
 		PINWEAVER_EAL_INFO("generate_session_salt: failed to generate ECDH points");
+		return -1;
+	}
+	if (ephemeral_point.x.size > sizeof(ephemeral_point.x.buffer) ||
+			ephemeral_point.y.size > sizeof(ephemeral_point.y.buffer) ||
+			z_point.x.size > sizeof(z_point.x.buffer) ||
+			z_point.y.size > sizeof(z_point.y.buffer)
+			) {
+		PINWEAVER_EAL_INFO("generate_session_salt: bad ECDH coord size(s)");
 		return -1;
 	}
 
