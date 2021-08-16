@@ -60,6 +60,9 @@ typedef struct cached_log_entry_t {
 #define PW_OBJ_CONST_SIZE 8
 #define PW_NONCE_SIZE (128/8)
 
+#define REQUIRED_SALTING_KEY_ATTR \
+	(kFixedTPM | kFixedParent | kDecrypt | kSensitiveDataOrigin)
+
 #if defined(TEST_TPM_STORAGE)
 extern tpm_storage_state_t g_storage_state;
 

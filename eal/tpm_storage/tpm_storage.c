@@ -367,6 +367,23 @@ TESTABLE_STATIC int verify_salting_key_public(TPM2B_PUBLIC* public)
 	uint8_t provisioned_hash[SHA256_DIGEST_SIZE];
 	bool committed;
 
+	if (public->public_area.type != TPM_ALG_ECC) {
+		PINWEAVER_EAL_INFO("verify_salting_key_public: non-ECC key");
+		return -1;
+	}
+	if (public->public_area.parameters.ecc_detail.curve_id !=
+			TPM_ECC_NIST_P256) {
+		PINWEAVER_EAL_INFO("verify_salting_key_public: wrong key curve %#x",
+				public->public_area.parameters.ecc_detail.curve_id);
+		return -1;
+	}
+	if ((public->public_area.object_attributes & REQUIRED_SALTING_KEY_ATTR) !=
+			REQUIRED_SALTING_KEY_ATTR) {
+		PINWEAVER_EAL_INFO("verify_salting_key_public: bad key attr %#x",
+				public->public_area.object_attributes);
+		return -1;
+	}
+
 	if (pinweaver_eal_get_tpm_key_hash(provisioned_hash, &committed)) {
 		PINWEAVER_EAL_INFO("verify_salting_key_public: failed to get provisioned hash");
 		return -1;
