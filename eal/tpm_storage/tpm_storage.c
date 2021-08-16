@@ -937,6 +937,10 @@ TESTABLE_STATIC int read_log_entries()
 		return 0;
 	
 	for (entry_num = 0; entry_num < MAX_LOG_ENTRIES; ++entry_num) {
+		g_cache_order[entry_num] = -1;
+	}
+
+	for (entry_num = 0; entry_num < MAX_LOG_ENTRIES; ++entry_num) {
 		if (read_and_insert_log_entry(entry_num, need_writing))
 			return -1;
 		cached_log_entry_t* entry = &g_cached_log_entries[entry_num];
