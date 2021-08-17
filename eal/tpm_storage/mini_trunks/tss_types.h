@@ -1261,7 +1261,7 @@ typedef union TPMU_SYM_MODE {
 } TPMU_SYM_MODE;
 
 #ifdef __cplusplus
-typedef int TPMU_SYM_DETAILS[0];
+typedef char TPMU_SYM_DETAILS[0];
 static_assert(sizeof(TPMU_SYM_DETAILS) == 0, "TPMU_SYM_DETAILS not zero size");
 #else
 typedef union TPMU_SYM_DETAILS {} TPMU_SYM_DETAILS;
