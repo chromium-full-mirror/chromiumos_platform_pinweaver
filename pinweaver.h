@@ -91,7 +91,7 @@ struct PW_PACKED pw_log_storage_t {
 /* Do not remove fields within the same PW_LEAF_MAJOR_VERSION. */
 /* Encrypted part of the leaf data.
  */
-struct PW_PACKED PW_ALIGN_TO_BLK leaf_sensitive_data_t {
+struct PW_ALIGN_TO_BLK leaf_sensitive_data_t {
 	uint8_t low_entropy_secret[PW_SECRET_SIZE];
 	uint8_t high_entropy_secret[PW_SECRET_SIZE];
 	uint8_t reset_secret[PW_SECRET_SIZE];

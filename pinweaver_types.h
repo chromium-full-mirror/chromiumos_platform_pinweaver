@@ -8,6 +8,7 @@
 #ifndef __PINWEAVER_PINWEAVER_TYPES_H
 #define __PINWEAVER_PINWEAVER_TYPES_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus

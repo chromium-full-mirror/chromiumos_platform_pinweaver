@@ -87,7 +87,7 @@ int pinweaver_eal_rand_bytes(void *buf, size_t size);
 /*
  * Get number of seconds since cold boot.
  */
-uint64_t pinweaver_eal_seconds_since_boot();
+uint64_t pinweaver_eal_seconds_since_boot(void);
 
 /*
  * Functions for calculating SHA256 of the values of the selected PCRs.
@@ -101,7 +101,7 @@ uint8_t pinweaver_eal_get_current_pcr_digest(
  * Storage functions.
  * Return 0 on success.
  */
-int pinweaver_eal_storage_start();
+int pinweaver_eal_storage_start(void);
 int pinweaver_eal_storage_init_state(uint8_t root_hash[PW_HASH_SIZE],
 				     uint32_t *restart_count);
 
