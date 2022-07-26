@@ -22,4 +22,7 @@ static_library("libpinweaver") {
     "//common-mk:nouse_thin_archive",
     ":target_defaults",
   ]
+  defines = [
+    "BIOMETRICS_DEV=${use.biometrics_dev}",
+  ]
 }

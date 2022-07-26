@@ -29,7 +29,8 @@ fn main() {
         .ctypes_prefix("cty")
         .rustfmt_bindings(true)
         .size_t_is_usize(true)
-        .clang_arg(&format!("-I{}", pinweaver_root.to_string_lossy()));
+        .clang_arg(&format!("-I{}", pinweaver_root.to_string_lossy()))
+        .clang_arg("-DBIOMETRICS_DEV=false");
 
     if let Ok(sysroot) = env::var("RV_CLANG") {
         // Tell clang-sys to use our libclang that knows about RISC-V.

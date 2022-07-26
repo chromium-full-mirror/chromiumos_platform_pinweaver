@@ -8,6 +8,7 @@
 #ifndef __PINWEAVER_PINWEAVER_TYPES_H
 #define __PINWEAVER_PINWEAVER_TYPES_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -15,12 +16,27 @@
 extern "C" {
 #endif
 
+#ifndef BIOMETRICS_DEV
+#error BIOMETRICS_DEV needs to be defined.
+#endif
+
 #define PW_PACKED __packed
 
+#if BIOMETRICS_DEV
+#define PW_PROTOCOL_VERSION 2
+#else
 #define PW_PROTOCOL_VERSION 1
+#endif
 #define PW_LEAF_MAJOR_VERSION 0
-/* The change from version zero is the addition of valid_pcr_value metadata */
+/* The change from version zero to one is the addition of valid_pcr_value
+ * metadata. The change from version one to two is the addition of the
+ * expiration timestamp.
+ */
+#if BIOMETRICS_DEV
+#define PW_LEAF_MINOR_VERSION 2
+#else
 #define PW_LEAF_MINOR_VERSION 1
+#endif
 
 #define PW_MAX_MESSAGE_SIZE (2048 - 12 /* sizeof(struct tpm_cmd_header) */)
 
@@ -137,6 +153,20 @@ struct PW_PACKED valid_pcr_value_t {
  */
 #define PW_SECRET_SIZE 32
 
+#if BIOMETRICS_DEV
+
+enum pw_leaf_type_enum {
+	PW_LEAF_TYPE_NORMAL,
+	PW_LEAF_TYPE_BIOMETRICS,
+};
+
+struct PW_PACKED pw_leaf_type_t {
+	uint8_t v;
+};
+
+#endif
+
+
 struct PW_PACKED leaf_version_t {
 	/* minor comes first so this struct will be compatibile with uint32_t
 	 * comparisons for little endian to make version comparisons easier.
@@ -177,6 +207,14 @@ struct PW_PACKED leaf_public_data_t {
 	struct pw_timestamp_t last_access_ts;
 	struct attempt_count_t attempt_count;
 	struct valid_pcr_value_t valid_pcr_criteria[PW_MAX_PCR_CRITERIA_COUNT];
+
+#if BIOMETRICS_DEV
+	/* Timestamp when the leaf data expires.	*/
+	struct pw_timestamp_t expiration_ts;
+	/* Used to update expiration_ts after reset leaf */
+	struct time_diff_t expiration_delay_s;
+	struct pw_leaf_type_t leaf_type;
+#endif
 };
 
 /* Represents a struct of unknown length to be imported to process a request. */
@@ -235,16 +273,24 @@ enum pw_log_message_type_enum {
 	LOG_PW_RESET_TREE00 = 1,
 	LOG_PW_INSERT_LEAF00 = 2,
 	LOG_PW_REMOVE_LEAF00 = 3,
+	/* This log format is used in protocol version <= 1. */
 	LOG_PW_TRY_AUTH00 = 4,
 	/* All the fields above correspond to the same kind of message with matching
 	 * value in pw_message_type_enum.
 	 */
+#if BIOMETRICS_DEV
+	LOG_PW_TRY_AUTH02 = 5,
+#endif
 
 	LOG_PW_MT_INVALID = LOG_PW_MT_INVALID00,
 	LOG_PW_RESET_TREE = LOG_PW_RESET_TREE00,
 	LOG_PW_INSERT_LEAF = LOG_PW_INSERT_LEAF00,
 	LOG_PW_REMOVE_LEAF = LOG_PW_REMOVE_LEAF00,
+#if BIOMETRICS_DEV
+	LOG_PW_TRY_AUTH = LOG_PW_TRY_AUTH02,
+#else
 	LOG_PW_TRY_AUTH = LOG_PW_TRY_AUTH00,
+#endif
 };
 
 struct PW_PACKED pw_message_type_t {
@@ -288,6 +334,7 @@ struct PW_PACKED pw_request_insert_leaf00_t {
 	uint8_t path_hashes[][PW_HASH_SIZE];
 };
 
+/* This is only used for parsing incoming data before version 02 */
 struct PW_PACKED pw_request_insert_leaf01_t {
 	struct label_t label;
 	struct delay_schedule_entry_t delay_schedule[PW_SCHED_COUNT];
@@ -305,7 +352,34 @@ struct PW_PACKED pw_request_insert_leaf01_t {
 	uint8_t path_hashes[][PW_HASH_SIZE];
 };
 
+#if BIOMETRICS_DEV
+struct PW_PACKED pw_request_insert_leaf02_t {
+	struct label_t label;
+	struct delay_schedule_entry_t delay_schedule[PW_SCHED_COUNT];
+	uint8_t low_entropy_secret[PW_SECRET_SIZE];
+	uint8_t high_entropy_secret[PW_SECRET_SIZE];
+	uint8_t reset_secret[PW_SECRET_SIZE];
+	struct valid_pcr_value_t valid_pcr_criteria[PW_MAX_PCR_CRITERIA_COUNT];
+	/* 0 means the node will never expire. */
+	struct time_diff_t expiration_delay_s;
+	struct pw_leaf_type_t leaf_type;
+	/* Only valid when leaf_type is BIOMETRICS. */
+	uint8_t auth_channel;
+	/* This is a variable length field because it size is determined at
+	 * runtime based on the chosen tree parameters. Its size is treated as
+	 * zero by the compiler so the computed size needs to be added to the
+	 * size of this struct in order to determine the actual size. This field
+	 * has the form:
+	 * uint8_t path_hashes[get_path_auxiliary_hash_count(.)][PW_HASH_SIZE];
+	 */
+	uint8_t path_hashes[][PW_HASH_SIZE];
+};
+
+typedef struct pw_request_insert_leaf02_t pw_request_insert_leaf_t;
+#else
 typedef struct pw_request_insert_leaf01_t pw_request_insert_leaf_t;
+#endif
+
 
 struct PW_PACKED pw_response_insert_leaf00_t {
 	struct unimported_leaf_data_t unimported_leaf_data;
@@ -354,12 +428,23 @@ struct PW_PACKED pw_response_try_auth01_t {
 
 typedef struct pw_response_try_auth01_t pw_response_try_auth_t;
 
+/* This is only used for parsing incoming data before version 02 */
 struct PW_PACKED pw_request_reset_auth00_t {
 	uint8_t reset_secret[PW_SECRET_SIZE];
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
+#if BIOMETRICS_DEV
+struct PW_PACKED pw_request_reset_auth02_t {
+	uint8_t reset_secret[PW_SECRET_SIZE];
+	/* If strong_reset is non-zero, the expiration timestamp will be reset too. */
+	uint8_t strong_reset;
+	struct unimported_leaf_data_t unimported_leaf_data;
+};
+typedef struct pw_request_reset_auth02_t pw_request_reset_auth_t;
+#else
 typedef struct pw_request_reset_auth00_t pw_request_reset_auth_t;
+#endif
 
 struct PW_PACKED pw_response_reset_auth00_t {
 	uint8_t high_entropy_secret[PW_SECRET_SIZE];
@@ -404,7 +489,7 @@ struct PW_PACKED pw_get_log_entry_t {
 	/* The type of operation. This should be one of
 	 * LOG_PW_INSERT_LEAF,
 	 * LOG_PW_REMOVE_LEAF,
-	 * LOG_PW_TRY_AUTH.
+	 * LOG_PW_TRY_AUTH (or LOG_PW_TRY_AUTH00).
 	 *
 	 * Successful LOG_PW_RESET_AUTH events are included
 	 */
@@ -418,6 +503,13 @@ struct PW_PACKED pw_get_log_entry_t {
 		struct PW_PACKED {
 			struct pw_timestamp_t last_access_ts;
 			int32_t return_code;
+			/* This field is introduced in protocol version 2, we reuse the existing
+			* variant but used another variant type to distinguish whether this field
+			* exists.
+			*/
+#if BIOMETRICS_DEV
+			struct pw_timestamp_t expiration_ts;
+#endif
 		};
 	};
 };
@@ -429,9 +521,15 @@ struct PW_PACKED pw_request_t {
 		struct pw_request_reset_tree00_t reset_tree00;
 		struct pw_request_insert_leaf00_t insert_leaf00;
 		struct pw_request_insert_leaf01_t insert_leaf01;
+#if BIOMETRICS_DEV
+		struct pw_request_insert_leaf02_t insert_leaf02;
+#endif
 		struct pw_request_remove_leaf00_t remove_leaf00;
 		struct pw_request_try_auth00_t try_auth00;
 		struct pw_request_reset_auth00_t reset_auth00;
+#if BIOMETRICS_DEV
+		struct pw_request_reset_auth02_t reset_auth02;
+#endif
 		struct pw_request_get_log00_t get_log00;
 		struct pw_request_log_replay00_t log_replay00;
 

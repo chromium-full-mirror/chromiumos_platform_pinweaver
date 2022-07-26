@@ -14,6 +14,7 @@ CLIB_SYM = $(CLIB_PATH)/eal/ti50/$(CLIB_NAME).sym
 
 CFLAGS += -Wno-flexible-array-extensions -Wno-padded
 CFLAGS += -I$(CLIB_PATH) -I$(CLIB_PATH)/eal/ti50
+CFLAGS += -D BIOMETRICS_DEV=false
 
 # output directory
 ODIR := $(BUILD_DIR)
