@@ -36,13 +36,10 @@ CLIB_OBJSYMLST = $(ODIR)/$(CLIB_NAME)-clean.lst
 FINAL_LIB_NAME := lib$(CLIB_NAME).a
 FINAL_LIB := $(BUILD_DIR)/$(FINAL_LIB_NAME)
 
-COV_OBJECTS  = $(patsubst %.c, $(COV_ODIR)/%.o, $(COV_SOURCES))
 OBJECTS=$(patsubst %.c, $(ODIR)/%.o, $(SOURCES))
-ASM_OBJECTS=$(patsubst %.S, $(ODIR)/%.o, $(ASM_SOURCES))
 
 # Pull in .h dependancies
 -include $(OBJECTS:.o=.d)
--include $(COV_OBJECTS:.o=.d)
 
 $(info  Building version $(CLIB_GIT_HASH) in $(CLIB_PATH))
 # Use V=1 for verbose output
@@ -53,7 +50,6 @@ $(info  FINAL_LIB      = $(FINAL_LIB))
 $(info  CC             = $(CC))
 $(info  CLIB_PATH      = $(CLIB_PATH))
 $(info  SOURCES        = $(SOURCES))
-$(info  ASM_SOURCES    = $(ASM_SOURCES))
 $(info  OBJECTS        = $(OBJECTS))
 $(info  ********************************************)
 endif
@@ -61,8 +57,7 @@ endif
 .PHONY: all
 all: $(FINAL_LIB) $(CLIB_OBJ) $(MAKEFILE_LIST) $(OBJECTS)
 
-# this rule builds $(OBJECTS)
-$(ODIR)/%.o: $(CLIB_PATH)/%.c $(MAKEFILE_LIST) $(CLIB_HDR)
+$(ODIR)/%.o: $(CLIB_PATH)/%.c $(MAKEFILE_LIST)
 	@echo "  CC      $(notdir $<)"
 	${Q}mkdir -p $(dir $@)
 	$(Q)$(CC) -c -o $@ $(CFLAGS) -MMD -MF $@.d $<
@@ -72,10 +67,9 @@ $(ODIR)/%.o: $(CLIB_PATH)/%.S $(MAKEFILE_LIST) | $(ODIR)
 	@echo "  AS      $(notdir $<)"
 	$(Q)$(AS) $(LLVM_AS_FLAGS) -o=$@  $<
 
-$(CLIB_OBJ): $(OBJECTS) $(ASM_OBJECTS) $(COV_OBJECTS) | $(ODIR)
+$(CLIB_OBJ): $(OBJECTS) | $(ODIR)
 	@echo "  LD      $(notdir $@)"
 	$(Q)$(CC) $(CFLAGS_LD_LTO) -Wl,-Map=$@.map -o $@ $^
-
 
 # Object file with removed internal symbols
 $(CLIB_OBJSYM): $(CLIB_OBJ) $(CLIB_SYM) $(MAKEFILE_LIST) | $(ODIR)
@@ -87,7 +81,6 @@ $(CLIB_OBJSYMLST): $(CLIB_OBJSYM) | $(ODIR)
 	@echo "  OBJDUMP $(notdir $@)"
 	$(Q)$(OBJDUMP) $(OBJDUMP_FLAGS) $< > $@
 
-#$(FINAL_LIB): $(OBJECTS) $(ASM_OBJECTS)
 $(FINAL_LIB): $(CLIB_OBJSYM)
 	@echo "  AR      $(notdir $@) in $(dir $@)"
 	$(Q)rm -f $@
@@ -103,13 +96,8 @@ $(TEST): $(TEST_SRC) $(FINAL_LIB)
 		-L $(BUILD_DIR) -Wl,-l$(CLIB_NAME)
 	$(TEST)
 
-################################ CLEAN TARGET #################################
-.PHONY: clean
-clean:
-	$(Q)rm -rf $(OBJECTS) $(COV_OBJECTS)
-	$(Q)rm -rf $(BUILD_DIR)
-
-.PHONY: format
-format:
-	$(Q)find . -path ./config -prune -o \( -iname \*.h -o -iname \*.c \) \
-	-exec $(CLANG_FORMAT) -i -style=file {} +
+.PHONY: bindgen
+bindgen:
+	bindgen $(CLIB_PATH)/pinweaver.h --ctypes-prefix=cty --use-core \
+        --size_t-is-usize -- -I $(CLIB_PATH) \
+		> $(CLIB_PATH)/eal/ti50/src/bindings.rs
