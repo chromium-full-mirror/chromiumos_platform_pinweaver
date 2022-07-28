@@ -10,12 +10,6 @@
 typedef uint32_t pinweaver_eal_sha256_ctx_t;
 typedef uint32_t pinweaver_eal_hmac_sha256_ctx_t;
 
-int printf(const char* format, ...);
-
-#define PINWEAVER_EAL_INFO(...) \
-    do { \
-        printf(__VA_ARGS__); \
-        printf("\n"); \
-    } while(0)
+#define PINWEAVER_EAL_INFO(...)
 
 #endif  /* __PINWEAVER_EAL_TYPES_H */
