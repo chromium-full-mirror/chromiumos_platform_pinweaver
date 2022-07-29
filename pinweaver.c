@@ -632,9 +632,11 @@ static void update_timestamp(struct pw_timestamp_t *ts)
 	ts->boot_count = pw_restart_count;
 }
 
-/* Checks if an auth attempt can be made or not based on the delay schedule.
- * EC_SUCCESS is returned when a new attempt can be made otherwise
- * seconds_to_wait will be updated with the remaining wait time required.
+/* Checks if an auth attempt can be made or not based on the delay schedule:
+ * - EC_SUCCESS is returned when a new attempt can be made,
+ * - PW_ERR_EXPIRED is returned if the leaf is expired, and otherwise
+ * - PW_ERR_RATE_LIMIT_REACHED is returned with seconds_to_wait updated to
+ *   the remaining waiting time required.
  */
 static int test_rate_limit(struct leaf_data_t *leaf_data,
 			   struct time_diff_t *seconds_to_wait)
@@ -644,7 +646,15 @@ static int test_rate_limit(struct leaf_data_t *leaf_data,
 	struct pw_timestamp_t current_time;
 	struct time_diff_t delay = {0};
 
-	/* TODO: Check expiration_ts here, before attempt counters */
+	update_timestamp(&current_time);
+
+#if BIOMETRICS_DEV
+	if (leaf_data->pub.expiration_delay_s.v != 0 &&
+	    (leaf_data->pub.expiration_ts.boot_count != current_time.boot_count ||
+	    leaf_data->pub.expiration_ts.timer_value <= current_time.timer_value)) {
+		return PW_ERR_EXPIRED;
+	}
+#endif
 
 	/* This loop ends when x is one greater than the index that applies. */
 	for (x = 0; x < ARRAY_SIZE(leaf_data->pub.delay_schedule); ++x) {
@@ -678,8 +688,6 @@ static int test_rate_limit(struct leaf_data_t *leaf_data,
 		seconds_to_wait->v = PW_BLOCK_ATTEMPTS;
 		return PW_ERR_RATE_LIMIT_REACHED;
 	}
-
-	update_timestamp(&current_time);
 
 	if (leaf_data->pub.last_access_ts.boot_count == current_time.boot_count)
 		ready_time = delay.v + leaf_data->pub.last_access_ts.timer_value;
@@ -967,6 +975,9 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 	struct wrapped_leaf_data_t wrapped_leaf_data = {};
 	const uint8_t empty_hash[PW_HASH_SIZE] = {};
 	uint8_t new_root[PW_HASH_SIZE];
+#if BIOMETRICS_DEV
+	uint32_t delay_s;
+#endif
 
 	if (req_size != sizeof(*request) +
 			get_path_auxiliary_hash_count(merkle_tree) *
@@ -998,9 +1009,16 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 		return PW_ERR_INTERNAL_FAILURE;
 
 #if BIOMETRICS_DEV
-	/* TODO: Support expiration_delay_s. */
 	if (request->expiration_delay_s.v != 0) {
-		return PW_ERR_INTERNAL_FAILURE;
+		update_timestamp(&leaf_data.pub.expiration_ts);
+		delay_s = request->expiration_delay_s.v;
+		if (leaf_data.pub.expiration_ts.timer_value <= UINT64_MAX - delay_s) {
+			leaf_data.pub.expiration_ts.timer_value += delay_s;
+		} else {
+			// Timer has become too large, and expiration won't work properly.
+			return PW_ERR_INTERNAL_FAILURE;
+		}
+		leaf_data.pub.expiration_delay_s.v = delay_s;
 	}
 
 	/* TODO: Support biometrics leaf type. */
@@ -1151,10 +1169,12 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS) {
 		*data_length = sizeof(*response) + PW_LEAF_PAYLOAD_SIZE;
 		memset(response, 0, *data_length);
-		pinweaver_eal_memcpy_s(&response->seconds_to_wait,
-				       sizeof(response->seconds_to_wait),
-				       &seconds_to_wait,
-				       sizeof(seconds_to_wait));
+		if (ret == PW_ERR_RATE_LIMIT_REACHED) {
+			pinweaver_eal_memcpy_s(&response->seconds_to_wait,
+				sizeof(response->seconds_to_wait),
+				&seconds_to_wait,
+				sizeof(seconds_to_wait));
+		}
 		return ret;
 	}
 
@@ -1251,6 +1271,9 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 	struct wrapped_leaf_data_t wrapped_leaf_data = {};
 	struct pw_timestamp_t expiration_ts = {};
 	uint8_t new_root[PW_HASH_SIZE];
+#if BIOMETRICS_DEV
+	uint32_t delay_s;
+#endif
 
 	if (req_size < sizeof(*request))
 		return PW_ERR_LENGTH_INVALID;
@@ -1275,9 +1298,14 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 	leaf_data.pub.attempt_count.v = 0;
 
 #if BIOMETRICS_DEV
-	/* TODO: Support strong_reset. */
-	if (request->strong_reset) {
-		return PW_ERR_INTERNAL_FAILURE;
+	if (request->strong_reset && leaf_data.pub.expiration_delay_s.v != 0) {
+		update_timestamp(&leaf_data.pub.expiration_ts);
+		delay_s = leaf_data.pub.expiration_delay_s.v;
+		if (leaf_data.pub.expiration_ts.timer_value <= UINT64_MAX - delay_s) {
+			leaf_data.pub.expiration_ts.timer_value += delay_s;
+		} else {
+			leaf_data.pub.expiration_ts.timer_value = UINT64_MAX;
+		}
 	}
 #endif
 
