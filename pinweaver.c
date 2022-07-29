@@ -694,7 +694,7 @@ static int find_relevant_entry(const struct pw_log_storage_t *log,
 {
 	/* Find the relevant log entry. */
 	for (*index = 0; *index < PW_LOG_ENTRY_COUNT; ++*index) {
-		if (log->entries[*index].type.v == PW_MT_INVALID)
+		if (log->entries[*index].type.v == LOG_PW_MT_INVALID)
 			break;
 		if (pinweaver_eal_safe_memcmp(root, log->entries[*index].root,
 					      PW_HASH_SIZE) == 0)
@@ -788,7 +788,7 @@ int store_merkle_tree(const struct merkle_tree_t *merkle_tree)
 		struct pw_get_log_entry_t *entry = log.entries;
 
 		log.storage_version = PW_STORAGE_VERSION;
-		entry->type.v = PW_RESET_TREE;
+		entry->type.v = LOG_PW_RESET_TREE;
 		ret = pinweaver_eal_memcpy_s(entry->root, sizeof(entry->root),
 					     merkle_tree->root,
 					     sizeof(merkle_tree->root));
@@ -828,7 +828,7 @@ int log_insert_leaf(struct label_t label, const uint8_t root[PW_HASH_SIZE],
 	if (ret != EC_SUCCESS)
 		return ret;
 
-	entry->type.v = PW_INSERT_LEAF;
+	entry->type.v = LOG_PW_INSERT_LEAF;
 	entry->label.v = label.v;
 	ret = pinweaver_eal_memcpy_s(entry->root, sizeof(entry->root), root,
 				     sizeof(entry->root));
@@ -852,7 +852,7 @@ int log_remove_leaf(struct label_t label, const uint8_t root[PW_HASH_SIZE])
 	if (ret != EC_SUCCESS)
 		return ret;
 
-	entry->type.v = PW_REMOVE_LEAF;
+	entry->type.v = LOG_PW_REMOVE_LEAF;
 	entry->label.v = label.v;
 	ret = pinweaver_eal_memcpy_s(entry->root, sizeof(entry->root), root,
 				     sizeof(entry->root));
@@ -873,7 +873,7 @@ int log_auth(struct label_t label, const uint8_t root[PW_HASH_SIZE], int code,
 	if (ret != EC_SUCCESS)
 		return ret;
 
-	entry->type.v = PW_TRY_AUTH;
+	entry->type.v = LOG_PW_TRY_AUTH;
 	entry->label.v = label.v;
 	ret = pinweaver_eal_memcpy_s(entry->root, sizeof(entry->root), root,
 				     sizeof(entry->root));
@@ -1356,7 +1356,7 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 		return ret;
 
 	/* The other message types don't need to be handled by Cr50. */
-	if (log.entries[x].type.v != PW_TRY_AUTH)
+	if (log.entries[x].type.v != LOG_PW_TRY_AUTH)
 		return PW_ERR_TYPE_INVALID;
 
 	ret = compute_hmac(merkle_tree, &imported_leaf_data, hmac);

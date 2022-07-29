@@ -892,6 +892,12 @@ pub const pw_message_type_enum_PW_RESET_AUTH: pw_message_type_enum = 5;
 pub const pw_message_type_enum_PW_GET_LOG: pw_message_type_enum = 6;
 pub const pw_message_type_enum_PW_LOG_REPLAY: pw_message_type_enum = 7;
 pub type pw_message_type_enum = cty::c_uint;
+pub const pw_log_message_type_enum_LOG_PW_MT_INVALID: pw_log_message_type_enum = 0;
+pub const pw_log_message_type_enum_LOG_PW_RESET_TREE: pw_log_message_type_enum = 1;
+pub const pw_log_message_type_enum_LOG_PW_INSERT_LEAF: pw_log_message_type_enum = 2;
+pub const pw_log_message_type_enum_LOG_PW_REMOVE_LEAF: pw_log_message_type_enum = 3;
+pub const pw_log_message_type_enum_LOG_PW_TRY_AUTH: pw_log_message_type_enum = 4;
+pub type pw_log_message_type_enum = cty::c_uint;
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
 pub struct pw_message_type_t {

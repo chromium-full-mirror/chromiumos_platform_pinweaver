@@ -215,12 +215,28 @@ enum pw_message_type_enum {
 
 	/* Request / "Question" types. */
 	PW_RESET_TREE = 1,
-	PW_INSERT_LEAF,
-	PW_REMOVE_LEAF,
-	PW_TRY_AUTH,
-	PW_RESET_AUTH,
-	PW_GET_LOG,
-	PW_LOG_REPLAY,
+	PW_INSERT_LEAF = 2,
+	PW_REMOVE_LEAF = 3,
+	PW_TRY_AUTH = 4,
+	PW_RESET_AUTH = 5,
+	PW_GET_LOG = 6,
+	PW_LOG_REPLAY = 7,
+};
+
+/* This enum is introduced because when we need a new variant in the log for
+ * existing message types, we don't want to add a new message type in
+ * pw_message_type_enum. Instead, we want to give the message_type field
+ * in log entries another meaning.
+ */
+enum pw_log_message_type_enum {
+	LOG_PW_MT_INVALID = 0,
+	LOG_PW_RESET_TREE = 1,
+	LOG_PW_INSERT_LEAF = 2,
+	LOG_PW_REMOVE_LEAF = 3,
+	LOG_PW_TRY_AUTH = 4,
+	/* All the fields above correspond to the same kind of message with matching
+	 * value in pw_message_type_enum.
+	 */
 };
 
 struct PW_PACKED pw_message_type_t {
@@ -355,19 +371,19 @@ struct PW_PACKED pw_get_log_entry_t {
 	/* The label of the leaf that was operated on. */
 	struct label_t label;
 	/* The type of operation. This should be one of
-	 * PW_INSERT_LEAF,
-	 * PW_REMOVE_LEAF,
-	 * PW_TRY_AUTH.
+	 * LOG_PW_INSERT_LEAF,
+	 * LOG_PW_REMOVE_LEAF,
+	 * LOG_PW_TRY_AUTH.
 	 *
-	 * Successful PW_RESET_AUTH events are included
+	 * Successful LOG_PW_RESET_AUTH events are included
 	 */
 	struct pw_message_type_t type;
 	/* Type specific fields. */
 	union {
-		/* PW_INSERT_LEAF */
+		/* LOG_PW_INSERT_LEAF */
 		uint8_t leaf_hmac[PW_HASH_SIZE];
-		/* PW_REMOVE_LEAF */
-		/* PW_TRY_AUTH */
+		/* LOG_PW_REMOVE_LEAF */
+		/* LOG_PW_TRY_AUTH */
 		struct PW_PACKED {
 			struct pw_timestamp_t last_access_ts;
 			int32_t return_code;
