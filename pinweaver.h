@@ -214,7 +214,7 @@ int log_insert_leaf(struct label_t label, const uint8_t root[PW_HASH_SIZE],
 		    const uint8_t hmac[PW_HASH_SIZE]);
 int log_remove_leaf(struct label_t label, const uint8_t root[PW_HASH_SIZE]);
 int log_auth(struct label_t label, const uint8_t root[PW_HASH_SIZE], int code,
-	     struct pw_timestamp_t timestamp);
+	     struct pw_timestamp_t last_access_ts);
 
 #ifdef __cplusplus
 }

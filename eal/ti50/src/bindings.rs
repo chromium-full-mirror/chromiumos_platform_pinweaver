@@ -747,7 +747,7 @@ fn bindgen_test_layout_leaf_header_t() {
 pub struct leaf_public_data_t {
     pub label: label_t,
     pub delay_schedule: [delay_schedule_entry_t; 16usize],
-    pub timestamp: pw_timestamp_t,
+    pub last_access_ts: pw_timestamp_t,
     pub attempt_count: attempt_count_t,
     pub valid_pcr_criteria: [valid_pcr_value_t; 2usize],
 }
@@ -786,13 +786,15 @@ fn bindgen_test_layout_leaf_public_data_t() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::core::ptr::null::<leaf_public_data_t>())).timestamp as *const _ as usize },
+        unsafe {
+            &(*(::core::ptr::null::<leaf_public_data_t>())).last_access_ts as *const _ as usize
+        },
         136usize,
         concat!(
             "Offset of field: ",
             stringify!(leaf_public_data_t),
             "::",
-            stringify!(timestamp)
+            stringify!(last_access_ts)
         )
     );
     assert_eq!(
@@ -1756,7 +1758,7 @@ pub union pw_get_log_entry_t__bindgen_ty_1 {
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
 pub struct pw_get_log_entry_t__bindgen_ty_1__bindgen_ty_1 {
-    pub timestamp: pw_timestamp_t,
+    pub last_access_ts: pw_timestamp_t,
     pub return_code: i32,
 }
 #[test]
@@ -1779,15 +1781,15 @@ fn bindgen_test_layout_pw_get_log_entry_t__bindgen_ty_1__bindgen_ty_1() {
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_get_log_entry_t__bindgen_ty_1__bindgen_ty_1>())).timestamp
-                as *const _ as usize
+            &(*(::core::ptr::null::<pw_get_log_entry_t__bindgen_ty_1__bindgen_ty_1>()))
+                .last_access_ts as *const _ as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
             stringify!(pw_get_log_entry_t__bindgen_ty_1__bindgen_ty_1),
             "::",
-            stringify!(timestamp)
+            stringify!(last_access_ts)
         )
     );
     assert_eq!(
@@ -2696,6 +2698,6 @@ extern "C" {
         label: label_t,
         root: *const u8,
         code: cty::c_int,
-        timestamp: pw_timestamp_t,
+        last_access_ts: pw_timestamp_t,
     ) -> cty::c_int;
 }

@@ -657,8 +657,8 @@ static int test_rate_limit(struct leaf_data_t *leaf_data,
 
 	update_timestamp(&current_time);
 
-	if (leaf_data->pub.timestamp.boot_count == current_time.boot_count)
-		ready_time = delay.v + leaf_data->pub.timestamp.timer_value;
+	if (leaf_data->pub.last_access_ts.boot_count == current_time.boot_count)
+		ready_time = delay.v + leaf_data->pub.last_access_ts.timer_value;
 	else
 		ready_time = delay.v;
 
@@ -863,7 +863,7 @@ int log_remove_leaf(struct label_t label, const uint8_t root[PW_HASH_SIZE])
 }
 
 int log_auth(struct label_t label, const uint8_t root[PW_HASH_SIZE], int code,
-	     struct pw_timestamp_t timestamp)
+	     struct pw_timestamp_t last_access_ts)
 {
 	int ret;
 	struct pw_log_storage_t log;
@@ -880,9 +880,9 @@ int log_auth(struct label_t label, const uint8_t root[PW_HASH_SIZE], int code,
 	if (ret != EC_SUCCESS)
 		return ret;
 	entry->return_code = code;
-	ret = pinweaver_eal_memcpy_s(&entry->timestamp,
-				     sizeof(entry->timestamp), &timestamp,
-				     sizeof(entry->timestamp));
+	ret = pinweaver_eal_memcpy_s(&entry->last_access_ts,
+				     sizeof(entry->last_access_ts), &last_access_ts,
+				     sizeof(entry->last_access_ts));
 	if (ret != EC_SUCCESS)
 		return ret;
 
@@ -1112,7 +1112,7 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 		return ret;
 	}
 
-	update_timestamp(&leaf_data.pub.timestamp);
+	update_timestamp(&leaf_data.pub.last_access_ts);
 
 	/* Precompute the failed attempts. */
 	results_table[0].attempts = leaf_data.pub.attempt_count.v;
@@ -1141,7 +1141,7 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 		return ret;
 
 	ret = log_auth(wrapped_leaf_data.pub.label, new_root,
-		       results_table[auth_result].ret, leaf_data.pub.timestamp);
+		       results_table[auth_result].ret, leaf_data.pub.last_access_ts);
 	if (ret != EC_SUCCESS) {
 		pinweaver_eal_memcpy_s(new_root, sizeof(new_root),
 				       merkle_tree->root,
@@ -1227,7 +1227,7 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 		return ret;
 
 	ret = log_auth(leaf_data.pub.label, new_root, ret,
-		       leaf_data.pub.timestamp);
+		       leaf_data.pub.last_access_ts);
 	if (ret != EC_SUCCESS)
 		return ret;
 
@@ -1379,10 +1379,10 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 		leaf_data.pub.attempt_count.v = 0;
 	else
 		++leaf_data.pub.attempt_count.v;
-	ret = pinweaver_eal_memcpy_s(&leaf_data.pub.timestamp,
-				     sizeof(leaf_data.pub.timestamp),
-				     &log.entries[x].timestamp,
-				     sizeof(leaf_data.pub.timestamp));
+	ret = pinweaver_eal_memcpy_s(&leaf_data.pub.last_access_ts,
+				     sizeof(leaf_data.pub.last_access_ts),
+				     &log.entries[x].last_access_ts,
+				     sizeof(leaf_data.pub.last_access_ts));
 	if (ret != EC_SUCCESS)
 		return PW_ERR_INTERNAL_FAILURE;
 

@@ -174,7 +174,7 @@ struct PW_PACKED leaf_public_data_t {
 	struct delay_schedule_entry_t delay_schedule[PW_SCHED_COUNT];
 
 	/* State used to rate limit. */
-	struct pw_timestamp_t timestamp;
+	struct pw_timestamp_t last_access_ts;
 	struct attempt_count_t attempt_count;
 	struct valid_pcr_value_t valid_pcr_criteria[PW_MAX_PCR_CRITERIA_COUNT];
 };
@@ -369,7 +369,7 @@ struct PW_PACKED pw_get_log_entry_t {
 		/* PW_REMOVE_LEAF */
 		/* PW_TRY_AUTH */
 		struct PW_PACKED {
-			struct pw_timestamp_t timestamp;
+			struct pw_timestamp_t last_access_ts;
 			int32_t return_code;
 		};
 	};
