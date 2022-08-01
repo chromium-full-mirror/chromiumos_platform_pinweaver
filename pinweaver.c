@@ -1336,10 +1336,12 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS)
 		return PW_ERR_INTERNAL_FAILURE;
 
+#if !BIOMETRICS_DEV
 	ret = pinweaver_eal_memcpy_s(response->high_entropy_secret,
 				     sizeof(response->high_entropy_secret),
 				     leaf_data.sec.high_entropy_secret,
 				     sizeof(response->high_entropy_secret));
+#endif
 	if (ret != EC_SUCCESS)
 		return PW_ERR_INTERNAL_FAILURE;
 
@@ -1698,6 +1700,22 @@ void make_compatible_response(int version, int req_type,
 				if (entry->type.v == LOG_PW_TRY_AUTH)
 					entry->type.v = LOG_PW_TRY_AUTH00;
 			}
+		} else if (req_type == PW_RESET_AUTH) {
+			unsigned char *src = (unsigned char *)
+			    (&response->data.reset_auth02.unimported_leaf_data);
+			unsigned char *dest = (unsigned char *)
+			    (&response->data.reset_auth00.unimported_leaf_data);
+			memmove(dest, src,
+				PW_LEAF_PAYLOAD_SIZE +
+				sizeof(struct unimported_leaf_data_t));
+			/* clients from protocol version <= 1 won't be able to retrieve
+			 * the HEC from reset_auth anymore, they can parse the response
+			 * with same structure but need to deal with the logical change
+			 * themselves.
+			 */
+			memset(response->data.reset_auth00.high_entropy_secret, 0,
+			  PW_SECRET_SIZE);
+			response->header.data_length += PW_SECRET_SIZE;
 		}
 	}
 #endif

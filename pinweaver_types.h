@@ -444,17 +444,28 @@ struct PW_PACKED pw_request_reset_auth02_t {
 	uint8_t strong_reset;
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
+
 typedef struct pw_request_reset_auth02_t pw_request_reset_auth_t;
 #else
 typedef struct pw_request_reset_auth00_t pw_request_reset_auth_t;
 #endif
 
+/* This is only used for parsing incoming data before version 02 */
 struct PW_PACKED pw_response_reset_auth00_t {
 	uint8_t high_entropy_secret[PW_SECRET_SIZE];
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
+#if BIOMETRICS_DEV
+struct PW_PACKED pw_response_reset_auth02_t {
+	/* Starting from protocol version 2, HEC isn't returned in reset_auth. */
+	struct unimported_leaf_data_t unimported_leaf_data;
+};
+
+typedef struct pw_response_reset_auth02_t pw_response_reset_auth_t;
+#else
 typedef struct pw_response_reset_auth00_t pw_response_reset_auth_t;
+#endif
 
 struct PW_PACKED pw_request_get_log00_t {
 	/* The root on the CrOS side that needs to be brought back in sync with
@@ -555,6 +566,9 @@ struct PW_PACKED pw_response_t {
 		struct pw_response_try_auth00_t try_auth00;
 		struct pw_response_try_auth01_t try_auth01;
 		struct pw_response_reset_auth00_t reset_auth00;
+#if BIOMETRICS_DEV
+		struct pw_response_reset_auth02_t reset_auth02;
+#endif
 		/* An array with as many entries as are present in the log up to
 		 * the present time or will fit in the message.
 		 */
