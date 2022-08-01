@@ -1509,6 +1509,16 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 	return EC_SUCCESS;
 }
 
+#if BIOMETRICS_DEV
+static int pw_handle_sys_info(pw_response_sys_info_t *response,
+				uint16_t *response_size)
+{
+	update_timestamp(&response->current_ts);
+	*response_size = sizeof(*response);
+	return EC_SUCCESS;
+}
+#endif
+
 struct merkle_tree_t pw_merkle_tree;
 
 /******************************************************************************/
@@ -1829,6 +1839,11 @@ int pw_handle_request(struct merkle_tree_t *merkle_tree,
 					   &response->data.log_replay,
 					   &resp_length);
 		break;
+#if BIOMETRICS_DEV
+	case PW_SYS_INFO:
+		ret = pw_handle_sys_info(&response->data.sys_info, &resp_length);
+		break;
+#endif
 	default:
 		ret = PW_ERR_TYPE_INVALID;
 		break;

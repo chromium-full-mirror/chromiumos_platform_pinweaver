@@ -264,6 +264,9 @@ enum pw_message_type_enum {
 	PW_RESET_AUTH = 5,
 	PW_GET_LOG = 6,
 	PW_LOG_REPLAY = 7,
+#if BIOMETRICS_DEV
+	PW_SYS_INFO = 8,
+#endif
 };
 
 /* This enum is introduced because when we need a new variant in the log for
@@ -528,6 +531,14 @@ struct PW_PACKED pw_get_log_entry_t {
 	};
 };
 
+#if BIOMETRICS_DEV
+struct PW_PACKED pw_response_sys_info02_t {
+	struct pw_timestamp_t current_ts;
+};
+
+typedef struct pw_response_sys_info02_t pw_response_sys_info_t;
+#endif
+
 struct PW_PACKED pw_request_t {
 	struct pw_request_header_t header;
 	union {
@@ -574,12 +585,18 @@ struct PW_PACKED pw_response_t {
 		 */
 		uint8_t get_log[0];
 		struct pw_response_log_replay00_t log_replay00;
+#if BIOMETRICS_DEV
+		struct pw_response_sys_info02_t sys_info02;
+#endif
 
 		/* currently used types */
 		pw_response_insert_leaf_t insert_leaf;
 		pw_response_try_auth_t try_auth;
 		pw_response_reset_auth_t reset_auth;
 		pw_response_log_replay_t log_replay;
+#if BIOMETRICS_DEV
+		pw_response_sys_info_t sys_info;
+#endif
 	} data;
 };
 
