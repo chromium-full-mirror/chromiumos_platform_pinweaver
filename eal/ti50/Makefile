@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-include ../../../ti50/common/build.lib.c.mk
+include $(abspath $(APP_DIR)/../../build.lib.c.mk)
 
 ##############################################################################
 # Library name
