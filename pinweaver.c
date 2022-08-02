@@ -43,21 +43,21 @@ BUILD_ASSERT(sizeof(struct pw_long_term_storage_t) +
 /* Verify that the request structs will fit into the message. */
 BUILD_ASSERT(PW_MAX_MESSAGE_SIZE >=
 	     sizeof(struct pw_request_header_t) +
-	     sizeof(union {struct pw_request_insert_leaf_t insert_leaf;
-		     struct pw_request_remove_leaf_t remove_leaf;
-		     struct pw_request_try_auth_t try_auth;
-		     struct pw_request_reset_auth_t reset_auth;
-		     struct pw_request_get_log_t get_log;
-		     struct pw_request_log_replay_t log_replay; }) +
+	     sizeof(union {pw_request_insert_leaf_t insert_leaf;
+		     pw_request_remove_leaf_t remove_leaf;
+		     pw_request_try_auth_t try_auth;
+		     pw_request_reset_auth_t reset_auth;
+		     pw_request_get_log_t get_log;
+		     pw_request_log_replay_t log_replay; }) +
 	     sizeof(struct leaf_public_data_t) +
 	     sizeof(struct leaf_sensitive_data_t) +
 	     PW_MAX_PATH_SIZE);
 
 #define PW_MAX_RESPONSE_SIZE (sizeof(struct pw_response_header_t) + \
-		sizeof(union {struct pw_response_insert_leaf_t insert_leaf; \
-			struct pw_response_try_auth_t try_auth; \
-			struct pw_response_reset_auth_t reset_auth; \
-			struct pw_response_log_replay_t log_replay; }) + \
+		sizeof(union {pw_response_insert_leaf_t insert_leaf; \
+			pw_response_try_auth_t try_auth; \
+			pw_response_reset_auth_t reset_auth; \
+			pw_response_log_replay_t log_replay; }) + \
 		PW_LEAF_PAYLOAD_SIZE)
 #define PW_VALID_PCR_CRITERIA_SIZE \
 		(sizeof(struct valid_pcr_value_t) * PW_MAX_PCR_CRITERIA_COUNT)
@@ -894,7 +894,7 @@ int log_auth(struct label_t label, const uint8_t root[PW_HASH_SIZE], int code,
  */
 
 static int pw_handle_reset_tree(struct merkle_tree_t *merkle_tree,
-				const struct pw_request_reset_tree_t *request,
+				const pw_request_reset_tree_t *request,
 				uint16_t req_size)
 {
 	struct merkle_tree_t new_tree = {};
@@ -925,9 +925,9 @@ static int pw_handle_reset_tree(struct merkle_tree_t *merkle_tree,
 }
 
 static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
-				 const struct pw_request_insert_leaf_t *request,
+				 const pw_request_insert_leaf_t *request,
 				 uint16_t req_size,
-				 struct pw_response_insert_leaf_t *response,
+				 pw_response_insert_leaf_t *response,
 				 uint16_t *response_size)
 {
 	int ret = EC_SUCCESS;
@@ -1012,7 +1012,7 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 }
 
 static int pw_handle_remove_leaf(struct merkle_tree_t *merkle_tree,
-				 const struct pw_request_remove_leaf_t *request,
+				 const pw_request_remove_leaf_t *request,
 				 uint16_t req_size)
 {
 	int ret = EC_SUCCESS;
@@ -1055,9 +1055,9 @@ static int pw_handle_remove_leaf(struct merkle_tree_t *merkle_tree,
  *   PW_ERR_LOWENT_AUTH_FAILED  ->  unimported_leaf_data
  */
 static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
-			      const struct pw_request_try_auth_t *request,
+			      const pw_request_try_auth_t *request,
 			      uint16_t req_size,
-			      struct pw_response_try_auth_t *response,
+			      pw_response_try_auth_t *response,
 			      uint16_t *data_length)
 {
 	int ret = EC_SUCCESS;
@@ -1187,9 +1187,9 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 }
 
 static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
-				const struct pw_request_reset_auth_t *request,
+				const pw_request_reset_auth_t *request,
 				uint16_t req_size,
-				struct pw_response_reset_auth_t *response,
+				pw_response_reset_auth_t *response,
 				uint16_t *response_size)
 {
 	int ret = EC_SUCCESS;
@@ -1257,7 +1257,7 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 }
 
 static int pw_handle_get_log(const struct merkle_tree_t *merkle_tree,
-			     const struct pw_request_get_log_t *request,
+			     const pw_request_get_log_t *request,
 			     uint16_t req_size,
 			     struct pw_get_log_entry_t response[],
 			     uint16_t *response_size)
@@ -1312,9 +1312,9 @@ static int pw_handle_get_log(const struct merkle_tree_t *merkle_tree,
 }
 
 static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
-				const struct pw_request_log_replay_t *request,
+				const pw_request_log_replay_t *request,
 				uint16_t req_size,
-				struct pw_response_log_replay_t *response,
+				pw_response_log_replay_t *response,
 				uint16_t *response_size)
 {
 	int ret;
@@ -1489,7 +1489,7 @@ int make_compatible_request(struct merkle_tree_t *merkle_tree,
 				request->header.data_length -
 				offsetof(struct pw_request_insert_leaf00_t,
 					 path_hashes);
-			if (offsetof(struct pw_request_insert_leaf_t,
+			if (offsetof(struct pw_request_insert_leaf01_t,
 				     path_hashes) + src_size >
 			    PW_MAX_MESSAGE_SIZE) {
 				/* The total length of request overflowed. */

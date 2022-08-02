@@ -892,6 +892,11 @@ pub const pw_message_type_enum_PW_RESET_AUTH: pw_message_type_enum = 5;
 pub const pw_message_type_enum_PW_GET_LOG: pw_message_type_enum = 6;
 pub const pw_message_type_enum_PW_LOG_REPLAY: pw_message_type_enum = 7;
 pub type pw_message_type_enum = cty::c_uint;
+pub const pw_log_message_type_enum_LOG_PW_MT_INVALID00: pw_log_message_type_enum = 0;
+pub const pw_log_message_type_enum_LOG_PW_RESET_TREE00: pw_log_message_type_enum = 1;
+pub const pw_log_message_type_enum_LOG_PW_INSERT_LEAF00: pw_log_message_type_enum = 2;
+pub const pw_log_message_type_enum_LOG_PW_REMOVE_LEAF00: pw_log_message_type_enum = 3;
+pub const pw_log_message_type_enum_LOG_PW_TRY_AUTH00: pw_log_message_type_enum = 4;
 pub const pw_log_message_type_enum_LOG_PW_MT_INVALID: pw_log_message_type_enum = 0;
 pub const pw_log_message_type_enum_LOG_PW_RESET_TREE: pw_log_message_type_enum = 1;
 pub const pw_log_message_type_enum_LOG_PW_INSERT_LEAF: pw_log_message_type_enum = 2;
@@ -1045,45 +1050,49 @@ fn bindgen_test_layout_pw_response_header_t() {
 }
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
-pub struct pw_request_reset_tree_t {
+pub struct pw_request_reset_tree00_t {
     pub bits_per_level: bits_per_level_t,
     pub height: height_t,
 }
 #[test]
-fn bindgen_test_layout_pw_request_reset_tree_t() {
+fn bindgen_test_layout_pw_request_reset_tree00_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_request_reset_tree_t>(),
+        ::core::mem::size_of::<pw_request_reset_tree00_t>(),
         2usize,
-        concat!("Size of: ", stringify!(pw_request_reset_tree_t))
+        concat!("Size of: ", stringify!(pw_request_reset_tree00_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_request_reset_tree_t>(),
+        ::core::mem::align_of::<pw_request_reset_tree00_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_request_reset_tree_t))
+        concat!("Alignment of ", stringify!(pw_request_reset_tree00_t))
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_reset_tree_t>())).bits_per_level as *const _ as usize
+            &(*(::core::ptr::null::<pw_request_reset_tree00_t>())).bits_per_level as *const _
+                as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_reset_tree_t),
+            stringify!(pw_request_reset_tree00_t),
             "::",
             stringify!(bits_per_level)
         )
     );
     assert_eq!(
-        unsafe { &(*(::core::ptr::null::<pw_request_reset_tree_t>())).height as *const _ as usize },
+        unsafe {
+            &(*(::core::ptr::null::<pw_request_reset_tree00_t>())).height as *const _ as usize
+        },
         1usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_reset_tree_t),
+            stringify!(pw_request_reset_tree00_t),
             "::",
             stringify!(height)
         )
     );
 }
+pub type pw_request_reset_tree_t = pw_request_reset_tree00_t;
 #[repr(C, packed)]
 #[derive(Debug)]
 pub struct pw_request_insert_leaf00_t {
@@ -1185,7 +1194,7 @@ fn bindgen_test_layout_pw_request_insert_leaf00_t() {
 }
 #[repr(C, packed)]
 #[derive(Debug)]
-pub struct pw_request_insert_leaf_t {
+pub struct pw_request_insert_leaf01_t {
     pub label: label_t,
     pub delay_schedule: [delay_schedule_entry_t; 16usize],
     pub low_entropy_secret: [u8; 32usize],
@@ -1195,236 +1204,244 @@ pub struct pw_request_insert_leaf_t {
     pub path_hashes: __IncompleteArrayField<[u8; 32usize]>,
 }
 #[test]
-fn bindgen_test_layout_pw_request_insert_leaf_t() {
+fn bindgen_test_layout_pw_request_insert_leaf01_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_request_insert_leaf_t>(),
+        ::core::mem::size_of::<pw_request_insert_leaf01_t>(),
         300usize,
-        concat!("Size of: ", stringify!(pw_request_insert_leaf_t))
+        concat!("Size of: ", stringify!(pw_request_insert_leaf01_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_request_insert_leaf_t>(),
+        ::core::mem::align_of::<pw_request_insert_leaf01_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_request_insert_leaf_t))
+        concat!("Alignment of ", stringify!(pw_request_insert_leaf01_t))
     );
     assert_eq!(
-        unsafe { &(*(::core::ptr::null::<pw_request_insert_leaf_t>())).label as *const _ as usize },
+        unsafe {
+            &(*(::core::ptr::null::<pw_request_insert_leaf01_t>())).label as *const _ as usize
+        },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_insert_leaf_t),
+            stringify!(pw_request_insert_leaf01_t),
             "::",
             stringify!(label)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_insert_leaf_t>())).delay_schedule as *const _
+            &(*(::core::ptr::null::<pw_request_insert_leaf01_t>())).delay_schedule as *const _
                 as usize
         },
         8usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_insert_leaf_t),
+            stringify!(pw_request_insert_leaf01_t),
             "::",
             stringify!(delay_schedule)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_insert_leaf_t>())).low_entropy_secret as *const _
+            &(*(::core::ptr::null::<pw_request_insert_leaf01_t>())).low_entropy_secret as *const _
                 as usize
         },
         136usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_insert_leaf_t),
+            stringify!(pw_request_insert_leaf01_t),
             "::",
             stringify!(low_entropy_secret)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_insert_leaf_t>())).high_entropy_secret as *const _
+            &(*(::core::ptr::null::<pw_request_insert_leaf01_t>())).high_entropy_secret as *const _
                 as usize
         },
         168usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_insert_leaf_t),
+            stringify!(pw_request_insert_leaf01_t),
             "::",
             stringify!(high_entropy_secret)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_insert_leaf_t>())).reset_secret as *const _ as usize
+            &(*(::core::ptr::null::<pw_request_insert_leaf01_t>())).reset_secret as *const _
+                as usize
         },
         200usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_insert_leaf_t),
+            stringify!(pw_request_insert_leaf01_t),
             "::",
             stringify!(reset_secret)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_insert_leaf_t>())).valid_pcr_criteria as *const _
+            &(*(::core::ptr::null::<pw_request_insert_leaf01_t>())).valid_pcr_criteria as *const _
                 as usize
         },
         232usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_insert_leaf_t),
+            stringify!(pw_request_insert_leaf01_t),
             "::",
             stringify!(valid_pcr_criteria)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_insert_leaf_t>())).path_hashes as *const _ as usize
+            &(*(::core::ptr::null::<pw_request_insert_leaf01_t>())).path_hashes as *const _ as usize
         },
         300usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_insert_leaf_t),
+            stringify!(pw_request_insert_leaf01_t),
             "::",
             stringify!(path_hashes)
         )
     );
 }
+pub type pw_request_insert_leaf_t = pw_request_insert_leaf01_t;
 #[repr(C, packed)]
 #[derive(Debug)]
-pub struct pw_response_insert_leaf_t {
+pub struct pw_response_insert_leaf00_t {
     pub unimported_leaf_data: unimported_leaf_data_t,
 }
 #[test]
-fn bindgen_test_layout_pw_response_insert_leaf_t() {
+fn bindgen_test_layout_pw_response_insert_leaf00_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_response_insert_leaf_t>(),
+        ::core::mem::size_of::<pw_response_insert_leaf00_t>(),
         56usize,
-        concat!("Size of: ", stringify!(pw_response_insert_leaf_t))
+        concat!("Size of: ", stringify!(pw_response_insert_leaf00_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_response_insert_leaf_t>(),
+        ::core::mem::align_of::<pw_response_insert_leaf00_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_response_insert_leaf_t))
+        concat!("Alignment of ", stringify!(pw_response_insert_leaf00_t))
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_response_insert_leaf_t>())).unimported_leaf_data as *const _
-                as usize
+            &(*(::core::ptr::null::<pw_response_insert_leaf00_t>())).unimported_leaf_data
+                as *const _ as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_response_insert_leaf_t),
+            stringify!(pw_response_insert_leaf00_t),
             "::",
             stringify!(unimported_leaf_data)
         )
     );
 }
+pub type pw_response_insert_leaf_t = pw_response_insert_leaf00_t;
 #[repr(C, packed)]
 #[derive(Debug)]
-pub struct pw_request_remove_leaf_t {
+pub struct pw_request_remove_leaf00_t {
     pub leaf_location: label_t,
     pub leaf_hmac: [u8; 32usize],
     pub path_hashes: __IncompleteArrayField<[u8; 32usize]>,
 }
 #[test]
-fn bindgen_test_layout_pw_request_remove_leaf_t() {
+fn bindgen_test_layout_pw_request_remove_leaf00_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_request_remove_leaf_t>(),
+        ::core::mem::size_of::<pw_request_remove_leaf00_t>(),
         40usize,
-        concat!("Size of: ", stringify!(pw_request_remove_leaf_t))
+        concat!("Size of: ", stringify!(pw_request_remove_leaf00_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_request_remove_leaf_t>(),
+        ::core::mem::align_of::<pw_request_remove_leaf00_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_request_remove_leaf_t))
+        concat!("Alignment of ", stringify!(pw_request_remove_leaf00_t))
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_remove_leaf_t>())).leaf_location as *const _ as usize
+            &(*(::core::ptr::null::<pw_request_remove_leaf00_t>())).leaf_location as *const _
+                as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_remove_leaf_t),
+            stringify!(pw_request_remove_leaf00_t),
             "::",
             stringify!(leaf_location)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_remove_leaf_t>())).leaf_hmac as *const _ as usize
+            &(*(::core::ptr::null::<pw_request_remove_leaf00_t>())).leaf_hmac as *const _ as usize
         },
         8usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_remove_leaf_t),
+            stringify!(pw_request_remove_leaf00_t),
             "::",
             stringify!(leaf_hmac)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_remove_leaf_t>())).path_hashes as *const _ as usize
+            &(*(::core::ptr::null::<pw_request_remove_leaf00_t>())).path_hashes as *const _ as usize
         },
         40usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_remove_leaf_t),
+            stringify!(pw_request_remove_leaf00_t),
             "::",
             stringify!(path_hashes)
         )
     );
 }
+pub type pw_request_remove_leaf_t = pw_request_remove_leaf00_t;
 #[repr(C, packed)]
 #[derive(Debug)]
-pub struct pw_request_try_auth_t {
+pub struct pw_request_try_auth00_t {
     pub low_entropy_secret: [u8; 32usize],
     pub unimported_leaf_data: unimported_leaf_data_t,
 }
 #[test]
-fn bindgen_test_layout_pw_request_try_auth_t() {
+fn bindgen_test_layout_pw_request_try_auth00_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_request_try_auth_t>(),
+        ::core::mem::size_of::<pw_request_try_auth00_t>(),
         88usize,
-        concat!("Size of: ", stringify!(pw_request_try_auth_t))
+        concat!("Size of: ", stringify!(pw_request_try_auth00_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_request_try_auth_t>(),
+        ::core::mem::align_of::<pw_request_try_auth00_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_request_try_auth_t))
+        concat!("Alignment of ", stringify!(pw_request_try_auth00_t))
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_try_auth_t>())).low_entropy_secret as *const _
+            &(*(::core::ptr::null::<pw_request_try_auth00_t>())).low_entropy_secret as *const _
                 as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_try_auth_t),
+            stringify!(pw_request_try_auth00_t),
             "::",
             stringify!(low_entropy_secret)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_try_auth_t>())).unimported_leaf_data as *const _
+            &(*(::core::ptr::null::<pw_request_try_auth00_t>())).unimported_leaf_data as *const _
                 as usize
         },
         32usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_try_auth_t),
+            stringify!(pw_request_try_auth00_t),
             "::",
             stringify!(unimported_leaf_data)
         )
     );
 }
+pub type pw_request_try_auth_t = pw_request_try_auth00_t;
 #[repr(C, packed)]
 #[derive(Debug)]
 pub struct pw_response_try_auth00_t {
@@ -1486,267 +1503,274 @@ fn bindgen_test_layout_pw_response_try_auth00_t() {
 }
 #[repr(C, packed)]
 #[derive(Debug)]
-pub struct pw_response_try_auth_t {
+pub struct pw_response_try_auth01_t {
     pub seconds_to_wait: time_diff_t,
     pub high_entropy_secret: [u8; 32usize],
     pub reset_secret: [u8; 32usize],
     pub unimported_leaf_data: unimported_leaf_data_t,
 }
 #[test]
-fn bindgen_test_layout_pw_response_try_auth_t() {
+fn bindgen_test_layout_pw_response_try_auth01_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_response_try_auth_t>(),
+        ::core::mem::size_of::<pw_response_try_auth01_t>(),
         124usize,
-        concat!("Size of: ", stringify!(pw_response_try_auth_t))
+        concat!("Size of: ", stringify!(pw_response_try_auth01_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_response_try_auth_t>(),
+        ::core::mem::align_of::<pw_response_try_auth01_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_response_try_auth_t))
+        concat!("Alignment of ", stringify!(pw_response_try_auth01_t))
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_response_try_auth_t>())).seconds_to_wait as *const _ as usize
+            &(*(::core::ptr::null::<pw_response_try_auth01_t>())).seconds_to_wait as *const _
+                as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_response_try_auth_t),
+            stringify!(pw_response_try_auth01_t),
             "::",
             stringify!(seconds_to_wait)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_response_try_auth_t>())).high_entropy_secret as *const _
+            &(*(::core::ptr::null::<pw_response_try_auth01_t>())).high_entropy_secret as *const _
                 as usize
         },
         4usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_response_try_auth_t),
+            stringify!(pw_response_try_auth01_t),
             "::",
             stringify!(high_entropy_secret)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_response_try_auth_t>())).reset_secret as *const _ as usize
+            &(*(::core::ptr::null::<pw_response_try_auth01_t>())).reset_secret as *const _ as usize
         },
         36usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_response_try_auth_t),
+            stringify!(pw_response_try_auth01_t),
             "::",
             stringify!(reset_secret)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_response_try_auth_t>())).unimported_leaf_data as *const _
+            &(*(::core::ptr::null::<pw_response_try_auth01_t>())).unimported_leaf_data as *const _
                 as usize
         },
         68usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_response_try_auth_t),
+            stringify!(pw_response_try_auth01_t),
             "::",
             stringify!(unimported_leaf_data)
         )
     );
 }
+pub type pw_response_try_auth_t = pw_response_try_auth01_t;
 #[repr(C, packed)]
 #[derive(Debug)]
-pub struct pw_request_reset_auth_t {
+pub struct pw_request_reset_auth00_t {
     pub reset_secret: [u8; 32usize],
     pub unimported_leaf_data: unimported_leaf_data_t,
 }
 #[test]
-fn bindgen_test_layout_pw_request_reset_auth_t() {
+fn bindgen_test_layout_pw_request_reset_auth00_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_request_reset_auth_t>(),
+        ::core::mem::size_of::<pw_request_reset_auth00_t>(),
         88usize,
-        concat!("Size of: ", stringify!(pw_request_reset_auth_t))
+        concat!("Size of: ", stringify!(pw_request_reset_auth00_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_request_reset_auth_t>(),
+        ::core::mem::align_of::<pw_request_reset_auth00_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_request_reset_auth_t))
+        concat!("Alignment of ", stringify!(pw_request_reset_auth00_t))
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_reset_auth_t>())).reset_secret as *const _ as usize
+            &(*(::core::ptr::null::<pw_request_reset_auth00_t>())).reset_secret as *const _ as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_reset_auth_t),
+            stringify!(pw_request_reset_auth00_t),
             "::",
             stringify!(reset_secret)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_reset_auth_t>())).unimported_leaf_data as *const _
+            &(*(::core::ptr::null::<pw_request_reset_auth00_t>())).unimported_leaf_data as *const _
                 as usize
         },
         32usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_reset_auth_t),
+            stringify!(pw_request_reset_auth00_t),
             "::",
             stringify!(unimported_leaf_data)
         )
     );
 }
+pub type pw_request_reset_auth_t = pw_request_reset_auth00_t;
 #[repr(C, packed)]
 #[derive(Debug)]
-pub struct pw_response_reset_auth_t {
+pub struct pw_response_reset_auth00_t {
     pub high_entropy_secret: [u8; 32usize],
     pub unimported_leaf_data: unimported_leaf_data_t,
 }
 #[test]
-fn bindgen_test_layout_pw_response_reset_auth_t() {
+fn bindgen_test_layout_pw_response_reset_auth00_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_response_reset_auth_t>(),
+        ::core::mem::size_of::<pw_response_reset_auth00_t>(),
         88usize,
-        concat!("Size of: ", stringify!(pw_response_reset_auth_t))
+        concat!("Size of: ", stringify!(pw_response_reset_auth00_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_response_reset_auth_t>(),
+        ::core::mem::align_of::<pw_response_reset_auth00_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_response_reset_auth_t))
+        concat!("Alignment of ", stringify!(pw_response_reset_auth00_t))
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_response_reset_auth_t>())).high_entropy_secret as *const _
+            &(*(::core::ptr::null::<pw_response_reset_auth00_t>())).high_entropy_secret as *const _
                 as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_response_reset_auth_t),
+            stringify!(pw_response_reset_auth00_t),
             "::",
             stringify!(high_entropy_secret)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_response_reset_auth_t>())).unimported_leaf_data as *const _
+            &(*(::core::ptr::null::<pw_response_reset_auth00_t>())).unimported_leaf_data as *const _
                 as usize
         },
         32usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_response_reset_auth_t),
+            stringify!(pw_response_reset_auth00_t),
             "::",
             stringify!(unimported_leaf_data)
         )
     );
 }
+pub type pw_response_reset_auth_t = pw_response_reset_auth00_t;
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
-pub struct pw_request_get_log_t {
+pub struct pw_request_get_log00_t {
     pub root: [u8; 32usize],
 }
 #[test]
-fn bindgen_test_layout_pw_request_get_log_t() {
+fn bindgen_test_layout_pw_request_get_log00_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_request_get_log_t>(),
+        ::core::mem::size_of::<pw_request_get_log00_t>(),
         32usize,
-        concat!("Size of: ", stringify!(pw_request_get_log_t))
+        concat!("Size of: ", stringify!(pw_request_get_log00_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_request_get_log_t>(),
+        ::core::mem::align_of::<pw_request_get_log00_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_request_get_log_t))
+        concat!("Alignment of ", stringify!(pw_request_get_log00_t))
     );
     assert_eq!(
-        unsafe { &(*(::core::ptr::null::<pw_request_get_log_t>())).root as *const _ as usize },
+        unsafe { &(*(::core::ptr::null::<pw_request_get_log00_t>())).root as *const _ as usize },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_get_log_t),
+            stringify!(pw_request_get_log00_t),
             "::",
             stringify!(root)
         )
     );
 }
+pub type pw_request_get_log_t = pw_request_get_log00_t;
 #[repr(C, packed)]
 #[derive(Debug)]
-pub struct pw_request_log_replay_t {
+pub struct pw_request_log_replay00_t {
     pub log_root: [u8; 32usize],
     pub unimported_leaf_data: unimported_leaf_data_t,
 }
 #[test]
-fn bindgen_test_layout_pw_request_log_replay_t() {
+fn bindgen_test_layout_pw_request_log_replay00_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_request_log_replay_t>(),
+        ::core::mem::size_of::<pw_request_log_replay00_t>(),
         88usize,
-        concat!("Size of: ", stringify!(pw_request_log_replay_t))
+        concat!("Size of: ", stringify!(pw_request_log_replay00_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_request_log_replay_t>(),
+        ::core::mem::align_of::<pw_request_log_replay00_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_request_log_replay_t))
+        concat!("Alignment of ", stringify!(pw_request_log_replay00_t))
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_log_replay_t>())).log_root as *const _ as usize
+            &(*(::core::ptr::null::<pw_request_log_replay00_t>())).log_root as *const _ as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_log_replay_t),
+            stringify!(pw_request_log_replay00_t),
             "::",
             stringify!(log_root)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_log_replay_t>())).unimported_leaf_data as *const _
+            &(*(::core::ptr::null::<pw_request_log_replay00_t>())).unimported_leaf_data as *const _
                 as usize
         },
         32usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_request_log_replay_t),
+            stringify!(pw_request_log_replay00_t),
             "::",
             stringify!(unimported_leaf_data)
         )
     );
 }
+pub type pw_request_log_replay_t = pw_request_log_replay00_t;
 #[repr(C, packed)]
 #[derive(Debug)]
-pub struct pw_response_log_replay_t {
+pub struct pw_response_log_replay00_t {
     pub unimported_leaf_data: unimported_leaf_data_t,
 }
 #[test]
-fn bindgen_test_layout_pw_response_log_replay_t() {
+fn bindgen_test_layout_pw_response_log_replay00_t() {
     assert_eq!(
-        ::core::mem::size_of::<pw_response_log_replay_t>(),
+        ::core::mem::size_of::<pw_response_log_replay00_t>(),
         56usize,
-        concat!("Size of: ", stringify!(pw_response_log_replay_t))
+        concat!("Size of: ", stringify!(pw_response_log_replay00_t))
     );
     assert_eq!(
-        ::core::mem::align_of::<pw_response_log_replay_t>(),
+        ::core::mem::align_of::<pw_response_log_replay00_t>(),
         1usize,
-        concat!("Alignment of ", stringify!(pw_response_log_replay_t))
+        concat!("Alignment of ", stringify!(pw_response_log_replay00_t))
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_response_log_replay_t>())).unimported_leaf_data as *const _
+            &(*(::core::ptr::null::<pw_response_log_replay00_t>())).unimported_leaf_data as *const _
                 as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(pw_response_log_replay_t),
+            stringify!(pw_response_log_replay00_t),
             "::",
             stringify!(unimported_leaf_data)
         )
     );
 }
+pub type pw_response_log_replay_t = pw_response_log_replay00_t;
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct pw_get_log_entry_t {
@@ -1891,8 +1915,15 @@ pub struct pw_request_t {
 }
 #[repr(C)]
 pub struct pw_request_t__bindgen_ty_1 {
-    pub reset_tree: __BindgenUnionField<pw_request_reset_tree_t>,
+    pub reset_tree00: __BindgenUnionField<pw_request_reset_tree00_t>,
     pub insert_leaf00: __BindgenUnionField<pw_request_insert_leaf00_t>,
+    pub insert_leaf01: __BindgenUnionField<pw_request_insert_leaf01_t>,
+    pub remove_leaf00: __BindgenUnionField<pw_request_remove_leaf00_t>,
+    pub try_auth00: __BindgenUnionField<pw_request_try_auth00_t>,
+    pub reset_auth00: __BindgenUnionField<pw_request_reset_auth00_t>,
+    pub get_log00: __BindgenUnionField<pw_request_get_log00_t>,
+    pub log_replay00: __BindgenUnionField<pw_request_log_replay00_t>,
+    pub reset_tree: __BindgenUnionField<pw_request_reset_tree_t>,
     pub insert_leaf: __BindgenUnionField<pw_request_insert_leaf_t>,
     pub remove_leaf: __BindgenUnionField<pw_request_remove_leaf_t>,
     pub try_auth: __BindgenUnionField<pw_request_try_auth_t>,
@@ -1915,14 +1946,15 @@ fn bindgen_test_layout_pw_request_t__bindgen_ty_1() {
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_request_t__bindgen_ty_1>())).reset_tree as *const _ as usize
+            &(*(::core::ptr::null::<pw_request_t__bindgen_ty_1>())).reset_tree00 as *const _
+                as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
             stringify!(pw_request_t__bindgen_ty_1),
             "::",
-            stringify!(reset_tree)
+            stringify!(reset_tree00)
         )
     );
     assert_eq!(
@@ -1936,6 +1968,94 @@ fn bindgen_test_layout_pw_request_t__bindgen_ty_1() {
             stringify!(pw_request_t__bindgen_ty_1),
             "::",
             stringify!(insert_leaf00)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_request_t__bindgen_ty_1>())).insert_leaf01 as *const _
+                as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_request_t__bindgen_ty_1),
+            "::",
+            stringify!(insert_leaf01)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_request_t__bindgen_ty_1>())).remove_leaf00 as *const _
+                as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_request_t__bindgen_ty_1),
+            "::",
+            stringify!(remove_leaf00)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_request_t__bindgen_ty_1>())).try_auth00 as *const _ as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_request_t__bindgen_ty_1),
+            "::",
+            stringify!(try_auth00)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_request_t__bindgen_ty_1>())).reset_auth00 as *const _
+                as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_request_t__bindgen_ty_1),
+            "::",
+            stringify!(reset_auth00)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_request_t__bindgen_ty_1>())).get_log00 as *const _ as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_request_t__bindgen_ty_1),
+            "::",
+            stringify!(get_log00)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_request_t__bindgen_ty_1>())).log_replay00 as *const _
+                as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_request_t__bindgen_ty_1),
+            "::",
+            stringify!(log_replay00)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_request_t__bindgen_ty_1>())).reset_tree as *const _ as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_request_t__bindgen_ty_1),
+            "::",
+            stringify!(reset_tree)
         )
     );
     assert_eq!(
@@ -2051,11 +2171,15 @@ pub struct pw_response_t {
 }
 #[repr(C)]
 pub struct pw_response_t__bindgen_ty_1 {
-    pub insert_leaf: __BindgenUnionField<pw_response_insert_leaf_t>,
+    pub insert_leaf00: __BindgenUnionField<pw_response_insert_leaf00_t>,
     pub try_auth00: __BindgenUnionField<pw_response_try_auth00_t>,
+    pub try_auth01: __BindgenUnionField<pw_response_try_auth01_t>,
+    pub reset_auth00: __BindgenUnionField<pw_response_reset_auth00_t>,
+    pub get_log: __BindgenUnionField<[u8; 0usize]>,
+    pub log_replay00: __BindgenUnionField<pw_response_log_replay00_t>,
+    pub insert_leaf: __BindgenUnionField<pw_response_insert_leaf_t>,
     pub try_auth: __BindgenUnionField<pw_response_try_auth_t>,
     pub reset_auth: __BindgenUnionField<pw_response_reset_auth_t>,
-    pub get_log: __BindgenUnionField<[u8; 0usize]>,
     pub log_replay: __BindgenUnionField<pw_response_log_replay_t>,
     pub bindgen_union_field: [u8; 124usize],
 }
@@ -2073,7 +2197,7 @@ fn bindgen_test_layout_pw_response_t__bindgen_ty_1() {
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<pw_response_t__bindgen_ty_1>())).insert_leaf as *const _
+            &(*(::core::ptr::null::<pw_response_t__bindgen_ty_1>())).insert_leaf00 as *const _
                 as usize
         },
         0usize,
@@ -2081,7 +2205,7 @@ fn bindgen_test_layout_pw_response_t__bindgen_ty_1() {
             "Offset of field: ",
             stringify!(pw_response_t__bindgen_ty_1),
             "::",
-            stringify!(insert_leaf)
+            stringify!(insert_leaf00)
         )
     );
     assert_eq!(
@@ -2094,6 +2218,69 @@ fn bindgen_test_layout_pw_response_t__bindgen_ty_1() {
             stringify!(pw_response_t__bindgen_ty_1),
             "::",
             stringify!(try_auth00)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_response_t__bindgen_ty_1>())).try_auth01 as *const _ as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_response_t__bindgen_ty_1),
+            "::",
+            stringify!(try_auth01)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_response_t__bindgen_ty_1>())).reset_auth00 as *const _
+                as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_response_t__bindgen_ty_1),
+            "::",
+            stringify!(reset_auth00)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_response_t__bindgen_ty_1>())).get_log as *const _ as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_response_t__bindgen_ty_1),
+            "::",
+            stringify!(get_log)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_response_t__bindgen_ty_1>())).log_replay00 as *const _
+                as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_response_t__bindgen_ty_1),
+            "::",
+            stringify!(log_replay00)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<pw_response_t__bindgen_ty_1>())).insert_leaf as *const _
+                as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pw_response_t__bindgen_ty_1),
+            "::",
+            stringify!(insert_leaf)
         )
     );
     assert_eq!(
@@ -2118,18 +2305,6 @@ fn bindgen_test_layout_pw_response_t__bindgen_ty_1() {
             stringify!(pw_response_t__bindgen_ty_1),
             "::",
             stringify!(reset_auth)
-        )
-    );
-    assert_eq!(
-        unsafe {
-            &(*(::core::ptr::null::<pw_response_t__bindgen_ty_1>())).get_log as *const _ as usize
-        },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(pw_response_t__bindgen_ty_1),
-            "::",
-            stringify!(get_log)
         )
     );
     assert_eq!(

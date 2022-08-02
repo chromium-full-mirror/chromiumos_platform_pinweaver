@@ -60,7 +60,7 @@ struct PW_PACKED bits_per_level_t {
 	uint8_t v;
 };
 
- /* Represent the height of a tree. */
+/* Represent the height of a tree. */
 struct PW_PACKED height_t {
 	uint8_t v;
 };
@@ -208,6 +208,8 @@ struct PW_PACKED unimported_leaf_data_t {
 /* Message structs
  *
  * The message format is a pw_request_header_t followed by the data
+ * We don't expect to ever update the enum entry an operation maps to, so it
+ * doesn't need to be versioned.
  */
 
 enum pw_message_type_enum {
@@ -229,14 +231,20 @@ enum pw_message_type_enum {
  * in log entries another meaning.
  */
 enum pw_log_message_type_enum {
-	LOG_PW_MT_INVALID = 0,
-	LOG_PW_RESET_TREE = 1,
-	LOG_PW_INSERT_LEAF = 2,
-	LOG_PW_REMOVE_LEAF = 3,
-	LOG_PW_TRY_AUTH = 4,
+	LOG_PW_MT_INVALID00 = 0,
+	LOG_PW_RESET_TREE00 = 1,
+	LOG_PW_INSERT_LEAF00 = 2,
+	LOG_PW_REMOVE_LEAF00 = 3,
+	LOG_PW_TRY_AUTH00 = 4,
 	/* All the fields above correspond to the same kind of message with matching
 	 * value in pw_message_type_enum.
 	 */
+
+	LOG_PW_MT_INVALID = LOG_PW_MT_INVALID00,
+	LOG_PW_RESET_TREE = LOG_PW_RESET_TREE00,
+	LOG_PW_INSERT_LEAF = LOG_PW_INSERT_LEAF00,
+	LOG_PW_REMOVE_LEAF = LOG_PW_REMOVE_LEAF00,
+	LOG_PW_TRY_AUTH = LOG_PW_TRY_AUTH00,
 };
 
 struct PW_PACKED pw_message_type_t {
@@ -256,12 +264,14 @@ struct PW_PACKED pw_response_header_t {
 	uint8_t root[PW_HASH_SIZE];
 };
 
-struct PW_PACKED pw_request_reset_tree_t {
+struct PW_PACKED pw_request_reset_tree00_t {
 	struct bits_per_level_t bits_per_level;
 	struct height_t height;
 };
 
-/* This is only used for parsing incoming data of version 0:0 */
+typedef struct pw_request_reset_tree00_t pw_request_reset_tree_t;
+
+/* This is only used for parsing incoming data before version 01 */
 struct PW_PACKED pw_request_insert_leaf00_t {
 	struct label_t label;
 	struct delay_schedule_entry_t delay_schedule[PW_SCHED_COUNT];
@@ -278,7 +288,7 @@ struct PW_PACKED pw_request_insert_leaf00_t {
 	uint8_t path_hashes[][PW_HASH_SIZE];
 };
 
-struct PW_PACKED pw_request_insert_leaf_t {
+struct PW_PACKED pw_request_insert_leaf01_t {
 	struct label_t label;
 	struct delay_schedule_entry_t delay_schedule[PW_SCHED_COUNT];
 	uint8_t low_entropy_secret[PW_SECRET_SIZE];
@@ -295,23 +305,31 @@ struct PW_PACKED pw_request_insert_leaf_t {
 	uint8_t path_hashes[][PW_HASH_SIZE];
 };
 
-struct PW_PACKED pw_response_insert_leaf_t {
+typedef struct pw_request_insert_leaf01_t pw_request_insert_leaf_t;
+
+struct PW_PACKED pw_response_insert_leaf00_t {
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
-struct PW_PACKED pw_request_remove_leaf_t {
+typedef struct pw_response_insert_leaf00_t pw_response_insert_leaf_t;
+
+struct PW_PACKED pw_request_remove_leaf00_t {
 	struct label_t leaf_location;
 	uint8_t leaf_hmac[PW_HASH_SIZE];
 	/* See (struct pw_request_insert_leaf_t).path_hashes. */
 	uint8_t path_hashes[][PW_HASH_SIZE];
 };
 
-struct PW_PACKED pw_request_try_auth_t {
+typedef struct pw_request_remove_leaf00_t pw_request_remove_leaf_t;
+
+struct PW_PACKED pw_request_try_auth00_t {
 	uint8_t low_entropy_secret[PW_SECRET_SIZE];
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
-/* This is only used to send response data of version 0:0 */
+typedef struct pw_request_try_auth00_t pw_request_try_auth_t;
+
+/* This is only used to send response data before version 01 */
 struct PW_PACKED pw_response_try_auth00_t {
 	/* Valid for the PW_ERR_RATE_LIMIT_REACHED return code only. */
 	struct time_diff_t seconds_to_wait;
@@ -322,7 +340,7 @@ struct PW_PACKED pw_response_try_auth00_t {
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
-struct PW_PACKED pw_response_try_auth_t {
+struct PW_PACKED pw_response_try_auth01_t {
 	/* Valid for the PW_ERR_RATE_LIMIT_REACHED return code only. */
 	struct time_diff_t seconds_to_wait;
 	/* Valid for the EC_SUCCESS return code only. */
@@ -334,17 +352,23 @@ struct PW_PACKED pw_response_try_auth_t {
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
-struct PW_PACKED pw_request_reset_auth_t {
+typedef struct pw_response_try_auth01_t pw_response_try_auth_t;
+
+struct PW_PACKED pw_request_reset_auth00_t {
 	uint8_t reset_secret[PW_SECRET_SIZE];
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
-struct PW_PACKED pw_response_reset_auth_t {
+typedef struct pw_request_reset_auth00_t pw_request_reset_auth_t;
+
+struct PW_PACKED pw_response_reset_auth00_t {
 	uint8_t high_entropy_secret[PW_SECRET_SIZE];
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
-struct PW_PACKED pw_request_get_log_t {
+typedef struct pw_response_reset_auth00_t pw_response_reset_auth_t;
+
+struct PW_PACKED pw_request_get_log00_t {
 	/* The root on the CrOS side that needs to be brought back in sync with
 	 * the root on Cr50. If this doesn't match a log entry, the entire log
 	 * is returned.
@@ -352,7 +376,9 @@ struct PW_PACKED pw_request_get_log_t {
 	uint8_t root[PW_HASH_SIZE];
 };
 
-struct PW_PACKED pw_request_log_replay_t {
+typedef struct pw_request_get_log00_t pw_request_get_log_t;
+
+struct PW_PACKED pw_request_log_replay00_t {
 	/* The root hash after the desired log event.
 	 * The log entry that matches this hash contains all the necessary
 	 * data to update wrapped_leaf_data
@@ -361,10 +387,15 @@ struct PW_PACKED pw_request_log_replay_t {
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
-struct PW_PACKED pw_response_log_replay_t {
+typedef struct pw_request_log_replay00_t pw_request_log_replay_t;
+
+struct PW_PACKED pw_response_log_replay00_t {
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
+typedef struct pw_response_log_replay00_t pw_response_log_replay_t;
+
+/* We expect this type definition to never change so it isn't versioned. */
 struct PW_PACKED pw_get_log_entry_t {
 	/* The root hash after this operation. */
 	uint8_t root[PW_HASH_SIZE];
@@ -394,30 +425,46 @@ struct PW_PACKED pw_get_log_entry_t {
 struct PW_PACKED pw_request_t {
 	struct pw_request_header_t header;
 	union {
-		struct pw_request_reset_tree_t reset_tree;
+    /* version-stable types */
+		struct pw_request_reset_tree00_t reset_tree00;
 		struct pw_request_insert_leaf00_t insert_leaf00;
-		struct pw_request_insert_leaf_t insert_leaf;
-		struct pw_request_remove_leaf_t remove_leaf;
-		struct pw_request_try_auth_t try_auth;
-		struct pw_request_reset_auth_t reset_auth;
-		struct pw_request_get_log_t get_log;
-		struct pw_request_log_replay_t log_replay;
+		struct pw_request_insert_leaf01_t insert_leaf01;
+		struct pw_request_remove_leaf00_t remove_leaf00;
+		struct pw_request_try_auth00_t try_auth00;
+		struct pw_request_reset_auth00_t reset_auth00;
+		struct pw_request_get_log00_t get_log00;
+		struct pw_request_log_replay00_t log_replay00;
+
+		/* currently used types */
+		pw_request_reset_tree_t reset_tree;
+		pw_request_insert_leaf_t insert_leaf;
+		pw_request_remove_leaf_t remove_leaf;
+		pw_request_try_auth_t try_auth;
+		pw_request_reset_auth_t reset_auth;
+		pw_request_get_log_t get_log;
+		pw_request_log_replay_t log_replay;
 	} data;
 };
 
 struct PW_PACKED pw_response_t {
 	struct pw_response_header_t header;
 	union {
-
-		struct pw_response_insert_leaf_t insert_leaf;
+    /* version-stable types */
+		struct pw_response_insert_leaf00_t insert_leaf00;
 		struct pw_response_try_auth00_t try_auth00;
-		struct pw_response_try_auth_t try_auth;
-		struct pw_response_reset_auth_t reset_auth;
+		struct pw_response_try_auth01_t try_auth01;
+		struct pw_response_reset_auth00_t reset_auth00;
 		/* An array with as many entries as are present in the log up to
 		 * the present time or will fit in the message.
 		 */
 		uint8_t get_log[0];
-		struct pw_response_log_replay_t log_replay;
+		struct pw_response_log_replay00_t log_replay00;
+
+		/* currently used types */
+		pw_response_insert_leaf_t insert_leaf;
+		pw_response_try_auth_t try_auth;
+		pw_response_reset_auth_t reset_auth;
+		pw_response_log_replay_t log_replay;
 	} data;
 };
 
