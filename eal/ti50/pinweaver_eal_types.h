@@ -7,8 +7,15 @@
 #ifndef __PINWEAVER_EAL_TYPES_H
 #define __PINWEAVER_EAL_TYPES_H
 
-typedef uint32_t pinweaver_eal_sha256_ctx_t;
-typedef uint32_t pinweaver_eal_hmac_sha256_ctx_t;
+// pub struct KeyCtxHandle(usize);
+// pub struct OwnedKeyCtxHandle(KeyCtxHandle);
+// pub type HmacOpOwnedHandle = OwnedKeyCtxHandle;
+// pub type HashOpOwnedHandle = OwnedKeyCtxHandle;
+// pub type pinweaver_eal_sha256_ctx_t = HashOpOwnedHandle;
+// pub type pinweaver_eal_hmac_sha256_ctx_t = HmacOpOwnedHandle;
+
+typedef uintptr_t pinweaver_eal_sha256_ctx_t;
+typedef uintptr_t pinweaver_eal_hmac_sha256_ctx_t;
 
 #define PINWEAVER_EAL_INFO(...)
 
