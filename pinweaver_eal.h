@@ -20,6 +20,10 @@
 extern "C" {
 #endif
 
+#ifndef BIOMETRICS_DEV
+#error BIOMETRICS_DEV needs to be defined.
+#endif
+
 /* Implements memcpy_s on all platforms
  */
 int pinweaver_eal_memcpy_s(
@@ -111,6 +115,37 @@ int pinweaver_eal_storage_set_log(const struct pw_log_storage_t *log);
 int pinweaver_eal_storage_get_tree_data(struct pw_long_term_storage_t *dest);
 int pinweaver_eal_storage_set_tree_data(
 		const struct pw_long_term_storage_t *data);
+
+#if BIOMETRICS_DEV
+
+/* Biometrics vendor functions. */
+
+/*
+ * Load the Pk of the specified auth channel.
+ * The pk should be valid when status is PW_BA_PK_ESTABLISHED.
+ * Returns 0 on success.
+ */
+int pinweaver_eal_get_ba_pk(uint8_t auth_channel,
+				     struct pw_ba_pk_status_t *status,
+				     struct pw_ba_pk_t *pk);
+
+/*
+ * Set the Pk of the specified auth channel.
+ * Returns 0 on success.
+ */
+int pinweaver_eal_set_ba_pk(uint8_t auth_channel,
+				     const struct pw_ba_pk_t *pk);
+
+/*
+ * Derive a ECC key pair, perform ECDH exchange with the |ecc_pt_in| public
+ * point, set |secret| as the shared secret, and set |ecc_pt_out| as the
+ * derived ECC key pair's public point.
+ */
+int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
+				     void *secret, size_t *secret_size,
+				     struct pw_ba_ecc_pt_t *ecc_pt_out);
+
+#endif
 
 #ifdef __cplusplus
 }

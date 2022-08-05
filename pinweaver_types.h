@@ -47,6 +47,14 @@ extern "C" {
 
 #define PW_ALIGN_TO_BLK __aligned(PW_WRAP_BLOCK_SIZE)
 
+#if BIOMETRICS_DEV
+
+#define PW_BA_ECC_CORD_SIZE 32
+
+#define PW_BA_PK_ENTRY_COUNT 2
+
+#endif
+
 enum pw_error_codes_enum {
 	PW_ERR_VERSION_MISMATCH = 0x10000, /* EC_ERROR_INTERNAL_FIRST */
 	PW_ERR_TREE_INVALID,
@@ -71,6 +79,9 @@ enum pw_error_codes_enum {
 	PW_ERR_INTERNAL_FAILURE,
 #if BIOMETRICS_DEV
 	PW_ERR_EXPIRED,
+	PW_ERR_BIO_AUTH_CHANNEL_INVALID,
+	PW_ERR_BIO_AUTH_PUBLIC_KEY_VERSION_MISMATCH,
+	PW_ERR_BIO_AUTH_ACCESS_DENIED,
 #endif
 };
 
@@ -245,6 +256,37 @@ struct PW_PACKED unimported_leaf_data_t {
 	uint8_t payload[];
 };
 
+#if BIOMETRICS_DEV
+
+enum pw_ba_pk_status_enum {
+	/* Pk isn't established, but is blocked from establishment. */
+	PW_BA_PK_BLOCKED,
+	/* Pk isn't established, and is open to establishment. */
+	PW_BA_PK_NOT_ESTABLISHED,
+	/* Pk is already established. */
+	PW_BA_PK_ESTABLISHED,
+};
+
+struct PW_PACKED pw_ba_pk_status_t {
+	uint8_t v;
+};
+
+struct PW_PACKED pw_ba_pk_t {
+	uint8_t key[PW_SECRET_SIZE];
+};
+
+struct PW_PACKED pw_ba_ecc_pt_t {
+	uint8_t x[PW_BA_ECC_CORD_SIZE];
+	uint8_t y[PW_BA_ECC_CORD_SIZE];
+};
+
+struct PW_PACKED pw_ba_pbk_t {
+	uint8_t version;
+	struct pw_ba_ecc_pt_t pt;
+};
+
+#endif
+
 /******************************************************************************/
 /* Message structs
  *
@@ -266,6 +308,10 @@ enum pw_message_type_enum {
 	PW_LOG_REPLAY = 7,
 #if BIOMETRICS_DEV
 	PW_SYS_INFO = 8,
+	/* The following are vendor specific pinweaver commands
+	 * for biometrics feature.
+	 */
+	PW_GENERATE_BA_PK = 9,
 #endif
 };
 
@@ -537,6 +583,24 @@ struct PW_PACKED pw_response_sys_info02_t {
 };
 
 typedef struct pw_response_sys_info02_t pw_response_sys_info_t;
+
+/* The following are vendor specific pinweaver commands for
+ * the biometrics feature.
+ */
+
+struct PW_PACKED pw_request_generate_ba_pk02_t {
+	uint8_t auth_channel;
+	struct pw_ba_pbk_t client_pbk;
+};
+
+typedef struct pw_request_generate_ba_pk02_t pw_request_generate_ba_pk_t;
+
+struct PW_PACKED pw_response_generate_ba_pk02_t {
+	struct pw_ba_pbk_t server_pbk;
+};
+
+typedef struct pw_response_generate_ba_pk02_t pw_response_generate_ba_pk_t;
+
 #endif
 
 struct PW_PACKED pw_request_t {
@@ -557,6 +621,9 @@ struct PW_PACKED pw_request_t {
 #endif
 		struct pw_request_get_log00_t get_log00;
 		struct pw_request_log_replay00_t log_replay00;
+#if BIOMETRICS_DEV
+		struct pw_request_generate_ba_pk02_t generate_pk02;
+#endif
 
 		/* currently used types */
 		pw_request_reset_tree_t reset_tree;
@@ -566,6 +633,9 @@ struct PW_PACKED pw_request_t {
 		pw_request_reset_auth_t reset_auth;
 		pw_request_get_log_t get_log;
 		pw_request_log_replay_t log_replay;
+#if BIOMETRICS_DEV
+		pw_request_generate_ba_pk_t generate_pk;
+#endif
 	} data;
 };
 
@@ -587,6 +657,7 @@ struct PW_PACKED pw_response_t {
 		struct pw_response_log_replay00_t log_replay00;
 #if BIOMETRICS_DEV
 		struct pw_response_sys_info02_t sys_info02;
+		struct pw_response_generate_ba_pk02_t generate_pk02;
 #endif
 
 		/* currently used types */
@@ -596,6 +667,7 @@ struct PW_PACKED pw_response_t {
 		pw_response_log_replay_t log_replay;
 #if BIOMETRICS_DEV
 		pw_response_sys_info_t sys_info;
+		pw_response_generate_ba_pk_t generate_pk;
 #endif
 	} data;
 };

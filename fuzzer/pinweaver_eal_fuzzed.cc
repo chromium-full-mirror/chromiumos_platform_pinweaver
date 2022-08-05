@@ -215,4 +215,23 @@ int pinweaver_eal_memcpy_s(void *dest, size_t destsz, const void *src,
 	memcpy(dest, src, count);
 	return 0;
 }
+
+#if BIOMETRICS_DEV
+int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
+			     void *secret, size_t *secret_size,
+			     struct pw_ba_ecc_pt_t *ecc_pt_out)
+{
+	auto sec = g_data_provider->ConsumeBytes<char>(*secret_size);
+	memcpy(secret, sec.data(), sec.size());
+
+	auto ecc_pt = g_data_provider->ConsumeBytes<char>(
+		sizeof(struct pw_ba_ecc_pt_t));
+	ecc_pt.resize(sizeof(struct pw_ba_ecc_pt_t));
+	memcpy(ecc_pt_out, ecc_pt.data(), sizeof(struct pw_ba_ecc_pt_t));
+
+	if (g_data_provider->ConsumeBool())
+		return g_data_provider->ConsumeIntegral<int>();
+	return 0;
+}
+#endif
 }

@@ -1517,6 +1517,71 @@ static int pw_handle_sys_info(pw_response_sys_info_t *response,
 	*response_size = sizeof(*response);
 	return EC_SUCCESS;
 }
+
+static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
+				const pw_request_generate_ba_pk_t *request,
+				uint16_t req_size,
+				pw_response_generate_ba_pk_t *response,
+				uint16_t *response_size)
+{
+	int ret;
+	uint8_t auth_channel;
+	struct pw_ba_pk_status_t pk_status;
+	struct pw_ba_pk_t pk;
+	uint8_t secret[PW_SECRET_SIZE];
+	size_t secret_size = PW_SECRET_SIZE;
+	pinweaver_eal_sha256_ctx_t sha;
+
+	if (req_size != sizeof(*request))
+		return PW_ERR_LENGTH_INVALID;
+	auth_channel = request->auth_channel;
+
+	/* Currently we only support v0 public key format. */
+	if (request->client_pbk.version != 0) {
+		return PW_ERR_BIO_AUTH_PUBLIC_KEY_VERSION_MISMATCH;
+	}
+	response->server_pbk.version = 0;
+
+	if (auth_channel >= PW_BA_PK_ENTRY_COUNT) {
+		return PW_ERR_BIO_AUTH_CHANNEL_INVALID;
+	}
+
+	/* Pk can only be generated on the specified auth_channel slot
+	 * if no Pk is established yet and it's not blocked.
+	 */
+	ret = pinweaver_eal_get_ba_pk(auth_channel, &pk_status, &pk);
+	if (ret != EC_SUCCESS)
+		return ret;
+	if (pk_status.v != PW_BA_PK_NOT_ESTABLISHED)
+		return PW_ERR_BIO_AUTH_ACCESS_DENIED;
+
+	/* Perform ECDH to derive the shared secret. */
+	ret = pinweaver_eal_ecdh_derive(&request->client_pbk.pt,
+				secret, &secret_size, &response->server_pbk.pt);
+	if (ret != EC_SUCCESS)
+		return ret;
+	if (secret_size != PW_SECRET_SIZE)
+		return PW_ERR_INTERNAL_FAILURE;
+
+	/* sha256 the shared secret into Pk. */
+	if (pinweaver_eal_sha256_init(&sha)) {
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_sha256_update(&sha, secret, secret_size)) {
+		pinweaver_eal_sha256_final(&sha, pk.key);
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_sha256_final(&sha, pk.key))
+		return PW_ERR_CRYPTO_FAILURE;
+
+	/* Persist the Pk. */
+	ret = pinweaver_eal_set_ba_pk(auth_channel, &pk);
+	if (ret != EC_SUCCESS)
+		return ret;
+
+	*response_size = sizeof(*response);
+	return EC_SUCCESS;
+}
 #endif
 
 struct merkle_tree_t pw_merkle_tree;
@@ -1842,6 +1907,13 @@ int pw_handle_request(struct merkle_tree_t *merkle_tree,
 #if BIOMETRICS_DEV
 	case PW_SYS_INFO:
 		ret = pw_handle_sys_info(&response->data.sys_info, &resp_length);
+		break;
+	case PW_GENERATE_BA_PK:
+		ret = pw_handle_generate_pk(merkle_tree,
+					&request->data.generate_pk,
+					request->header.data_length,
+					&response->data.generate_pk,
+					&resp_length);
 		break;
 #endif
 	default:
