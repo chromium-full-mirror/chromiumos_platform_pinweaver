@@ -964,8 +964,59 @@ static int pw_handle_reset_tree(struct merkle_tree_t *merkle_tree,
 	return EC_SUCCESS;
 }
 
+#if BIOMETRICS_DEV
+
+static int generate_ba_secrets(const struct merkle_tree_t *merkle_tree,
+				 uint8_t auth_channel,
+				 uint8_t low_entropy_secret[PW_SECRET_SIZE],
+				 uint8_t high_entropy_secret[PW_SECRET_SIZE])
+{
+	int ret;
+	struct pw_ba_pk_status_t pk_status;
+	struct pw_ba_pk_t pk;
+	pinweaver_eal_hmac_sha256_ctx_t hmac;
+
+	if (auth_channel >= PW_BA_PK_ENTRY_COUNT) {
+		return PW_ERR_BIO_AUTH_CHANNEL_INVALID;
+	}
+
+	/* An established Pk on the specified auth channel is required
+	 * to create a biometrics limiter leaf.
+	 */
+	ret = pinweaver_eal_get_ba_pk(auth_channel, &pk_status, &pk);
+	if (ret != EC_SUCCESS)
+		return ret;
+	if (pk_status.v != PW_BA_PK_ESTABLISHED)
+		return PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED;
+
+	/* hmac-sha256 Pk and auth_channel into LEC. */
+	if (pinweaver_eal_hmac_sha256_init(&hmac, merkle_tree->hmac_key,
+				sizeof(merkle_tree->hmac_key))) {
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_hmac_sha256_update(&hmac, pk.key, PW_SECRET_SIZE)) {
+		pinweaver_eal_hmac_sha256_final(&hmac, low_entropy_secret);
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_hmac_sha256_update(&hmac, &auth_channel,
+				sizeof(auth_channel))) {
+		pinweaver_eal_hmac_sha256_final(&hmac, low_entropy_secret);
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_hmac_sha256_final(&hmac, low_entropy_secret))
+		return PW_ERR_CRYPTO_FAILURE;
+
+	/* Randomly generate LabelSeed, which is HEC too. */
+	if (pinweaver_eal_rand_bytes(high_entropy_secret, PW_SECRET_SIZE))
+		return PW_ERR_CRYPTO_FAILURE;
+
+	return EC_SUCCESS;
+}
+
+#endif
+
 static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
-				 const pw_request_insert_leaf_t *request,
+				 pw_request_insert_leaf_t *request,
 				 uint16_t req_size,
 				 pw_response_insert_leaf_t *response,
 				 uint16_t *response_size)
@@ -1021,8 +1072,17 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 		leaf_data.pub.expiration_delay_s.v = delay_s;
 	}
 
-	/* TODO: Support biometrics leaf type. */
-	if (request->leaf_type.v != PW_LEAF_TYPE_NORMAL) {
+	leaf_data.pub.leaf_type.v = request->leaf_type.v;
+	if (request->leaf_type.v == PW_LEAF_TYPE_BIOMETRICS) {
+		/* LEC and HEC need to be populated. */
+		ret = generate_ba_secrets(
+			merkle_tree,
+			request->auth_channel,
+			request->low_entropy_secret,
+			request->high_entropy_secret);
+		if (ret != EC_SUCCESS)
+			return PW_ERR_INTERNAL_FAILURE;
+	} else if (request->leaf_type.v != PW_LEAF_TYPE_NORMAL) {
 		return PW_ERR_INTERNAL_FAILURE;
 	}
 #endif
@@ -1184,8 +1244,12 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 	results_table[0].attempts = leaf_data.pub.attempt_count.v;
 	if (results_table[0].attempts != UINT32_MAX)
 		++results_table[0].attempts;
-
-	/* TODO: Make biometrics type leaf use different results table. */
+	#if BIOMETRICS_DEV
+	if (leaf_data.pub.leaf_type.v == PW_LEAF_TYPE_BIOMETRICS) {
+		/* Always increase attempts for biometrics limiter leaf type. */
+		results_table[1].attempts = results_table[0].attempts;
+	}
+	#endif
 
 	/**********************************************************************/
 	/* After this:

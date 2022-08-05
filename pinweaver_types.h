@@ -82,6 +82,7 @@ enum pw_error_codes_enum {
 	PW_ERR_BIO_AUTH_CHANNEL_INVALID,
 	PW_ERR_BIO_AUTH_PUBLIC_KEY_VERSION_MISMATCH,
 	PW_ERR_BIO_AUTH_ACCESS_DENIED,
+	PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED,
 #endif
 };
 
@@ -257,6 +258,8 @@ struct PW_PACKED unimported_leaf_data_t {
 };
 
 #if BIOMETRICS_DEV
+
+/* Biometrics specific types. */
 
 enum pw_ba_pk_status_enum {
 	/* Pk isn't established, but is blocked from establishment. */
