@@ -1646,6 +1646,167 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 	*response_size = sizeof(*response);
 	return EC_SUCCESS;
 }
+
+static int calculate_session_key(const uint8_t client_nonce[PW_SECRET_SIZE],
+				const uint8_t server_nonce[PW_SECRET_SIZE],
+				const struct pw_ba_pk_t *pk,
+				uint8_t session_key[PW_SECRET_SIZE])
+{
+	pinweaver_eal_sha256_ctx_t sha;
+
+	/* Session key = hash(client_nonce, server_nonce, Pk) */
+	if (pinweaver_eal_sha256_init(&sha)) {
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_sha256_update(&sha, client_nonce, PW_SECRET_SIZE)) {
+		pinweaver_eal_sha256_final(&sha, session_key);
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_sha256_update(&sha, server_nonce, PW_SECRET_SIZE)) {
+		pinweaver_eal_sha256_final(&sha, session_key);
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_sha256_update(&sha, pk->key, PW_SECRET_SIZE)) {
+		pinweaver_eal_sha256_final(&sha, session_key);
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_sha256_final(&sha, session_key))
+		return PW_ERR_CRYPTO_FAILURE;
+
+	return EC_SUCCESS;
+}
+
+static int pw_handle_start_bio_auth(struct merkle_tree_t *merkle_tree,
+				pw_request_start_bio_auth_t *request,
+				uint16_t req_size,
+				pw_response_start_bio_auth_t *response,
+				uint16_t *response_size)
+{
+	int ret;
+	uint8_t auth_channel;
+	uint8_t *low_entropy_secret, *client_nonce;
+	uint8_t high_entropy_secret[PW_SECRET_SIZE];
+	uint8_t session_key[PW_SECRET_SIZE], server_nonce[PW_SECRET_SIZE];
+	struct pw_ba_pk_status_t pk_status;
+	struct pw_ba_pk_t pk;
+	pinweaver_eal_hmac_sha256_ctx_t hmac;
+	size_t source_offset, dest_offset;
+	uint16_t source_size;
+	/* We share the response buffer to prevent allocating extra space. */
+	pw_response_try_auth_t * const try_auth_response =
+		(pw_response_try_auth_t *)response;
+
+	/* We leave the h_aux length validation to pw_handle_try_auth. */
+	if (req_size < sizeof(*request))
+		return PW_ERR_LENGTH_INVALID;
+	auth_channel = request->auth_channel;
+	client_nonce = request->client_nonce;
+	low_entropy_secret = request->uninit_request.low_entropy_secret;
+
+	if (auth_channel >= PW_BA_PK_ENTRY_COUNT) {
+		return PW_ERR_BIO_AUTH_CHANNEL_INVALID;
+	}
+
+	/* An established Pk on the specified auth channel is required
+	 * to authenticate a rate-limiter.
+	 */
+	ret = pinweaver_eal_get_ba_pk(auth_channel, &pk_status, &pk);
+	if (ret != EC_SUCCESS)
+		return ret;
+	if (pk_status.v != PW_BA_PK_ESTABLISHED)
+		return PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED;
+
+	/* hmac-sha256 Pk and label into LEC. */
+	if (pinweaver_eal_hmac_sha256_init(&hmac, merkle_tree->hmac_key,
+				sizeof(merkle_tree->hmac_key))) {
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_hmac_sha256_update(&hmac, pk.key, PW_SECRET_SIZE)) {
+		pinweaver_eal_hmac_sha256_final(&hmac, low_entropy_secret);
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_hmac_sha256_update(&hmac, &auth_channel,
+				sizeof(auth_channel))) {
+		pinweaver_eal_hmac_sha256_final(&hmac, low_entropy_secret);
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_hmac_sha256_final(&hmac, low_entropy_secret))
+		return PW_ERR_CRYPTO_FAILURE;
+
+	/* Perform nonce exchange to generate session key. */
+	if (pinweaver_eal_rand_bytes(server_nonce, PW_SECRET_SIZE))
+		return PW_ERR_CRYPTO_FAILURE;
+	calculate_session_key(client_nonce, server_nonce, &pk, session_key);
+
+	/* Handle try_auth return codes.
+	 * Note that we should limit the errors that could happen after
+	 * performing try_auth because the merkle tree root is already
+	 * updated, and we want to make sure the client gets the suitable
+	 * error codes if unimported_leaf_data is provided in the response.
+	 * Therefore, we only allow unexpected errors (internal and crypto errors)
+	 * starting from this point.
+	 */
+	ret = pw_handle_try_auth(
+		merkle_tree,
+		&request->uninit_request,
+		req_size - offsetof(pw_request_start_bio_auth_t, uninit_request),
+		try_auth_response,
+		response_size);
+	switch (ret) {
+		case EC_SUCCESS:
+		case PW_ERR_LOWENT_AUTH_FAILED: {
+			/* We need HEC later, and the response might be overwritten
+			 * before we use it, so copy it first.
+			 */
+			if (pinweaver_eal_memcpy_s(
+					high_entropy_secret,
+					PW_SECRET_SIZE,
+					try_auth_response->high_entropy_secret,
+					PW_SECRET_SIZE)) {
+				return PW_ERR_INTERNAL_FAILURE;
+			}
+
+			/* Move the unimported leaf data to the correct position. */
+			source_offset = offsetof(pw_response_try_auth_t, unimported_leaf_data);
+			dest_offset =
+					offsetof(pw_response_start_bio_auth_t, unimported_leaf_data);
+			source_size = *response_size - source_offset;
+			*response_size = dest_offset + source_size;
+			memmove(&response->unimported_leaf_data,
+				&try_auth_response->unimported_leaf_data,
+				source_size);
+			if (ret == PW_ERR_LOWENT_AUTH_FAILED)
+				return PW_ERR_LOWENT_AUTH_FAILED;
+			break;
+		}
+		/* Other error codes have no valid fields in the response. */
+		default: {
+			*response_size = 0;
+			return ret;
+		}
+	}
+
+	/* Encrypt the HEC using session key, and fill in other response fields. */
+	if (pinweaver_eal_rand_bytes(response->iv, sizeof(response->iv)))
+		return PW_ERR_CRYPTO_FAILURE;
+	if (pinweaver_eal_aes256_ctr(session_key,
+				PW_SECRET_SIZE,
+				response->iv,
+				high_entropy_secret,
+				PW_SECRET_SIZE,
+				response->encrypted_high_entropy_secret)) {
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+	if (pinweaver_eal_memcpy_s(
+				response->server_nonce,
+				PW_SECRET_SIZE,
+				server_nonce,
+				PW_SECRET_SIZE)) {
+		return PW_ERR_INTERNAL_FAILURE;
+	}
+
+	return EC_SUCCESS;
+}
 #endif
 
 struct merkle_tree_t pw_merkle_tree;
@@ -1977,6 +2138,13 @@ int pw_handle_request(struct merkle_tree_t *merkle_tree,
 					&request->data.generate_pk,
 					request->header.data_length,
 					&response->data.generate_pk,
+					&resp_length);
+		break;
+	case PW_START_BIO_AUTH:
+		ret = pw_handle_start_bio_auth(merkle_tree,
+					&request->data.start_bio_auth,
+					request->header.data_length,
+					&response->data.start_bio_auth,
 					&resp_length);
 		break;
 #endif

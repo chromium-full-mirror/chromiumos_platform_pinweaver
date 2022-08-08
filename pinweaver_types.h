@@ -315,6 +315,7 @@ enum pw_message_type_enum {
 	 * for biometrics feature.
 	 */
 	PW_GENERATE_BA_PK = 9,
+	PW_START_BIO_AUTH = 10,
 #endif
 };
 
@@ -604,6 +605,38 @@ struct PW_PACKED pw_response_generate_ba_pk02_t {
 
 typedef struct pw_response_generate_ba_pk02_t pw_response_generate_ba_pk_t;
 
+struct PW_PACKED pw_request_start_bio_auth02_t {
+	uint8_t auth_channel;
+	uint8_t client_nonce[PW_SECRET_SIZE];
+	/* The request contains a standard try_auth request, except
+	 * that the LEC field is zeroed out. The server will fill in
+	 * HMAC(Pk|auth_channel) as LEC.
+	 */
+	struct pw_request_try_auth00_t uninit_request;
+};
+
+typedef struct pw_request_start_bio_auth02_t pw_request_start_bio_auth_t;
+
+struct PW_PACKED pw_response_start_bio_auth02_t {
+	/* The response format is quite different from a standard try_auth,
+	 * so we didn't reuse it.
+	 */
+	/* Valid for the EC_SUCCESS return code only. */
+	uint8_t server_nonce[PW_SECRET_SIZE];
+	/* Valid for the EC_SUCCESS return code only. Encrypted by the session key
+	 * established by client and server nonces and Pk.
+	 */
+	uint8_t encrypted_high_entropy_secret[PW_SECRET_SIZE];
+	/* Valid for the EC_SUCCESS return code only. Used in the AES-CTR encryption.
+	*/
+	uint8_t iv[PW_WRAP_BLOCK_SIZE];
+	/* Valid for the PW_ERR_LOWENT_AUTH_FAILED and EC_SUCCESS return codes only.
+	 */
+	struct unimported_leaf_data_t unimported_leaf_data;
+};
+
+typedef struct pw_response_start_bio_auth02_t pw_response_start_bio_auth_t;
+
 #endif
 
 struct PW_PACKED pw_request_t {
@@ -626,6 +659,7 @@ struct PW_PACKED pw_request_t {
 		struct pw_request_log_replay00_t log_replay00;
 #if BIOMETRICS_DEV
 		struct pw_request_generate_ba_pk02_t generate_pk02;
+		struct pw_request_start_bio_auth02_t start_bio_auth02;
 #endif
 
 		/* currently used types */
@@ -638,6 +672,7 @@ struct PW_PACKED pw_request_t {
 		pw_request_log_replay_t log_replay;
 #if BIOMETRICS_DEV
 		pw_request_generate_ba_pk_t generate_pk;
+		pw_request_start_bio_auth_t start_bio_auth;
 #endif
 	} data;
 };
@@ -661,6 +696,7 @@ struct PW_PACKED pw_response_t {
 #if BIOMETRICS_DEV
 		struct pw_response_sys_info02_t sys_info02;
 		struct pw_response_generate_ba_pk02_t generate_pk02;
+		struct pw_response_start_bio_auth02_t start_bio_auth02;
 #endif
 
 		/* currently used types */
@@ -671,6 +707,7 @@ struct PW_PACKED pw_response_t {
 #if BIOMETRICS_DEV
 		pw_response_sys_info_t sys_info;
 		pw_response_generate_ba_pk_t generate_pk;
+		pw_response_start_bio_auth_t start_bio_auth;
 #endif
 	} data;
 };
