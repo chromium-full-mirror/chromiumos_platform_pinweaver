@@ -1081,7 +1081,7 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 			request->low_entropy_secret,
 			request->high_entropy_secret);
 		if (ret != EC_SUCCESS)
-			return PW_ERR_INTERNAL_FAILURE;
+			return ret;
 	} else if (request->leaf_type.v != PW_LEAF_TYPE_NORMAL) {
 		return PW_ERR_INTERNAL_FAILURE;
 	}
