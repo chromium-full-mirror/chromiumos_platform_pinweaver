@@ -1247,6 +1247,7 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 	#if BIOMETRICS_DEV
 	if (leaf_data.pub.leaf_type.v == PW_LEAF_TYPE_BIOMETRICS) {
 		/* Always increase attempts for biometrics limiter leaf type. */
+		results_table[1].ret = PW_ERR_SUCCESS_WITH_INCREMENT;
 		results_table[1].attempts = results_table[0].attempts;
 	}
 	#endif
@@ -1753,7 +1754,7 @@ static int pw_handle_start_bio_auth(struct merkle_tree_t *merkle_tree,
 		try_auth_response,
 		response_size);
 	switch (ret) {
-		case EC_SUCCESS:
+		case PW_ERR_SUCCESS_WITH_INCREMENT:
 		case PW_ERR_LOWENT_AUTH_FAILED: {
 			/* We need HEC later, and the response might be overwritten
 			 * before we use it, so copy it first.
@@ -1778,6 +1779,12 @@ static int pw_handle_start_bio_auth(struct merkle_tree_t *merkle_tree,
 			if (ret == PW_ERR_LOWENT_AUTH_FAILED)
 				return PW_ERR_LOWENT_AUTH_FAILED;
 			break;
+		}
+		/* The return code shouldn't be EC_SUCCESS when doing try_auth
+		 * for a biometrics leaf.
+		 */
+		case EC_SUCCESS: {
+			return PW_ERR_INTERNAL_FAILURE;
 		}
 		/* Other error codes have no valid fields in the response. */
 		default: {

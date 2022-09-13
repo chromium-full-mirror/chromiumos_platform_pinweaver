@@ -83,6 +83,12 @@ enum pw_error_codes_enum {
 	PW_ERR_BIO_AUTH_PUBLIC_KEY_VERSION_MISMATCH,
 	PW_ERR_BIO_AUTH_ACCESS_DENIED,
 	PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED,
+	/* Log replay depends on the return code to decide whether the attempt
+	 * counter should be increased, but try_auth on a biometrics leaf should
+	 * always increase the counter. Therefore, use this special error code
+	 * when logging a try_auth event like this.
+	 */
+	PW_ERR_SUCCESS_WITH_INCREMENT,
 #endif
 };
 
