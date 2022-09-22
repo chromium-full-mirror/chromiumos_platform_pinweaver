@@ -1,4 +1,4 @@
-/* Copyright 2018 The Chromium OS Authors. All rights reserved.
+/* Copyright 2018 The ChromiumOS Authors
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -161,6 +161,14 @@ static int create_merkle_tree(struct bits_per_level_t bits_per_level,
 	return pinweaver_eal_derive_keys(merkle_tree);
 }
 
+static size_t hmac_iv_size(int minor_version)
+{
+	if (minor_version == 2)
+		return PW_HMAC_IV_SIZE_V2;
+	else
+		return PW_HMAC_IV_SIZE_V1;
+}
+
 /* Computes the HMAC for an encrypted leaf using the key in the merkle_tree. */
 static int compute_hmac(const struct merkle_tree_t *merkle_tree,
 			const struct imported_leaf_data_t *imported_leaf_data,
@@ -181,7 +189,7 @@ static int compute_hmac(const struct merkle_tree_t *merkle_tree,
 		return ret;
 	}
 	ret = pinweaver_eal_hmac_sha256_update(&hmac, imported_leaf_data->iv,
-					       sizeof(PW_WRAP_BLOCK_SIZE));
+					hmac_iv_size(imported_leaf_data->head->leaf_version.minor));
 	if (ret) {
 		pinweaver_eal_hmac_sha256_final(&hmac, result);
 		return ret;
