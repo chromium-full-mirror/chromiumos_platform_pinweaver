@@ -325,6 +325,7 @@ enum pw_message_type_enum {
 	 */
 	PW_GENERATE_BA_PK = 9,
 	PW_START_BIO_AUTH = 10,
+	PW_BLOCK_GENERATE_BA_PK = 11,
 #endif
 };
 
