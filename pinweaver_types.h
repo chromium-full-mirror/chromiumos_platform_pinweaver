@@ -1,4 +1,4 @@
-/* Copyright 2018 The Chromium OS Authors. All rights reserved.
+/* Copyright 2018 The ChromiumOS Authors
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -54,6 +54,9 @@ extern "C" {
 #define PW_BA_PK_ENTRY_COUNT 2
 
 #endif
+
+#define PW_HMAC_IV_SIZE_V1 4
+#define PW_HMAC_IV_SIZE_V2 PW_WRAP_BLOCK_SIZE
 
 enum pw_error_codes_enum {
 	PW_ERR_VERSION_MISMATCH = 0x10000, /* EC_ERROR_INTERNAL_FIRST */
