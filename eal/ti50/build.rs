@@ -1,4 +1,4 @@
-// Copyright 2022 The ChromiumOS Authors.
+// Copyright 2022 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -33,9 +33,10 @@ fn main() {
         .clang_arg("-DBIOMETRICS_DEV=false");
 
     if let Ok(sysroot) = env::var("RV_CLANG") {
+        // TODO(b/260111841, kupiakos): investigate turning LIBCLANG_PATH
+        // back on once Rust llvm updated.
         // Tell clang-sys to use our libclang that knows about RISC-V.
-        env::set_var("LIBCLANG_PATH", format!("{sysroot}/lib"));
-
+        // env::set_var("LIBCLANG_PATH", format!("{sysroot}/lib"));
         builder = builder
             // Needed for `#include <stdint.h>` to work.
             .clang_arg(format!("--sysroot={sysroot}"))
