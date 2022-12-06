@@ -26,6 +26,19 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#ifndef BUILD_ASSERT
+/* Test an important condition at compile time, not run time */
+#define _BA1_(cond, file, line, msg) \
+	_Static_assert(cond, file ":" #line ": " msg)
+#define _BA0_(c, f, l, msg) _BA1_(c, f, l, msg)
+/* Pass in an option message to display after condition */
+#define BUILD_ASSERT(cond, ...) _BA0_(cond, __FILE__, __LINE__, __VA_ARGS__)
+#endif
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#endif
+
 /* Compile time sanity checks. */
 /* Make sure the hash size is consistent with dcrypto. */
 BUILD_ASSERT(PW_HASH_SIZE >= SHA256_DIGEST_SIZE);
@@ -87,8 +100,6 @@ BUILD_ASSERT(PW_MAX_PATH_SIZE == 1024);
  */
 BUILD_ASSERT(sizeof(struct leaf_sensitive_data_t) == 3 * PW_SECRET_SIZE);
 
-#define RESTART_TIMER_THRESHOLD (10 /* seconds */)
-
 /* This var caches the restart count so the nvram log structure doesn't need to
  * be walked every time try_auth request is made.
  */
@@ -132,12 +143,12 @@ static int create_merkle_tree(struct bits_per_level_t bits_per_level,
 	uint8_t temp_hash[PW_HASH_SIZE] = {};
 	uint8_t hx;
 	uint16_t kx;
+	int ret;
+
 	pinweaver_eal_sha256_ctx_t ctx;
 
 	merkle_tree->bits_per_level = bits_per_level;
 	merkle_tree->height = height;
-
-	int ret;
 
 	/* Initialize the root hash. */
 	for (hx = 0; hx < height.v; ++hx) {
