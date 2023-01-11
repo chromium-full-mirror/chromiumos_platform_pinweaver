@@ -989,7 +989,6 @@ static int generate_ba_secrets(const struct merkle_tree_t *merkle_tree,
 				 uint8_t high_entropy_secret[PW_SECRET_SIZE])
 {
 	int ret;
-	struct pw_ba_pk_status_t pk_status;
 	struct pw_ba_pk_t pk;
 	pinweaver_eal_hmac_sha256_ctx_t hmac;
 
@@ -1000,11 +999,9 @@ static int generate_ba_secrets(const struct merkle_tree_t *merkle_tree,
 	/* An established Pk on the specified auth channel is required
 	 * to create a biometrics limiter leaf.
 	 */
-	ret = pinweaver_eal_get_ba_pk(auth_channel, &pk_status, &pk);
+	ret = pinweaver_eal_storage_get_ba_pk(auth_channel, &pk);
 	if (ret != EC_SUCCESS)
 		return ret;
-	if (pk_status.v != PW_BA_PK_ESTABLISHED)
-		return PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED;
 
 	/* hmac-sha256 Pk and auth_channel into LEC. */
 	if (pinweaver_eal_hmac_sha256_init(&hmac, merkle_tree->hmac_key,
@@ -1608,7 +1605,6 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 {
 	int ret;
 	uint8_t auth_channel;
-	struct pw_ba_pk_status_t pk_status;
 	struct pw_ba_pk_t pk;
 	uint8_t secret[PW_SECRET_SIZE];
 	size_t secret_size = PW_SECRET_SIZE;
@@ -1635,10 +1631,8 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 	/* Pk can only be generated on the specified auth_channel slot
 	 * if no Pk is established yet and it's not blocked.
 	 */
-	ret = pinweaver_eal_get_ba_pk(auth_channel, &pk_status, &pk);
-	if (ret != EC_SUCCESS)
-		return ret;
-	if (pk_status.v != PW_BA_PK_NOT_ESTABLISHED)
+	ret = pinweaver_eal_storage_get_ba_pk(auth_channel, &pk);
+	if (ret != PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED)
 		return PW_ERR_BIO_AUTH_ACCESS_DENIED;
 
 	/* Perform ECDH to derive the shared secret. */
@@ -1661,7 +1655,7 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 		return PW_ERR_CRYPTO_FAILURE;
 
 	/* Persist the Pk. */
-	ret = pinweaver_eal_set_ba_pk(auth_channel, &pk);
+	ret = pinweaver_eal_storage_set_ba_pk(auth_channel, &pk);
 	if (ret != EC_SUCCESS)
 		return ret;
 
@@ -1709,7 +1703,6 @@ static int pw_handle_start_bio_auth(struct merkle_tree_t *merkle_tree,
 	uint8_t *low_entropy_secret, *client_nonce;
 	uint8_t high_entropy_secret[PW_SECRET_SIZE];
 	uint8_t session_key[PW_SECRET_SIZE], server_nonce[PW_SECRET_SIZE];
-	struct pw_ba_pk_status_t pk_status;
 	struct pw_ba_pk_t pk;
 	pinweaver_eal_hmac_sha256_ctx_t hmac;
 	size_t source_offset, dest_offset;
@@ -1732,11 +1725,9 @@ static int pw_handle_start_bio_auth(struct merkle_tree_t *merkle_tree,
 	/* An established Pk on the specified auth channel is required
 	 * to authenticate a rate-limiter.
 	 */
-	ret = pinweaver_eal_get_ba_pk(auth_channel, &pk_status, &pk);
+	ret = pinweaver_eal_storage_get_ba_pk(auth_channel, &pk);
 	if (ret != EC_SUCCESS)
 		return ret;
-	if (pk_status.v != PW_BA_PK_ESTABLISHED)
-		return PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED;
 
 	/* hmac-sha256 Pk and label into LEC. */
 	if (pinweaver_eal_hmac_sha256_init(&hmac, merkle_tree->hmac_key,

@@ -270,19 +270,6 @@ struct PW_PACKED unimported_leaf_data_t {
 
 /* Biometrics specific types. */
 
-enum pw_ba_pk_status_enum {
-	/* Pk isn't established, but is blocked from establishment. */
-	PW_BA_PK_BLOCKED,
-	/* Pk isn't established, and is open to establishment. */
-	PW_BA_PK_NOT_ESTABLISHED,
-	/* Pk is already established. */
-	PW_BA_PK_ESTABLISHED,
-};
-
-struct PW_PACKED pw_ba_pk_status_t {
-	uint8_t v;
-};
-
 struct PW_PACKED pw_ba_pk_t {
 	uint8_t key[PW_SECRET_SIZE];
 };

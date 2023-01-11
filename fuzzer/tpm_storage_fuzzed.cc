@@ -1,4 +1,4 @@
-/* Copyright 2021 The Chromium OS Authors. All rights reserved.
+/* Copyright 2021 The ChromiumOS Authors
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -97,25 +97,20 @@ int pinweaver_eal_storage_initialize_owner()
 }
 
 #if BIOMETRICS_DEV
-int pinweaver_eal_get_ba_pk(uint8_t auth_channel,
-			     struct pw_ba_pk_status_t *status,
+int pinweaver_eal_storage_get_ba_pk(uint8_t auth_channel,
 			     struct pw_ba_pk_t *pk)
 {
-	status->v = PW_BA_PK_ESTABLISHED;
 	auto key = g_data_provider->ConsumeBytes<char>(
 		sizeof(struct pw_ba_pk_t));
 	key.resize(sizeof(struct pw_ba_pk_t));
 	memcpy(pk, key.data(), sizeof(struct pw_ba_pk_t));
 
 	if (g_data_provider->ConsumeBool())
-		status->v = g_data_provider->ConsumeIntegral<int>();
-
-	if (g_data_provider->ConsumeBool())
 		return g_data_provider->ConsumeIntegral<int>();
 	return 0;
 }
 
-int pinweaver_eal_set_ba_pk(uint8_t auth_channel,
+int pinweaver_eal_storage_set_ba_pk(uint8_t auth_channel,
 			     const struct pw_ba_pk_t *pk)
 {
 	if (g_data_provider->ConsumeBool())
