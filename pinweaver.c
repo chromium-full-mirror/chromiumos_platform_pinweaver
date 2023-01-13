@@ -1827,7 +1827,7 @@ static int pw_handle_start_bio_auth(struct merkle_tree_t *merkle_tree,
 	return EC_SUCCESS;
 }
 
-static int pw_handle_block_generate_ba_pk()
+static int pw_handle_block_generate_ba_pk(void)
 {
 	generate_ba_pk_blocked = 1;
 	return EC_SUCCESS;
