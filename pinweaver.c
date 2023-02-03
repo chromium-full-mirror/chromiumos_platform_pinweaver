@@ -1608,6 +1608,7 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 	struct pw_ba_pk_t pk;
 	uint8_t secret[PW_SECRET_SIZE];
 	size_t secret_size = PW_SECRET_SIZE;
+	struct pw_ba_ecc_pt_t server_pt;
 	pinweaver_eal_sha256_ctx_t sha;
 
 	if (req_size != sizeof(*request))
@@ -1622,7 +1623,6 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 	if (request->client_pbk.version != 0) {
 		return PW_ERR_BIO_AUTH_PUBLIC_KEY_VERSION_MISMATCH;
 	}
-	response->server_pbk.version = 0;
 
 	if (auth_channel >= PW_BA_PK_ENTRY_COUNT) {
 		return PW_ERR_BIO_AUTH_CHANNEL_INVALID;
@@ -1637,11 +1637,14 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 
 	/* Perform ECDH to derive the shared secret. */
 	ret = pinweaver_eal_ecdh_derive(&request->client_pbk.pt,
-				secret, &secret_size, &response->server_pbk.pt);
+				secret, &secret_size, &server_pt);
 	if (ret != EC_SUCCESS)
 		return ret;
 	if (secret_size != PW_SECRET_SIZE)
 		return PW_ERR_INTERNAL_FAILURE;
+	response->server_pbk.version = 0;
+	pinweaver_eal_memcpy_s(&response->server_pbk.pt,
+				sizeof(server_pt), &server_pt, sizeof(server_pt));
 
 	/* sha256 the shared secret into Pk. */
 	if (pinweaver_eal_sha256_init(&sha)) {
