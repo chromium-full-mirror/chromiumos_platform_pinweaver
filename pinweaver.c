@@ -1811,7 +1811,7 @@ static int pw_handle_start_bio_auth(struct merkle_tree_t *merkle_tree,
 	/* Encrypt the HEC using session key, and fill in other response fields. */
 	if (pinweaver_eal_rand_bytes(response->iv, sizeof(response->iv)))
 		return PW_ERR_CRYPTO_FAILURE;
-	if (pinweaver_eal_aes256_ctr(session_key,
+	if (pinweaver_eal_aes256_ctr_custom(session_key,
 				PW_SECRET_SIZE,
 				response->iv,
 				high_entropy_secret,
