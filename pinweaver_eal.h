@@ -1,5 +1,5 @@
 
-/* Copyright 2021 The Chromium OS Authors. All rights reserved.
+/* Copyright 2021 The ChromiumOS Authors
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -122,18 +122,18 @@ int pinweaver_eal_storage_set_tree_data(
 
 /*
  * Load the Pk of the specified auth channel.
- * The pk should be valid when status is PW_BA_PK_ESTABLISHED.
+ * The pk should be valid when status is return code is 0.
  * Returns 0 on success.
+ * Returns PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED when the Pk is not established.
  */
-int pinweaver_eal_get_ba_pk(uint8_t auth_channel,
-				     struct pw_ba_pk_status_t *status,
+int pinweaver_eal_storage_get_ba_pk(uint8_t auth_channel,
 				     struct pw_ba_pk_t *pk);
 
 /*
  * Set the Pk of the specified auth channel.
  * Returns 0 on success.
  */
-int pinweaver_eal_set_ba_pk(uint8_t auth_channel,
+int pinweaver_eal_storage_set_ba_pk(uint8_t auth_channel,
 				     const struct pw_ba_pk_t *pk);
 
 /*
