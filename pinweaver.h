@@ -121,15 +121,6 @@ struct leaf_data_t {
 	struct leaf_sensitive_data_t sec;
 };
 
-/* Key names for nvmem_vars */
-#define PW_TREE_VAR "pwT0"
-#define PW_LOG_VAR0 "pwL0"
-/* The maximum key-value pair space allowed for the values of PinWeaver until
- * the Cr50 NVRAM implementation is updated to use a separate object per
- * key value pair.
- */
-#define PW_MAX_VAR_USAGE 192
-
 /* Initializes the PinWeaver feature.
  *
  * This needs to be called prior to handling any messages.

@@ -18,4 +18,11 @@ typedef struct hmac_sha256_ctx pinweaver_eal_hmac_sha256_ctx_t;
 
 #define PINWEAVER_EAL_INFO(...) cprints(CC_TASK, __VA_ARGS__)
 
+/* Key names for nvmem_vars */
+#define PW_TREE_VAR "pwT0"
+#define PW_LOG_VAR0 "pwL0"
+#define PW_FP_PK "pwP0"
+
+#define PW_FP_AUTH_CHANNEL 0
+
 #endif  /* __PINWEAVER_EAL_TYPES_H */

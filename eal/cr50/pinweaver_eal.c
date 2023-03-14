@@ -6,6 +6,7 @@
 #include <common.h>
 #include <extension.h>
 #include <hooks.h>
+#include <new_nvmem.h>
 #include <nvmem_vars.h>
 #include <pinweaver_eal.h>
 #include <pinweaver_eal_types.h>
@@ -20,6 +21,16 @@
  * (struct tpm_register_file).data_fifo.
  */
 BUILD_ASSERT(PW_MAX_MESSAGE_SIZE + sizeof(struct tpm_cmd_header) <= 2048);
+
+/* Verify that the nvmem_vars log entries have the correct sizes. */
+BUILD_ASSERT(sizeof(struct pw_long_term_storage_t) +
+	     sizeof(PW_TREE_VAR) - 1 <= MAX_VAR_BODY_SPACE);
+BUILD_ASSERT(sizeof(struct pw_log_storage_t) +
+	     sizeof(PW_LOG_VAR0) - 1 <= MAX_VAR_BODY_SPACE);
+#if BIOMETRICS_DEV
+BUILD_ASSERT(sizeof(struct pw_ba_pk_t) +
+	     sizeof(PW_FP_PK) - 1 <= MAX_VAR_BODY_SPACE);
+#endif
 
 int pinweaver_eal_memcpy_s(
     void * dest,
@@ -138,6 +149,16 @@ int pinweaver_eal_aes256_ctr(const void *key,
 			     void *res)
 {
 	return DCRYPTO_aes_ctr(res, key, key_size << 3, iv, data, size) != DCRYPTO_OK;
+}
+
+int pinweaver_eal_aes256_ctr_custom(const void *key,
+			     size_t key_size, /* in bytes */
+			     const void *iv,
+			     const void *data,
+			     size_t size,
+			     void *res)
+{
+	return pinweaver_eal_aes256_ctr(key, key_size, iv, data, size, res);
 }
 
 int pinweaver_eal_safe_memcmp(const void *s1, const void *s2, size_t len)
@@ -289,26 +310,112 @@ uint8_t pinweaver_eal_get_current_pcr_digest(
 
 #if BIOMETRICS_DEV
 
-int pinweaver_eal_storage_get_ba_pk(uint8_t auth_channel,
-				     struct pw_ba_pk_t *pk)
+static int pinweaver_eal_storage_get_ba_pk_var(uint8_t auth_channel,
+							 const struct tuple **var_ptr,
+					     struct pw_ba_pk_t **pk_ptr)
 {
-	/* Unimplemented */
-	return -1;
+	struct pw_ba_pk_t *pk;
+	const struct tuple *ptr;
+
+	*var_ptr = NULL;
+	*pk_ptr = NULL;
+
+	if (auth_channel != PW_FP_AUTH_CHANNEL) {
+		return PW_ERR_INTERNAL_FAILURE;
+	}
+
+	ptr = getvar(PW_FP_PK, sizeof(PW_FP_PK) - 1);
+	if (!ptr)
+		return PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED;
+
+	pk = (void *)tuple_val(ptr);
+	if (ptr->val_len != sizeof(struct pw_ba_pk_t)) {
+		freevar(ptr);
+		return PW_ERR_NV_LENGTH_MISMATCH;
+	}
+
+	*var_ptr = ptr;
+	*pk_ptr = pk;
+	return EC_SUCCESS;
+}
+
+int pinweaver_eal_storage_get_ba_pk(uint8_t auth_channel,
+				     struct pw_ba_pk_t *dest)
+{
+	const struct tuple *var;
+	struct pw_ba_pk_t *pk;
+
+	int rv = pinweaver_eal_storage_get_ba_pk_var(auth_channel, &var, &pk);
+	if (rv != EC_SUCCESS)
+		return rv;
+
+	memcpy(dest, pk, sizeof(struct pw_ba_pk_t));
+
+	freevar(var);
+
+	return EC_SUCCESS;
 }
 
 int pinweaver_eal_storage_set_ba_pk(uint8_t auth_channel,
 				     const struct pw_ba_pk_t *pk)
 {
-	/* Unimplemented */
-	return -1;
+	if (auth_channel != PW_FP_AUTH_CHANNEL) {
+		return -1;
+	}
+	return setvar(PW_FP_PK, sizeof(PW_FP_PK) - 1, (uint8_t *)pk,
+		      sizeof(struct pw_ba_pk_t));
 }
+
+
 
 int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
 				     void *secret, size_t *secret_size,
 				     struct pw_ba_ecc_pt_t *ecc_pt_out)
 {
-	/* Unimplemented */
-	return -1;
+	p256_int self_pk_x, self_pk_y, d;
+	p256_int peer_pk_x, peer_pk_y;
+	p256_int shared_pt_x, unused_shared_pt_y;
+	uint8_t key_seed[P256_NBYTES];
+	int result;
+
+	if (*secret_size < P256_NBYTES) {
+		return PW_ERR_INTERNAL_FAILURE;
+	}
+
+	p256_from_bin(ecc_pt_in->x, &peer_pk_x);
+	p256_from_bin(ecc_pt_in->y, &peer_pk_y);
+	if (DCRYPTO_p256_is_valid_point(&peer_pk_x, &peer_pk_y) != DCRYPTO_OK) {
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+
+	/* Generate a random key pair for ECDH. */
+	do {
+		if (!fips_rand_bytes(key_seed, P256_NBYTES)) {
+			return PW_ERR_CRYPTO_FAILURE;
+		}
+		result = DCRYPTO_p256_key_from_bytes(&self_pk_x, &self_pk_y, &d, key_seed);
+	} while (result == DCRYPTO_RETRY);
+	if (result != DCRYPTO_OK) {
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+
+	/* Perform ECDH. x-coordinate of the shared point is used as the secret. */
+	if (DCRYPTO_p256_point_mul(
+				&shared_pt_x,
+				&unused_shared_pt_y,
+				&d,
+				&peer_pk_x,
+				&peer_pk_y
+		) != DCRYPTO_OK) {
+		return PW_ERR_CRYPTO_FAILURE;
+	}
+
+	*secret_size = P256_NBYTES;
+	p256_to_bin(&shared_pt_x, secret);
+	p256_to_bin(&self_pk_x, ecc_pt_out->x);
+	p256_to_bin(&self_pk_y, ecc_pt_out->y);
+
+	return EC_SUCCESS;
 }
 
 #endif
