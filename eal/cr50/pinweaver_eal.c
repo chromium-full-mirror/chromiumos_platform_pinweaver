@@ -287,6 +287,33 @@ uint8_t pinweaver_eal_get_current_pcr_digest(
 	return get_current_pcr_digest(bitmask, sha256_of_selected_pcr);
 }
 
+#if BIOMETRICS_DEV
+
+int pinweaver_eal_storage_get_ba_pk(uint8_t auth_channel,
+				     struct pw_ba_pk_t *pk)
+{
+	/* Unimplemented */
+	return -1;
+}
+
+int pinweaver_eal_storage_set_ba_pk(uint8_t auth_channel,
+				     const struct pw_ba_pk_t *pk)
+{
+	/* Unimplemented */
+	return -1;
+}
+
+int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
+				     void *secret, size_t *secret_size,
+				     struct pw_ba_ecc_pt_t *ecc_pt_out)
+{
+	/* Unimplemented */
+	return -1;
+}
+
+#endif
+
+
 /*
  * Handle the VENDOR_CC_PINWEAVER command.
  */
