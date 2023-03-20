@@ -1,4 +1,4 @@
-/* Copyright 2021 The Chromium OS Authors. All rights reserved.
+/* Copyright 2021 The ChromiumOS Authors
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -8,6 +8,8 @@
 #include <hooks.h>
 #include <nvmem_vars.h>
 #include <pinweaver_eal.h>
+#include <pinweaver_eal_types.h>
+#include <pinweaver_tpm_imports.h>
 #include <timer.h>
 #include <tpm_vendor_cmds.h>
 #include <trng.h>
@@ -48,7 +50,6 @@ int pinweaver_eal_memcpy_s(
 
 int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree)
 {
-	struct APPKEY_CTX ctx;
 	int ret = EC_SUCCESS;
 	const uint32_t KEY_TYPE_AES = 0x0;
 	const uint32_t KEY_TYPE_HMAC = 0xffffffff;
@@ -66,7 +67,7 @@ int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree)
 		input.bytes[x] ^= merkle_tree->key_derivation_nonce[x];
 	type_field = input.v[6];
 
-	if (!DCRYPTO_appkey_init(PINWEAVER, &ctx))
+	if (!DCRYPTO_appkey_init(PINWEAVER))
 		return PW_ERR_CRYPTO_FAILURE;
 
 	input.v[6] = type_field ^ KEY_TYPE_AES;
@@ -82,28 +83,27 @@ int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree)
 		ret = PW_ERR_CRYPTO_FAILURE;
 	}
 cleanup:
-	DCRYPTO_appkey_finish(&ctx);
+	DCRYPTO_appkey_finish();
 	return ret;
 }
 
 int pinweaver_eal_sha256_init(pinweaver_eal_sha256_ctx_t *ctx)
 {
-	DCRYPTO_SHA256_init(ctx, 0);
-	return 0;
+	return DCRYPTO_hw_sha256_init(ctx) != DCRYPTO_OK;
 }
 
 int pinweaver_eal_sha256_update(pinweaver_eal_sha256_ctx_t *ctx,
 				const void *data,
 				size_t size)
 {
-	HASH_update(ctx, data, size);
+	HASH_update((union hash_ctx *)ctx, data, size);
 	return 0;
 }
 
 int pinweaver_eal_sha256_final(pinweaver_eal_sha256_ctx_t *ctx,
 			       void *res)
 {
-	memcpy(res, HASH_final(ctx), SHA256_DIGEST_SIZE);
+	memcpy(res, HASH_final((union hash_ctx *)ctx), SHA256_DIGEST_SIZE);
 	return 0;
 }
 
@@ -113,21 +113,20 @@ int pinweaver_eal_hmac_sha256_init(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 {
 	if (key_size != 256/8)
 		return -1;
-	DCRYPTO_HMAC_SHA256_init(ctx, key, key_size);
-	return 0;
+	return DCRYPTO_hw_hmac_sha256_init(ctx, key, key_size) != DCRYPTO_OK;
 }
 int pinweaver_eal_hmac_sha256_update(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 				     const void *data,
 				     size_t size)
 {
-	HASH_update(&(ctx->hash), data, size);
+	HMAC_SHA256_update(ctx, data, size);
 	return 0;
 }
 
 int pinweaver_eal_hmac_sha256_final(pinweaver_eal_hmac_sha256_ctx_t *ctx,
 				    void *res)
 {
-	memcpy(res, DCRYPTO_HMAC_final(ctx), SHA256_DIGEST_SIZE);
+	memcpy(res, HMAC_SHA256_final(ctx), SHA256_DIGEST_SIZE);
 	return 0;
 }
 
@@ -138,7 +137,7 @@ int pinweaver_eal_aes256_ctr(const void *key,
 			     size_t size,
 			     void *res)
 {
-	return DCRYPTO_aes_ctr(res, key, key_size << 3, iv, data, size) == 1 ? 0 : -1;
+	return DCRYPTO_aes_ctr(res, key, key_size << 3, iv, data, size) != DCRYPTO_OK;
 }
 
 int pinweaver_eal_safe_memcmp(const void *s1, const void *s2, size_t len)
@@ -148,8 +147,7 @@ int pinweaver_eal_safe_memcmp(const void *s1, const void *s2, size_t len)
 
 int pinweaver_eal_rand_bytes(void *buf, size_t size)
 {
-	rand_bytes(buf, size);
-	return 0;
+	return !fips_rand_bytes(buf, size);
 }
 
 uint64_t pinweaver_eal_seconds_since_boot()
@@ -162,11 +160,11 @@ int pinweaver_eal_storage_start()
 	return 0;
 }
 
-static int pinweaver_eal_storage_get_log_var(struct tuple **var_ptr,
+static int pinweaver_eal_storage_get_log_var(const struct tuple **var_ptr,
 					     struct pw_log_storage_t **log_ptr)
 {
 	struct pw_log_storage_t *log;
-	struct tuple *ptr;
+	const struct tuple *ptr;
 
 	*var_ptr = NULL;
 	*log_ptr = NULL;
@@ -194,8 +192,9 @@ static int pinweaver_eal_storage_get_log_var(struct tuple **var_ptr,
 int pinweaver_eal_storage_init_state(uint8_t root_hash[PW_HASH_SIZE],
 				     uint32_t *restart_count)
 {
-	struct tuple *var;
+	const struct tuple *var;
 	struct pw_log_storage_t *log;
+	int ret;
 
 	ret = pinweaver_eal_storage_get_log_var(&var, &log);
 	if (ret != EC_SUCCESS)
@@ -228,7 +227,7 @@ int pinweaver_eal_storage_init_state(uint8_t root_hash[PW_HASH_SIZE],
 
 int pinweaver_eal_storage_get_log(struct pw_log_storage_t *dest)
 {
-	struct tuple *var;
+	const struct tuple *var;
 	struct pw_log_storage_t *log;
 
 	int rv = pinweaver_eal_storage_get_log_var(&var, &log);
@@ -252,6 +251,7 @@ int pinweaver_eal_storage_set_log(const struct pw_log_storage_t *log)
 int pinweaver_eal_storage_get_tree_data(struct pw_long_term_storage_t *dest)
 {
 	const struct pw_long_term_storage_t *tree;
+	const struct tuple *ptr;
 
 	ptr = getvar(PW_TREE_VAR, sizeof(PW_TREE_VAR) - 1);
 	if (!ptr)
@@ -287,6 +287,33 @@ uint8_t pinweaver_eal_get_current_pcr_digest(
 	return get_current_pcr_digest(bitmask, sha256_of_selected_pcr);
 }
 
+#if BIOMETRICS_DEV
+
+int pinweaver_eal_storage_get_ba_pk(uint8_t auth_channel,
+				     struct pw_ba_pk_t *pk)
+{
+	/* Unimplemented */
+	return -1;
+}
+
+int pinweaver_eal_storage_set_ba_pk(uint8_t auth_channel,
+				     const struct pw_ba_pk_t *pk)
+{
+	/* Unimplemented */
+	return -1;
+}
+
+int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
+				     void *secret, size_t *secret_size,
+				     struct pw_ba_ecc_pt_t *ecc_pt_out)
+{
+	/* Unimplemented */
+	return -1;
+}
+
+#endif
+
+
 /*
  * Handle the VENDOR_CC_PINWEAVER command.
  */
@@ -295,14 +322,13 @@ static enum vendor_cmd_rc pw_vendor_specific_command(enum vendor_cmd_cc code,
 						     size_t input_size,
 						     size_t *response_size)
 {
-    	switch pinweaver_command(buf, input_size, buf, response_size) {
-        	case PW_CMD_RES_SUCCESS:
-        		return VENDOR_RC_SUCCESS;
-        	case PW_CMD_RES_SIZE:
-        		return VENDOR_RC_REQUEST_TOO_BIG;
-        	default:
-        		return VENDOR_RC_INTERNAL_ERROR;
-    	}
+	switch (pinweaver_command(buf, input_size, buf, response_size)) {
+		case PW_CMD_RES_SUCCESS:
+			return VENDOR_RC_SUCCESS;
+		case PW_CMD_RES_SIZE:
+			return VENDOR_RC_REQUEST_TOO_BIG;
+		default:
+			return VENDOR_RC_INTERNAL_ERROR;
+	}
 }
-DECLARE_VENDOR_COMMAND(VENDOR_CC_PINWEAVER,
-		pw_vendor_specific_command);
+DECLARE_VENDOR_COMMAND(VENDOR_CC_PINWEAVER, pw_vendor_specific_command);

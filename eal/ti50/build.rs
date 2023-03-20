@@ -30,7 +30,7 @@ fn main() {
         .rustfmt_bindings(true)
         .size_t_is_usize(true)
         .clang_arg(&format!("-I{}", pinweaver_root.to_string_lossy()))
-        .clang_arg("-DBIOMETRICS_DEV=false");
+        .clang_arg("-DBIOMETRICS_DEV=true");
 
     if let Ok(sysroot) = env::var("RV_CLANG") {
         // TODO(b/260111841, kupiakos): investigate turning LIBCLANG_PATH

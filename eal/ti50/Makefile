@@ -1,4 +1,4 @@
-# Copyright 2022 The ChromiumOS Authors.
+# Copyright 2022 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -14,7 +14,7 @@ CLIB_SYM = $(CLIB_PATH)/eal/ti50/$(CLIB_NAME).sym
 
 CFLAGS += -Wno-flexible-array-extensions -Wno-padded
 CFLAGS += -I$(CLIB_PATH) -I$(CLIB_PATH)/eal/ti50
-CFLAGS += -D BIOMETRICS_DEV=false
+CFLAGS += -D BIOMETRICS_DEV=true
 
 # output directory
 ODIR := $(BUILD_DIR)
