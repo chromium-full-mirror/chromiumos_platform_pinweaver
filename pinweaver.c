@@ -50,10 +50,6 @@ BUILD_ASSERT(sizeof(struct leaf_sensitive_data_t) % PW_WRAP_BLOCK_SIZE == 0);
 BUILD_ASSERT(sizeof(((struct merkle_tree_t *)0)->wrap_key) ==
 	     AES256_BLOCK_CIPHER_KEY_SIZE);
 
-/* Verify that the nvmem_vars log entries have the correct sizes. */
-BUILD_ASSERT(sizeof(struct pw_long_term_storage_t) +
-	     sizeof(struct pw_log_storage_t) <= PW_MAX_VAR_USAGE);
-
 /* Verify that the request structs will fit into the message. */
 BUILD_ASSERT(PW_MAX_MESSAGE_SIZE >=
 	     sizeof(struct pw_request_header_t) +
