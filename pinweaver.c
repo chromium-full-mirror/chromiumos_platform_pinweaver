@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <stdint.h>
 #include <string.h>
 
 #include "pinweaver.h"
@@ -26,6 +27,19 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#ifndef BUILD_ASSERT
+/* Test an important condition at compile time, not run time */
+#define _BA1_(cond, file, line, msg) \
+	_Static_assert(cond, file ":" #line ": " msg)
+#define _BA0_(c, f, l, msg) _BA1_(c, f, l, msg)
+/* Pass in an option message to display after condition */
+#define BUILD_ASSERT(cond, ...) _BA0_(cond, __FILE__, __LINE__, __VA_ARGS__)
+#endif
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#endif
+
 /* Compile time sanity checks. */
 /* Make sure the hash size is consistent with dcrypto. */
 BUILD_ASSERT(PW_HASH_SIZE >= SHA256_DIGEST_SIZE);
@@ -35,10 +49,6 @@ BUILD_ASSERT(sizeof(struct leaf_sensitive_data_t) % PW_WRAP_BLOCK_SIZE == 0);
 
 BUILD_ASSERT(sizeof(((struct merkle_tree_t *)0)->wrap_key) ==
 	     AES256_BLOCK_CIPHER_KEY_SIZE);
-
-/* Verify that the nvmem_vars log entries have the correct sizes. */
-BUILD_ASSERT(sizeof(struct pw_long_term_storage_t) +
-	     sizeof(struct pw_log_storage_t) <= PW_MAX_VAR_USAGE);
 
 /* Verify that the request structs will fit into the message. */
 BUILD_ASSERT(PW_MAX_MESSAGE_SIZE >=
@@ -87,8 +97,6 @@ BUILD_ASSERT(PW_MAX_PATH_SIZE == 1024);
  */
 BUILD_ASSERT(sizeof(struct leaf_sensitive_data_t) == 3 * PW_SECRET_SIZE);
 
-#define RESTART_TIMER_THRESHOLD (10 /* seconds */)
-
 /* This var caches the restart count so the nvram log structure doesn't need to
  * be walked every time try_auth request is made.
  */
@@ -132,12 +140,12 @@ static int create_merkle_tree(struct bits_per_level_t bits_per_level,
 	uint8_t temp_hash[PW_HASH_SIZE] = {};
 	uint8_t hx;
 	uint16_t kx;
+	int ret;
+
 	pinweaver_eal_sha256_ctx_t ctx;
 
 	merkle_tree->bits_per_level = bits_per_level;
 	merkle_tree->height = height;
-
-	int ret;
 
 	/* Initialize the root hash. */
 	for (hx = 0; hx < height.v; ++hx) {
@@ -1608,6 +1616,7 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 	struct pw_ba_pk_t pk;
 	uint8_t secret[PW_SECRET_SIZE];
 	size_t secret_size = PW_SECRET_SIZE;
+	struct pw_ba_ecc_pt_t server_pt;
 	pinweaver_eal_sha256_ctx_t sha;
 
 	if (req_size != sizeof(*request))
@@ -1622,7 +1631,6 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 	if (request->client_pbk.version != 0) {
 		return PW_ERR_BIO_AUTH_PUBLIC_KEY_VERSION_MISMATCH;
 	}
-	response->server_pbk.version = 0;
 
 	if (auth_channel >= PW_BA_PK_ENTRY_COUNT) {
 		return PW_ERR_BIO_AUTH_CHANNEL_INVALID;
@@ -1637,11 +1645,14 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 
 	/* Perform ECDH to derive the shared secret. */
 	ret = pinweaver_eal_ecdh_derive(&request->client_pbk.pt,
-				secret, &secret_size, &response->server_pbk.pt);
+				secret, &secret_size, &server_pt);
 	if (ret != EC_SUCCESS)
 		return ret;
 	if (secret_size != PW_SECRET_SIZE)
 		return PW_ERR_INTERNAL_FAILURE;
+	response->server_pbk.version = 0;
+	pinweaver_eal_memcpy_s(&response->server_pbk.pt,
+				sizeof(server_pt), &server_pt, sizeof(server_pt));
 
 	/* sha256 the shared secret into Pk. */
 	if (pinweaver_eal_sha256_init(&sha)) {
@@ -1808,7 +1819,7 @@ static int pw_handle_start_bio_auth(struct merkle_tree_t *merkle_tree,
 	/* Encrypt the HEC using session key, and fill in other response fields. */
 	if (pinweaver_eal_rand_bytes(response->iv, sizeof(response->iv)))
 		return PW_ERR_CRYPTO_FAILURE;
-	if (pinweaver_eal_aes256_ctr(session_key,
+	if (pinweaver_eal_aes256_ctr_custom(session_key,
 				PW_SECRET_SIZE,
 				response->iv,
 				high_entropy_secret,
@@ -1827,7 +1838,7 @@ static int pw_handle_start_bio_auth(struct merkle_tree_t *merkle_tree,
 	return EC_SUCCESS;
 }
 
-static int pw_handle_block_generate_ba_pk()
+static int pw_handle_block_generate_ba_pk(void)
 {
 	generate_ba_pk_blocked = 1;
 	return EC_SUCCESS;

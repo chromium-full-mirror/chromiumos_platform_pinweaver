@@ -1,4 +1,4 @@
-/* Copyright 2018 The Chromium OS Authors. All rights reserved.
+/* Copyright 2018 The ChromiumOS Authors
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -19,19 +19,6 @@
 #endif
 
 #include <pinweaver_types.h>
-
-#ifndef BUILD_ASSERT
-/* Test an important condition at compile time, not run time */
-#define _BA1_(cond, file, line, msg) \
-	_Static_assert(cond, file ":" #line ": " msg)
-#define _BA0_(c, f, l, msg) _BA1_(c, f, l, msg)
-/* Pass in an option message to display after condition */
-#define BUILD_ASSERT(cond, ...) _BA0_(cond, __FILE__, __LINE__, __VA_ARGS__)
-#endif
-
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -133,15 +120,6 @@ struct leaf_data_t {
 	struct leaf_public_data_t pub;
 	struct leaf_sensitive_data_t sec;
 };
-
-/* Key names for nvmem_vars */
-#define PW_TREE_VAR "pwT0"
-#define PW_LOG_VAR0 "pwL0"
-/* The maximum key-value pair space allowed for the values of PinWeaver until
- * the Cr50 NVRAM implementation is updated to use a separate object per
- * key value pair.
- */
-#define PW_MAX_VAR_USAGE 192
 
 /* Initializes the PinWeaver feature.
  *

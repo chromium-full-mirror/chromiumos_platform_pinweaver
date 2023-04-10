@@ -76,6 +76,28 @@ int pinweaver_eal_aes256_ctr(const void *key,
 			     size_t size,
 			     void *res);
 
+/*
+ * Perform AES-256 CTR, with a custom key.
+ * Only 256 bit key size is used.
+ * Returns 0 on success.
+ *
+ * b/267729980: To keep keys hardware-bound, Ti50 adopted a workaround
+ * to not actually export/import the keys as expected by PinWeaver. Instead,
+ * it stores the wrapping key/hmac key itself during key derivation and
+ * always use the wrapping key for AES, hmac key for HMAC. This works fine
+ * until we start to use AES in PinWeaver with a custom key instead of the
+ * wrapping key. We don't want to alter the existing design of Ti50 eals so
+ * instead introduced a new eal. On other platforms, this eal is equivalent
+ * to pinweaver_eal_aes256_ctr. On Ti50, this eal needs to properly import the
+ * given key and use it for encryption.
+ */
+int pinweaver_eal_aes256_ctr_custom(const void *key,
+			     size_t key_size, /* in bytes */
+			     const void *iv,
+			     const void *data,
+			     size_t size,
+			     void *res);
+
 
 /*
  * Constant time implementation of memcmp to avoid timing side channels.
