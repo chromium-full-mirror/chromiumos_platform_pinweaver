@@ -173,7 +173,7 @@ int pinweaver_eal_rand_bytes(void *buf, size_t size)
 
 uint64_t pinweaver_eal_seconds_since_boot()
 {
-	return get_time().val / SECOND;
+	return get_seconds_since_cold_boot();
 }
 
 int pinweaver_eal_storage_start()
