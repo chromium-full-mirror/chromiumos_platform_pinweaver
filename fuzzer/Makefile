@@ -38,6 +38,8 @@ CXXOPTIONS = $(OPTIONS) -std=c++14
 LDFLAGS += $(FUZZER_FLAGS)
 LIBS = -lgcov -lstdc++ -lssl -lcrypto
 DEPS = Makefile
+CFLAGS = -DBIOMETRICS_DEV=true
+CXXFLAGS = $(CFLAGS)
 
 .PHONY: all build clean cov run
 .DEFAULT: all
