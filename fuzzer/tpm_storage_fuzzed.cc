@@ -96,7 +96,6 @@ int pinweaver_eal_storage_initialize_owner()
 	return 0;
 }
 
-#if BIOMETRICS_DEV
 int pinweaver_eal_storage_get_ba_pk(uint8_t auth_channel,
 			     struct pw_ba_pk_t *pk)
 {
@@ -117,5 +116,4 @@ int pinweaver_eal_storage_set_ba_pk(uint8_t auth_channel,
 		return g_data_provider->ConsumeIntegral<int>();
 	return 0;
 }
-#endif
 }

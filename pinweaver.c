@@ -102,14 +102,12 @@ BUILD_ASSERT(sizeof(struct leaf_sensitive_data_t) == 3 * PW_SECRET_SIZE);
  */
 uint32_t pw_restart_count;
 
-#if BIOMETRICS_DEV
 /* If non-zero, Pk establishment is blocked. The client should send a
  * block_generate_ba_pk command after the client platform passed the stage
  * that Pk establishment is allowed. This reduces the risk of active attackers
  * trying to establish Pk with the server.
  */
 int generate_ba_pk_blocked;
-#endif
 
 /******************************************************************************/
 /* Struct helper functions.
@@ -528,15 +526,11 @@ static uint32_t expected_payload_len(int minor_version)
 {
 	switch (minor_version) {
 	case 0:
-#if !BIOMETRICS_DEV
-		return PW_LEAF_PAYLOAD_SIZE - PW_VALID_PCR_CRITERIA_SIZE;
-#else
 		return PW_LEAF_PAYLOAD_SIZE - PW_VALID_PCR_CRITERIA_SIZE
 			- PW_EXPIRATION_DATA_SIZE - sizeof(struct pw_leaf_type_t);
 	case 1:
 		return PW_LEAF_PAYLOAD_SIZE - PW_EXPIRATION_DATA_SIZE
 			- sizeof(struct pw_leaf_type_t);
-#endif
 	case PW_LEAF_MINOR_VERSION:
 		return PW_LEAF_PAYLOAD_SIZE;
 	default:
@@ -634,7 +628,6 @@ static int validate_request_with_wrapped_leaf(
 		       PW_VALID_PCR_CRITERIA_SIZE);
 	}
 
-#if BIOMETRICS_DEV
 	if (unimported_leaf_data->head.leaf_version.major == 0 &&
 	    unimported_leaf_data->head.leaf_version.minor <= 1) {
 		/* Populate the leaf_data with default expiration timestamp value,
@@ -645,7 +638,6 @@ static int validate_request_with_wrapped_leaf(
 		/* Populate the leaf_data with default leaf type. */
 		leaf_data->pub.leaf_type.v = PW_LEAF_TYPE_NORMAL;
 	}
-#endif
 
 	return EC_SUCCESS;
 }
@@ -673,13 +665,11 @@ static int test_rate_limit(struct leaf_data_t *leaf_data,
 
 	update_timestamp(&current_time);
 
-#if BIOMETRICS_DEV
 	if (leaf_data->pub.expiration_delay_s.v != 0 &&
 	    (leaf_data->pub.expiration_ts.boot_count != current_time.boot_count ||
 	    leaf_data->pub.expiration_ts.timer_value <= current_time.timer_value)) {
 		return PW_ERR_EXPIRED;
 	}
-#endif
 
 	/* This loop ends when x is one greater than the index that applies. */
 	for (x = 0; x < ARRAY_SIZE(leaf_data->pub.delay_schedule); ++x) {
@@ -943,13 +933,11 @@ int log_auth(struct label_t label, const uint8_t root[PW_HASH_SIZE], int code,
 				     sizeof(entry->last_access_ts));
 	if (ret != EC_SUCCESS)
 		return ret;
-#if BIOMETRICS_DEV
 	ret = pinweaver_eal_memcpy_s(&entry->expiration_ts,
 				     sizeof(entry->expiration_ts), &expiration_ts,
 				     sizeof(entry->expiration_ts));
 	if (ret != EC_SUCCESS)
 		return ret;
-#endif
 
 	return store_log_data(&log);
 }
@@ -988,8 +976,6 @@ static int pw_handle_reset_tree(struct merkle_tree_t *merkle_tree,
 		return PW_ERR_INTERNAL_FAILURE;
 	return EC_SUCCESS;
 }
-
-#if BIOMETRICS_DEV
 
 static int generate_ba_secrets(const struct merkle_tree_t *merkle_tree,
 				 uint8_t auth_channel,
@@ -1035,8 +1021,6 @@ static int generate_ba_secrets(const struct merkle_tree_t *merkle_tree,
 	return EC_SUCCESS;
 }
 
-#endif
-
 static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 				 pw_request_insert_leaf_t *request,
 				 uint16_t req_size,
@@ -1048,9 +1032,7 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 	struct wrapped_leaf_data_t wrapped_leaf_data = {};
 	const uint8_t empty_hash[PW_HASH_SIZE] = {};
 	uint8_t new_root[PW_HASH_SIZE];
-#if BIOMETRICS_DEV
 	uint32_t delay_s;
-#endif
 
 	if (req_size != sizeof(*request) +
 			get_path_auxiliary_hash_count(merkle_tree) *
@@ -1081,7 +1063,6 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS)
 		return PW_ERR_INTERNAL_FAILURE;
 
-#if BIOMETRICS_DEV
 	if (request->expiration_delay_s.v != 0) {
 		update_timestamp(&leaf_data.pub.expiration_ts);
 		delay_s = request->expiration_delay_s.v;
@@ -1107,7 +1088,6 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 	} else if (request->leaf_type.v != PW_LEAF_TYPE_NORMAL) {
 		return PW_ERR_INTERNAL_FAILURE;
 	}
-#endif
 
 	ret = pinweaver_eal_memcpy_s(&leaf_data.sec.low_entropy_secret,
 				     sizeof(leaf_data.sec.low_entropy_secret),
@@ -1266,13 +1246,11 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 	results_table[0].attempts = leaf_data.pub.attempt_count.v;
 	if (results_table[0].attempts != UINT32_MAX)
 		++results_table[0].attempts;
-	#if BIOMETRICS_DEV
 	if (leaf_data.pub.leaf_type.v == PW_LEAF_TYPE_BIOMETRICS) {
 		/* Always increase attempts for biometrics limiter leaf type. */
 		results_table[1].ret = PW_ERR_SUCCESS_WITH_INCREMENT;
 		results_table[1].attempts = results_table[0].attempts;
 	}
-	#endif
 
 	/**********************************************************************/
 	/* After this:
@@ -1296,9 +1274,7 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 		return ret;
 
 
-#if BIOMETRICS_DEV
 	expiration_ts = leaf_data.pub.expiration_ts;
-#endif
 	ret = log_auth(wrapped_leaf_data.pub.label, new_root,
 		       results_table[auth_result].ret, leaf_data.pub.last_access_ts,
 		       expiration_ts);
@@ -1358,9 +1334,7 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 	struct wrapped_leaf_data_t wrapped_leaf_data = {};
 	struct pw_timestamp_t expiration_ts = {};
 	uint8_t new_root[PW_HASH_SIZE];
-#if BIOMETRICS_DEV
 	uint32_t delay_s;
-#endif
 
 	if (req_size < sizeof(*request))
 		return PW_ERR_LENGTH_INVALID;
@@ -1384,7 +1358,6 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 
 	leaf_data.pub.attempt_count.v = 0;
 
-#if BIOMETRICS_DEV
 	if (request->strong_reset && leaf_data.pub.expiration_delay_s.v != 0) {
 		update_timestamp(&leaf_data.pub.expiration_ts);
 		delay_s = leaf_data.pub.expiration_delay_s.v;
@@ -1394,7 +1367,6 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 			leaf_data.pub.expiration_ts.timer_value = UINT64_MAX;
 		}
 	}
-#endif
 
 	ret = handle_leaf_update(merkle_tree, &leaf_data,
 				 imported_leaf_data.hashes, &wrapped_leaf_data,
@@ -1402,9 +1374,7 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS)
 		return ret;
 
-#if BIOMETRICS_DEV
 	expiration_ts = leaf_data.pub.expiration_ts;
-#endif
 	ret = log_auth(leaf_data.pub.label, new_root, ret,
 		       leaf_data.pub.last_access_ts, expiration_ts);
 	if (ret != EC_SUCCESS)
@@ -1423,12 +1393,6 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 	if (ret != EC_SUCCESS)
 		return PW_ERR_INTERNAL_FAILURE;
 
-#if !BIOMETRICS_DEV
-	ret = pinweaver_eal_memcpy_s(response->high_entropy_secret,
-				     sizeof(response->high_entropy_secret),
-				     leaf_data.sec.high_entropy_secret,
-				     sizeof(response->high_entropy_secret));
-#endif
 	if (ret != EC_SUCCESS)
 		return PW_ERR_INTERNAL_FAILURE;
 
@@ -1566,14 +1530,12 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 				     sizeof(leaf_data.pub.last_access_ts));
 	if (ret != EC_SUCCESS)
 		return PW_ERR_INTERNAL_FAILURE;
-#if BIOMETRICS_DEV
 	ret = pinweaver_eal_memcpy_s(&leaf_data.pub.expiration_ts,
 				     sizeof(leaf_data.pub.expiration_ts),
 				     &log.entries[x].expiration_ts,
 				     sizeof(leaf_data.pub.expiration_ts));
 	if (ret != EC_SUCCESS)
 		return PW_ERR_INTERNAL_FAILURE;
-#endif
 
 	ret = handle_leaf_update(merkle_tree, &leaf_data,
 				 imported_leaf_data.hashes, &wrapped_leaf_data,
@@ -1596,7 +1558,6 @@ static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 	return EC_SUCCESS;
 }
 
-#if BIOMETRICS_DEV
 static int pw_handle_sys_info(pw_response_sys_info_t *response,
 				uint16_t *response_size)
 {
@@ -1843,7 +1804,6 @@ static int pw_handle_block_generate_ba_pk(void)
 	generate_ba_pk_blocked = 1;
 	return EC_SUCCESS;
 }
-#endif
 
 struct merkle_tree_t pw_merkle_tree;
 
@@ -1854,9 +1814,7 @@ struct merkle_tree_t pw_merkle_tree;
 void pinweaver_init(void)
 {
 	load_merkle_tree(&pw_merkle_tree);
-#if BIOMETRICS_DEV
 	generate_ba_pk_blocked = 0;
-#endif
 }
 
 int get_path_auxiliary_hash_count(const struct merkle_tree_t *merkle_tree)
@@ -1944,7 +1902,6 @@ int make_compatible_request(struct merkle_tree_t *merkle_tree,
 		}
 		/* Fallthrough to make compatible from next version */
 		__attribute__((fallthrough));
-#if BIOMETRICS_DEV
 	case 1:
 		/* The switch from protocol version 1 to 2 means all the
 		 * requests have the same format, except insert_leaf and
@@ -1990,7 +1947,6 @@ int make_compatible_request(struct merkle_tree_t *merkle_tree,
 		}
 		/* Fallthrough to make compatible from next version */
 		__attribute__((fallthrough));
-#endif
 	case PW_PROTOCOL_VERSION:
 		return 1;
 	}
@@ -2003,9 +1959,7 @@ int make_compatible_request(struct merkle_tree_t *merkle_tree,
 void make_compatible_response(int version, int req_type,
 			      struct pw_response_t *response)
 {
-#if BIOMETRICS_DEV
 	size_t offset;
-#endif
 
 	if (version >= PW_PROTOCOL_VERSION)
 		return;
@@ -2024,7 +1978,6 @@ void make_compatible_response(int version, int req_type,
 		}
 	}
 
-#if BIOMETRICS_DEV
 	if (version <= 1) {
 		if (req_type == PW_GET_LOG) {
 			for (offset = 0;
@@ -2057,7 +2010,6 @@ void make_compatible_response(int version, int req_type,
 			response->header.data_length += PW_SECRET_SIZE;
 		}
 	}
-#endif
 }
 
 enum pinweaver_command_res_t pinweaver_command(void *request_buf,
@@ -2168,7 +2120,6 @@ int pw_handle_request(struct merkle_tree_t *merkle_tree,
 					   &response->data.log_replay,
 					   &resp_length);
 		break;
-#if BIOMETRICS_DEV
 	case PW_SYS_INFO:
 		ret = pw_handle_sys_info(&response->data.sys_info, &resp_length);
 		break;
@@ -2189,7 +2140,6 @@ int pw_handle_request(struct merkle_tree_t *merkle_tree,
 	case PW_BLOCK_GENERATE_BA_PK:
 		ret = pw_handle_block_generate_ba_pk();
 		break;
-#endif
 	default:
 		ret = PW_ERR_TYPE_INVALID;
 		break;
