@@ -27,10 +27,8 @@ BUILD_ASSERT(sizeof(struct pw_long_term_storage_t) +
 	     sizeof(PW_TREE_VAR) - 1 <= MAX_VAR_BODY_SPACE);
 BUILD_ASSERT(sizeof(struct pw_log_storage_t) +
 	     sizeof(PW_LOG_VAR0) - 1 <= MAX_VAR_BODY_SPACE);
-#if BIOMETRICS_DEV
 BUILD_ASSERT(sizeof(struct pw_ba_pk_t) +
 	     sizeof(PW_FP_PK) - 1 <= MAX_VAR_BODY_SPACE);
-#endif
 
 int pinweaver_eal_memcpy_s(
     void * dest,
@@ -173,7 +171,7 @@ int pinweaver_eal_rand_bytes(void *buf, size_t size)
 
 uint64_t pinweaver_eal_seconds_since_boot()
 {
-	return get_time().val / SECOND;
+	return get_seconds_since_cold_boot();
 }
 
 int pinweaver_eal_storage_start()
@@ -308,8 +306,6 @@ uint8_t pinweaver_eal_get_current_pcr_digest(
 	return get_current_pcr_digest(bitmask, sha256_of_selected_pcr);
 }
 
-#if BIOMETRICS_DEV
-
 static int pinweaver_eal_storage_get_ba_pk_var(uint8_t auth_channel,
 							 const struct tuple **var_ptr,
 					     struct pw_ba_pk_t **pk_ptr)
@@ -417,9 +413,6 @@ int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
 
 	return EC_SUCCESS;
 }
-
-#endif
-
 
 /*
  * Handle the VENDOR_CC_PINWEAVER command.

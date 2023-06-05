@@ -20,10 +20,6 @@
 extern "C" {
 #endif
 
-#ifndef BIOMETRICS_DEV
-#error BIOMETRICS_DEV needs to be defined.
-#endif
-
 /* Implements memcpy_s on all platforms
  */
 int pinweaver_eal_memcpy_s(
@@ -138,8 +134,6 @@ int pinweaver_eal_storage_get_tree_data(struct pw_long_term_storage_t *dest);
 int pinweaver_eal_storage_set_tree_data(
 		const struct pw_long_term_storage_t *data);
 
-#if BIOMETRICS_DEV
-
 /* Biometrics vendor functions. */
 
 /*
@@ -166,8 +160,6 @@ int pinweaver_eal_storage_set_ba_pk(uint8_t auth_channel,
 int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
 				     void *secret, size_t *secret_size,
 				     struct pw_ba_ecc_pt_t *ecc_pt_out);
-
-#endif
 
 #ifdef __cplusplus
 }

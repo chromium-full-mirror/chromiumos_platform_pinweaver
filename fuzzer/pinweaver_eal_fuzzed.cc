@@ -1,4 +1,4 @@
-/* Copyright 2021 The Chromium OS Authors. All rights reserved.
+/* Copyright 2021 The ChromiumOS Authors
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -216,7 +216,6 @@ int pinweaver_eal_memcpy_s(void *dest, size_t destsz, const void *src,
 	return 0;
 }
 
-#if BIOMETRICS_DEV
 int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
 			     void *secret, size_t *secret_size,
 			     struct pw_ba_ecc_pt_t *ecc_pt_out)
@@ -233,5 +232,4 @@ int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
 		return g_data_provider->ConsumeIntegral<int>();
 	return 0;
 }
-#endif
 }
