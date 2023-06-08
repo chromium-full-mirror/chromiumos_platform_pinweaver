@@ -16,27 +16,15 @@
 extern "C" {
 #endif
 
-#ifndef BIOMETRICS_DEV
-#error BIOMETRICS_DEV needs to be defined.
-#endif
-
 #define PW_PACKED __packed
 
-#if BIOMETRICS_DEV
 #define PW_PROTOCOL_VERSION 2
-#else
-#define PW_PROTOCOL_VERSION 1
-#endif
 #define PW_LEAF_MAJOR_VERSION 0
 /* The change from version zero to one is the addition of valid_pcr_value
  * metadata. The change from version one to two is the addition of the
  * expiration timestamp.
  */
-#if BIOMETRICS_DEV
 #define PW_LEAF_MINOR_VERSION 2
-#else
-#define PW_LEAF_MINOR_VERSION 1
-#endif
 
 #define PW_MAX_MESSAGE_SIZE (2048 - 12 /* sizeof(struct tpm_cmd_header) */)
 
@@ -47,13 +35,9 @@ extern "C" {
 
 #define PW_ALIGN_TO_BLK __aligned(PW_WRAP_BLOCK_SIZE)
 
-#if BIOMETRICS_DEV
-
 #define PW_BA_ECC_CORD_SIZE 32
 
 #define PW_BA_PK_ENTRY_COUNT 2
-
-#endif
 
 #define PW_HMAC_IV_SIZE_V1 4
 #define PW_HMAC_IV_SIZE_V2 PW_WRAP_BLOCK_SIZE
@@ -80,7 +64,6 @@ enum pw_error_codes_enum {
 	PW_ERR_NV_VERSION_MISMATCH,
 	PW_ERR_PCR_NOT_MATCH,
 	PW_ERR_INTERNAL_FAILURE,
-#if BIOMETRICS_DEV
 	PW_ERR_EXPIRED,
 	PW_ERR_BIO_AUTH_CHANNEL_INVALID,
 	PW_ERR_BIO_AUTH_PUBLIC_KEY_VERSION_MISMATCH,
@@ -92,7 +75,6 @@ enum pw_error_codes_enum {
 	 * when logging a try_auth event like this.
 	 */
 	PW_ERR_SUCCESS_WITH_INCREMENT,
-#endif
 };
 
 /* Represents the log2(fan out) of a tree. */
@@ -177,8 +159,6 @@ struct PW_PACKED valid_pcr_value_t {
  */
 #define PW_SECRET_SIZE 32
 
-#if BIOMETRICS_DEV
-
 enum pw_leaf_type_enum {
 	PW_LEAF_TYPE_NORMAL,
 	PW_LEAF_TYPE_BIOMETRICS,
@@ -187,9 +167,6 @@ enum pw_leaf_type_enum {
 struct PW_PACKED pw_leaf_type_t {
 	uint8_t v;
 };
-
-#endif
-
 
 struct PW_PACKED leaf_version_t {
 	/* minor comes first so this struct will be compatibile with uint32_t
@@ -232,13 +209,11 @@ struct PW_PACKED leaf_public_data_t {
 	struct attempt_count_t attempt_count;
 	struct valid_pcr_value_t valid_pcr_criteria[PW_MAX_PCR_CRITERIA_COUNT];
 
-#if BIOMETRICS_DEV
 	/* Timestamp when the leaf data expires.	*/
 	struct pw_timestamp_t expiration_ts;
 	/* Used to update expiration_ts after reset leaf */
 	struct time_diff_t expiration_delay_s;
 	struct pw_leaf_type_t leaf_type;
-#endif
 };
 
 /* Represents a struct of unknown length to be imported to process a request. */
@@ -266,8 +241,6 @@ struct PW_PACKED unimported_leaf_data_t {
 	uint8_t payload[];
 };
 
-#if BIOMETRICS_DEV
-
 /* Biometrics specific types. */
 
 struct PW_PACKED pw_ba_pk_t {
@@ -283,8 +256,6 @@ struct PW_PACKED pw_ba_pbk_t {
 	uint8_t version;
 	struct pw_ba_ecc_pt_t pt;
 };
-
-#endif
 
 /******************************************************************************/
 /* Message structs
@@ -305,7 +276,6 @@ enum pw_message_type_enum {
 	PW_RESET_AUTH = 5,
 	PW_GET_LOG = 6,
 	PW_LOG_REPLAY = 7,
-#if BIOMETRICS_DEV
 	PW_SYS_INFO = 8,
 	/* The following are vendor specific pinweaver commands
 	 * for biometrics feature.
@@ -313,7 +283,6 @@ enum pw_message_type_enum {
 	PW_GENERATE_BA_PK = 9,
 	PW_START_BIO_AUTH = 10,
 	PW_BLOCK_GENERATE_BA_PK = 11,
-#endif
 };
 
 /* This enum is introduced because when we need a new variant in the log for
@@ -331,19 +300,13 @@ enum pw_log_message_type_enum {
 	/* All the fields above correspond to the same kind of message with matching
 	 * value in pw_message_type_enum.
 	 */
-#if BIOMETRICS_DEV
 	LOG_PW_TRY_AUTH02 = 5,
-#endif
 
 	LOG_PW_MT_INVALID = LOG_PW_MT_INVALID00,
 	LOG_PW_RESET_TREE = LOG_PW_RESET_TREE00,
 	LOG_PW_INSERT_LEAF = LOG_PW_INSERT_LEAF00,
 	LOG_PW_REMOVE_LEAF = LOG_PW_REMOVE_LEAF00,
-#if BIOMETRICS_DEV
 	LOG_PW_TRY_AUTH = LOG_PW_TRY_AUTH02,
-#else
-	LOG_PW_TRY_AUTH = LOG_PW_TRY_AUTH00,
-#endif
 };
 
 struct PW_PACKED pw_message_type_t {
@@ -405,7 +368,6 @@ struct PW_PACKED pw_request_insert_leaf01_t {
 	uint8_t path_hashes[][PW_HASH_SIZE];
 };
 
-#if BIOMETRICS_DEV
 struct PW_PACKED pw_request_insert_leaf02_t {
 	struct label_t label;
 	struct delay_schedule_entry_t delay_schedule[PW_SCHED_COUNT];
@@ -429,10 +391,6 @@ struct PW_PACKED pw_request_insert_leaf02_t {
 };
 
 typedef struct pw_request_insert_leaf02_t pw_request_insert_leaf_t;
-#else
-typedef struct pw_request_insert_leaf01_t pw_request_insert_leaf_t;
-#endif
-
 
 struct PW_PACKED pw_response_insert_leaf00_t {
 	struct unimported_leaf_data_t unimported_leaf_data;
@@ -487,7 +445,6 @@ struct PW_PACKED pw_request_reset_auth00_t {
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
-#if BIOMETRICS_DEV
 struct PW_PACKED pw_request_reset_auth02_t {
 	uint8_t reset_secret[PW_SECRET_SIZE];
 	/* If strong_reset is non-zero, the expiration timestamp will be reset too. */
@@ -496,9 +453,6 @@ struct PW_PACKED pw_request_reset_auth02_t {
 };
 
 typedef struct pw_request_reset_auth02_t pw_request_reset_auth_t;
-#else
-typedef struct pw_request_reset_auth00_t pw_request_reset_auth_t;
-#endif
 
 /* This is only used for parsing incoming data before version 02 */
 struct PW_PACKED pw_response_reset_auth00_t {
@@ -506,16 +460,12 @@ struct PW_PACKED pw_response_reset_auth00_t {
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
-#if BIOMETRICS_DEV
 struct PW_PACKED pw_response_reset_auth02_t {
 	/* Starting from protocol version 2, HEC isn't returned in reset_auth. */
 	struct unimported_leaf_data_t unimported_leaf_data;
 };
 
 typedef struct pw_response_reset_auth02_t pw_response_reset_auth_t;
-#else
-typedef struct pw_response_reset_auth00_t pw_response_reset_auth_t;
-#endif
 
 struct PW_PACKED pw_request_get_log00_t {
 	/* The root on the CrOS side that needs to be brought back in sync with
@@ -571,14 +521,11 @@ struct PW_PACKED pw_get_log_entry_t {
 			* variant but used another variant type to distinguish whether this field
 			* exists.
 			*/
-#if BIOMETRICS_DEV
 			struct pw_timestamp_t expiration_ts;
-#endif
 		};
 	};
 };
 
-#if BIOMETRICS_DEV
 struct PW_PACKED pw_response_sys_info02_t {
 	struct pw_timestamp_t current_ts;
 };
@@ -634,8 +581,6 @@ struct PW_PACKED pw_response_start_bio_auth02_t {
 
 typedef struct pw_response_start_bio_auth02_t pw_response_start_bio_auth_t;
 
-#endif
-
 struct PW_PACKED pw_request_t {
 	struct pw_request_header_t header;
 	union {
@@ -643,21 +588,15 @@ struct PW_PACKED pw_request_t {
 		struct pw_request_reset_tree00_t reset_tree00;
 		struct pw_request_insert_leaf00_t insert_leaf00;
 		struct pw_request_insert_leaf01_t insert_leaf01;
-#if BIOMETRICS_DEV
 		struct pw_request_insert_leaf02_t insert_leaf02;
-#endif
 		struct pw_request_remove_leaf00_t remove_leaf00;
 		struct pw_request_try_auth00_t try_auth00;
 		struct pw_request_reset_auth00_t reset_auth00;
-#if BIOMETRICS_DEV
 		struct pw_request_reset_auth02_t reset_auth02;
-#endif
 		struct pw_request_get_log00_t get_log00;
 		struct pw_request_log_replay00_t log_replay00;
-#if BIOMETRICS_DEV
 		struct pw_request_generate_ba_pk02_t generate_pk02;
 		struct pw_request_start_bio_auth02_t start_bio_auth02;
-#endif
 
 		/* currently used types */
 		pw_request_reset_tree_t reset_tree;
@@ -667,10 +606,8 @@ struct PW_PACKED pw_request_t {
 		pw_request_reset_auth_t reset_auth;
 		pw_request_get_log_t get_log;
 		pw_request_log_replay_t log_replay;
-#if BIOMETRICS_DEV
 		pw_request_generate_ba_pk_t generate_pk;
 		pw_request_start_bio_auth_t start_bio_auth;
-#endif
 	} data;
 };
 
@@ -682,30 +619,24 @@ struct PW_PACKED pw_response_t {
 		struct pw_response_try_auth00_t try_auth00;
 		struct pw_response_try_auth01_t try_auth01;
 		struct pw_response_reset_auth00_t reset_auth00;
-#if BIOMETRICS_DEV
 		struct pw_response_reset_auth02_t reset_auth02;
-#endif
 		/* An array with as many entries as are present in the log up to
 		 * the present time or will fit in the message.
 		 */
 		uint8_t get_log[0];
 		struct pw_response_log_replay00_t log_replay00;
-#if BIOMETRICS_DEV
 		struct pw_response_sys_info02_t sys_info02;
 		struct pw_response_generate_ba_pk02_t generate_pk02;
 		struct pw_response_start_bio_auth02_t start_bio_auth02;
-#endif
 
 		/* currently used types */
 		pw_response_insert_leaf_t insert_leaf;
 		pw_response_try_auth_t try_auth;
 		pw_response_reset_auth_t reset_auth;
 		pw_response_log_replay_t log_replay;
-#if BIOMETRICS_DEV
 		pw_response_sys_info_t sys_info;
 		pw_response_generate_ba_pk_t generate_pk;
 		pw_response_start_bio_auth_t start_bio_auth;
-#endif
 	} data;
 };
 
