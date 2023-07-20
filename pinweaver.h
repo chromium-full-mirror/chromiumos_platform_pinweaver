@@ -18,7 +18,7 @@
 #define __packed __attribute__((packed))
 #endif
 
-#include <pinweaver_types.h>
+#include "pinweaver_types.h"
 
 #ifdef __cplusplus
 extern "C" {
