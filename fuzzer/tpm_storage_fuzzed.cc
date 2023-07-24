@@ -105,6 +105,8 @@ int pinweaver_eal_storage_get_ba_pk(uint8_t auth_channel,
 	memcpy(pk, key.data(), sizeof(struct pw_ba_pk_t));
 
 	if (g_data_provider->ConsumeBool())
+		return PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED;
+	if (g_data_provider->ConsumeBool())
 		return g_data_provider->ConsumeIntegral<int>();
 	return 0;
 }

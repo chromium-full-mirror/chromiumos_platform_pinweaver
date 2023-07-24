@@ -1,4 +1,4 @@
-/* Copyright 2021 The Chromium OS Authors. All rights reserved.
+/* Copyright 2021 The ChromiumOS Authors
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -20,21 +20,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 			g_data_provider->ConsumeIntegralInRange<int>(1, 30));
 	pinweaver_init();
 	while (g_data_provider->remaining_bytes()) {
-		int req_sz = sizeof(struct pw_request_t) + PW_MAX_MESSAGE_SIZE;
-		auto request = g_data_provider->ConsumeBytes<char>(req_sz);
-		request.resize(req_sz);
+		int max_sz = sizeof(struct pw_request_t) + PW_MAX_MESSAGE_SIZE;
+		size_t length = g_data_provider->ConsumeIntegralInRange<size_t>(
+				0, PW_MAX_MESSAGE_SIZE);
+		auto request = g_data_provider->ConsumeBytes<char>(max_sz);
+		request.resize(max_sz);
 
 		struct pw_request_t *pw_request =
 			static_cast<struct pw_request_t *>(
 				static_cast<void *>(request.data()));
-		pw_request->header.data_length =
-			g_data_provider->ConsumeIntegralInRange<size_t>(
-				0, PW_MAX_MESSAGE_SIZE);
+		pw_request->header.data_length = length;
 
 		size_t request_size = sizeof(pw_request->header) +
 				      pw_request->header.data_length;
 
-		std::vector<char> response(req_sz);
+		std::vector<char> response(max_sz);
 		size_t response_size;
 
 		pinweaver_command(request.data(), request_size, response.data(),
