@@ -167,6 +167,13 @@ out:
 	return rv == 1 ? 0 : -1;
 }
 
+int pinweaver_eal_aes256_ctr_custom(const void *key, size_t key_size,
+				    const void *iv, const void *data, size_t size,
+				    void *res)
+{
+	return pinweaver_eal_aes256_ctr(key, key_size, iv, data, size, res);
+}
+
 uint8_t pinweaver_eal_get_current_pcr_digest(const uint8_t bitmask[2],
 					     uint8_t sha256_of_selected_pcr[32])
 {
