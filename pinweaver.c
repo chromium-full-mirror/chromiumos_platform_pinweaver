@@ -413,11 +413,13 @@ static int handle_leaf_update(
 static int validate_tree_parameters(struct bits_per_level_t bits_per_level,
 				    struct height_t height)
 {
-	uint8_t fan_out = 1 << bits_per_level.v;
+	uint8_t fan_out;
 
 	if (bits_per_level.v < BITS_PER_LEVEL_MIN ||
 	    bits_per_level.v > BITS_PER_LEVEL_MAX)
 		return PW_ERR_BITS_PER_LEVEL_INVALID;
+
+	fan_out = 1 << bits_per_level.v;
 
 	if (height.v < HEIGHT_MIN ||
 	    height.v > HEIGHT_MAX(bits_per_level.v) ||
