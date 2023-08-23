@@ -228,7 +228,9 @@ int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
 			     struct pw_ba_ecc_pt_t *ecc_pt_out)
 {
 	auto sec = g_data_provider->ConsumeBytes<char>(*secret_size);
-	memcpy(secret, sec.data(), sec.size());
+	*secret_size = sec.size();
+	if (*secret_size != 0)
+		memcpy(secret, sec.data(), *secret_size);
 
 	auto ecc_pt = g_data_provider->ConsumeBytes<char>(
 		sizeof(struct pw_ba_ecc_pt_t));
