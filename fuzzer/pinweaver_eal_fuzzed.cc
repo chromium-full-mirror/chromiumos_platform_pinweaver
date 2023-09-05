@@ -167,6 +167,13 @@ out:
 	return rv == 1 ? 0 : -1;
 }
 
+int pinweaver_eal_aes256_ctr_custom(const void *key, size_t key_size,
+				    const void *iv, const void *data, size_t size,
+				    void *res)
+{
+	return pinweaver_eal_aes256_ctr(key, key_size, iv, data, size, res);
+}
+
 uint8_t pinweaver_eal_get_current_pcr_digest(const uint8_t bitmask[2],
 					     uint8_t sha256_of_selected_pcr[32])
 {
@@ -221,7 +228,9 @@ int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
 			     struct pw_ba_ecc_pt_t *ecc_pt_out)
 {
 	auto sec = g_data_provider->ConsumeBytes<char>(*secret_size);
-	memcpy(secret, sec.data(), sec.size());
+	*secret_size = sec.size();
+	if (*secret_size != 0)
+		memcpy(secret, sec.data(), *secret_size);
 
 	auto ecc_pt = g_data_provider->ConsumeBytes<char>(
 		sizeof(struct pw_ba_ecc_pt_t));

@@ -413,11 +413,13 @@ static int handle_leaf_update(
 static int validate_tree_parameters(struct bits_per_level_t bits_per_level,
 				    struct height_t height)
 {
-	uint8_t fan_out = 1 << bits_per_level.v;
+	uint8_t fan_out;
 
 	if (bits_per_level.v < BITS_PER_LEVEL_MIN ||
 	    bits_per_level.v > BITS_PER_LEVEL_MAX)
 		return PW_ERR_BITS_PER_LEVEL_INVALID;
+
+	fan_out = 1 << bits_per_level.v;
 
 	if (height.v < HEIGHT_MIN ||
 	    height.v > HEIGHT_MAX(bits_per_level.v) ||
@@ -590,6 +592,10 @@ static int validate_request_with_wrapped_leaf(
 {
 	int ret;
 	uint8_t hmac[PW_HASH_SIZE];
+
+	ret = validate_tree(merkle_tree);
+	if (ret != EC_SUCCESS)
+		return ret;
 
 	ret = validate_leaf_header(&unimported_leaf_data->head, payload_len,
 				   get_path_auxiliary_hash_count(merkle_tree));
@@ -1034,6 +1040,10 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 	uint8_t new_root[PW_HASH_SIZE];
 	uint32_t delay_s;
 
+	ret = validate_tree(merkle_tree);
+	if (ret != EC_SUCCESS)
+		return ret;
+
 	if (req_size != sizeof(*request) +
 			get_path_auxiliary_hash_count(merkle_tree) *
 			PW_HASH_SIZE)
@@ -1143,6 +1153,10 @@ static int pw_handle_remove_leaf(struct merkle_tree_t *merkle_tree,
 	int ret = EC_SUCCESS;
 	const uint8_t empty_hash[PW_HASH_SIZE] = {};
 	uint8_t new_root[PW_HASH_SIZE];
+
+	ret = validate_tree(merkle_tree);
+	if (ret != EC_SUCCESS)
+		return ret;
 
 	if (req_size != sizeof(*request) +
 			get_path_auxiliary_hash_count(merkle_tree) *

@@ -6,6 +6,9 @@ import("//common-mk/pkg_config.gni")
 
 group("all") {
   deps = [ ":libpinweaver" ]
+  if (use.fuzzer) {
+    deps += [ ":pinweaver_fuzzer" ]
+  }
 }
 
 config("target_defaults") {
@@ -22,4 +25,20 @@ static_library("libpinweaver") {
     "//common-mk:nouse_thin_archive",
     ":target_defaults",
   ]
+}
+
+if (use.fuzzer) {
+  executable("pinweaver_fuzzer") {
+    sources = [
+      "fuzzer/pinweaver_eal_fuzzed.cc",
+      "fuzzer/pinweaver_fuzzer.cc",
+      "fuzzer/tpm_storage_fuzzed.cc",
+    ]
+    configs += [
+      "//common-mk/common_fuzzer",
+      ":target_defaults",
+    ]
+    pkg_deps = [ "openssl" ]
+    deps = [ ":libpinweaver" ]
+  }
 }
