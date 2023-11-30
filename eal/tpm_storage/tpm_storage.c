@@ -273,25 +273,35 @@ TESTABLE_STATIC int check_nv_space(TPM_HANDLE handle,
 	return memcmp(name->name, expected_name.name, name->size);
 }
 
-TESTABLE_STATIC void set_session_auth_value(tpm_session_t* session,
+TESTABLE_STATIC int set_session_auth_value(tpm_session_t* session,
 		const TPM2B_DIGEST* auth_value)
 {
+	if (auth_value->size >
+			sizeof(session->delegate.hmac.entity_authorization_value_.buffer)) {
+		return -1;
+	}
 	session->delegate.hmac.entity_authorization_value_.size = auth_value->size;
 	pinweaver_eal_memcpy_s(
 			session->delegate.hmac.entity_authorization_value_.buffer,
 			sizeof(session->delegate.hmac.entity_authorization_value_.buffer),
 			auth_value->buffer, auth_value->size);
+	return 0;
 }
 
-TESTABLE_STATIC void set_future_session_auth_value(tpm_session_t* session,
+TESTABLE_STATIC int set_future_session_auth_value(tpm_session_t* session,
 		const TPM2B_DIGEST* auth_value)
 {
+	if (auth_value->size >
+			sizeof(session->delegate.hmac.future_authorization_value_.buffer)) {
+		return -1;
+	}
 	session->delegate.hmac.future_authorization_value_.size = auth_value->size;
 	pinweaver_eal_memcpy_s(
 			session->delegate.hmac.future_authorization_value_.buffer,
 			sizeof(session->delegate.hmac.future_authorization_value_.buffer),
 			auth_value->buffer, auth_value->size);
 	session->delegate.hmac.future_authorization_value_set_ = true;
+	return 0;
 }
 
 TESTABLE_STATIC void close_session(tpm_session_t* session)
@@ -574,8 +584,7 @@ TESTABLE_STATIC int start_auth_session(int kind, bool force_restart)
 	if (res)
 		return res;
 
-	set_session_auth_value(&g_auth_session, auth_value);
-	return 0;
+	return set_session_auth_value(&g_auth_session, auth_value);
 }
 
 TESTABLE_STATIC int start_change_auth_session(
@@ -610,7 +619,12 @@ TESTABLE_STATIC int start_change_auth_session(
 		close_session(change_auth_session);
 		return -1;
 	}
-	set_session_auth_value(change_auth_session, auth_value);
+	if (set_session_auth_value(change_auth_session, auth_value)) {
+		PINWEAVER_EAL_INFO(
+				"start_change_auth_session: failed to set authValue");
+		close_session(change_auth_session);
+		return -1;
+	}
 
 	rc = tss_PolicyCommandCode(change_auth_session->handle, NULL,
 			TPM_CC_NV_ChangeAuth, NULL);
@@ -1038,7 +1052,12 @@ TESTABLE_STATIC int change_auth_handle(TPM_HANDLE handle, size_t size)
 	tpm_session_t change_auth_session = { 0, };
 	if (start_change_auth_session(&change_auth_session))
 		return -1;
-	set_future_session_auth_value(&change_auth_session, new_auth_value);
+	if (set_future_session_auth_value(&change_auth_session, new_auth_value)) {
+		PINWEAVER_EAL_INFO("change_auth_handle %#x: failed to set authValue",
+				handle);
+		close_session(&change_auth_session);
+		return -1;
+	}
 	TPM_RC rc = tss_NV_ChangeAuth(handle, &name, new_auth_value,
 			&change_auth_session.delegate);
 	if (rc != TPM_RC_SUCCESS) {
