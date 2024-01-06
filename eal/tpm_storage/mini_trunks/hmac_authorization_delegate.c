@@ -64,7 +64,11 @@ static void HmacKeyInit(HMAC_KEY* key) {
 }
 
 static int HmacKeyAppend(HMAC_KEY* key, const TPM2B_DIGEST* data) {
-  if (pinweaver_eal_memcpy_s(key->buffer + key->size, sizeof(key->buffer),
+  if (key->size + data->size > sizeof(key->buffer)) {
+    return -1;
+  }
+  if (pinweaver_eal_memcpy_s(key->buffer + key->size,
+      sizeof(key->buffer) - key->size,
       data->buffer, data->size)) {
     return -1;
   }
