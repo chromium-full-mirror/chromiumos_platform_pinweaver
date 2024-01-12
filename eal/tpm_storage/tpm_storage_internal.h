@@ -110,9 +110,9 @@ int check_nv_space(TPM_HANDLE handle,
 		TPM2B_NAME* name,
 		size_t expected_size,
 		const TPMS_NV_PUBLIC* public_area);
-void set_session_auth_value(tpm_session_t* session,
+int set_session_auth_value(tpm_session_t* session,
 		const TPM2B_DIGEST* auth_value);
-void set_future_session_auth_value(tpm_session_t* session,
+int set_future_session_auth_value(tpm_session_t* session,
 		const TPM2B_DIGEST* auth_value);
 void close_session(tpm_session_t* session);
 int get_salting_key_public(TPM2B_PUBLIC* pub);
