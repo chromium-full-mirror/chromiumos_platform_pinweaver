@@ -1598,10 +1598,6 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 		return PW_ERR_LENGTH_INVALID;
 	auth_channel = request->auth_channel;
 
-	if (generate_ba_pk_blocked) {
-		return PW_ERR_BIO_AUTH_ACCESS_DENIED;
-	}
-
 	/* Currently we only support v0 public key format. */
 	if (request->client_pbk.version != 0) {
 		return PW_ERR_BIO_AUTH_PUBLIC_KEY_VERSION_MISMATCH;
@@ -1615,8 +1611,14 @@ static int pw_handle_generate_pk(struct merkle_tree_t *merkle_tree,
 	 * if no Pk is established yet and it's not blocked.
 	 */
 	ret = pinweaver_eal_storage_get_ba_pk(auth_channel, &pk);
-	if (ret != PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED)
+	if (ret == EC_SUCCESS)
+		return PW_ERR_BIO_AUTH_PK_ALREADY_ESTABLISHED;
+	else if (ret != PW_ERR_BIO_AUTH_PK_NOT_ESTABLISHED)
+		return PW_ERR_INTERNAL_FAILURE;
+
+	if (generate_ba_pk_blocked) {
 		return PW_ERR_BIO_AUTH_ACCESS_DENIED;
+	}
 
 	/* Perform ECDH to derive the shared secret. */
 	ret = pinweaver_eal_ecdh_derive(&request->client_pbk.pt,

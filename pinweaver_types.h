@@ -75,6 +75,7 @@ enum pw_error_codes_enum {
 	 * when logging a try_auth event like this.
 	 */
 	PW_ERR_SUCCESS_WITH_INCREMENT,
+	PW_ERR_BIO_AUTH_PK_ALREADY_ESTABLISHED,
 };
 
 /* Represents the log2(fan out) of a tree. */
