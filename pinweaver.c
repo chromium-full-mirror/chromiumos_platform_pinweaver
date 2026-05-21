@@ -54,6 +54,7 @@ BUILD_ASSERT(sizeof(((struct merkle_tree_t *)0)->wrap_key) ==
 BUILD_ASSERT(PW_MAX_MESSAGE_SIZE >=
 	     sizeof(struct pw_request_header_t) +
 	     sizeof(union {pw_request_insert_leaf_t insert_leaf;
+		     struct pw_request_insert_leaf01_t leaf01;
 		     pw_request_remove_leaf_t remove_leaf;
 		     pw_request_try_auth_t try_auth;
 		     pw_request_reset_auth_t reset_auth;
@@ -1900,13 +1901,19 @@ int make_compatible_request(struct merkle_tree_t *merkle_tree,
 				(&request->data.insert_leaf00.path_hashes);
 			unsigned char *dest = (unsigned char *)
 				(&request->data.insert_leaf01.path_hashes);
-			const uint16_t src_size =
-				request->header.data_length -
-				offsetof(struct pw_request_insert_leaf00_t,
+			const size_t dest_offset = offsetof(struct pw_request_insert_leaf01_t,
 					 path_hashes);
-			if (offsetof(struct pw_request_insert_leaf01_t,
-				     path_hashes) + src_size >
-			    PW_MAX_MESSAGE_SIZE) {
+			const size_t src_offset = offsetof(struct pw_request_insert_leaf00_t,
+					 path_hashes);
+			const size_t src_size =
+				request->header.data_length - src_offset;
+
+			const size_t max_size = PW_MAX_MESSAGE_SIZE -
+						sizeof(struct pw_request_header_t) -
+						dest_offset;
+
+			if ((request->header.data_length < src_offset) ||
+			    (src_size > max_size)) {
 				/* The total length of request overflowed. */
 				return 0;
 			}
@@ -1933,8 +1940,12 @@ int make_compatible_request(struct merkle_tree_t *merkle_tree,
 					 path_hashes);
 			const size_t dest_offset = offsetof(struct pw_request_insert_leaf02_t,
 					 path_hashes);
-			const uint16_t src_size = request->header.data_length - src_offset;
-			if (dest_offset + src_size > PW_MAX_MESSAGE_SIZE) {
+			const size_t src_size = request->header.data_length - src_offset;
+			const size_t max_size = PW_MAX_MESSAGE_SIZE -
+				sizeof(struct pw_request_header_t) -
+				dest_offset;
+			if ((request->header.data_length < src_offset) ||
+				(src_size > max_size)) {
 				/* The total length of request overflowed. */
 				return 0;
 			}
@@ -1947,13 +1958,17 @@ int make_compatible_request(struct merkle_tree_t *merkle_tree,
 				(&request->data.reset_auth00.unimported_leaf_data);
 			unsigned char *dest = (unsigned char *)
 				(&request->data.reset_auth.unimported_leaf_data);
-			const uint16_t src_size =
-				request->header.data_length -
-				offsetof(struct pw_request_reset_auth00_t,
+			const size_t src_offset = offsetof(struct pw_request_reset_auth00_t,
 					 unimported_leaf_data);
-			if (offsetof(struct pw_request_reset_auth02_t,
-				     unimported_leaf_data) + src_size >
-			    PW_MAX_MESSAGE_SIZE) {
+			const size_t src_size =
+				request->header.data_length - src_offset;
+			const size_t max_size = PW_MAX_MESSAGE_SIZE -
+				sizeof(struct pw_request_header_t) -
+				offsetof(struct pw_request_reset_auth02_t,
+				     unimported_leaf_data);
+
+			if ((request->header.data_length < src_offset) ||
+				(src_size > max_size)) {
 				/* The total length of request overflowed. */
 				return 0;
 			}
