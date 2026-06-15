@@ -953,6 +953,7 @@ int log_auth(struct label_t label, const uint8_t root[PW_HASH_SIZE], int code,
 /* Per-request-type handler implementations.
  */
 
+__attribute__((noinline))
 static int pw_handle_reset_tree(struct merkle_tree_t *merkle_tree,
 				const pw_request_reset_tree_t *request,
 				uint16_t req_size)
@@ -1028,6 +1029,7 @@ static int generate_ba_secrets(const struct merkle_tree_t *merkle_tree,
 	return EC_SUCCESS;
 }
 
+__attribute__((noinline))
 static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 				 pw_request_insert_leaf_t *request,
 				 uint16_t req_size,
@@ -1147,6 +1149,7 @@ static int pw_handle_insert_leaf(struct merkle_tree_t *merkle_tree,
 	return ret;
 }
 
+__attribute__((noinline))
 static int pw_handle_remove_leaf(struct merkle_tree_t *merkle_tree,
 				 const pw_request_remove_leaf_t *request,
 				 uint16_t req_size)
@@ -1194,6 +1197,7 @@ static int pw_handle_remove_leaf(struct merkle_tree_t *merkle_tree,
  *   PW_ERR_RATE_LIMIT_REACHED  ->  seconds_to_wait
  *   PW_ERR_LOWENT_AUTH_FAILED  ->  unimported_leaf_data
  */
+__attribute__((noinline))
 static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 			      const pw_request_try_auth_t *request,
 			      uint16_t req_size,
@@ -1337,6 +1341,7 @@ static int pw_handle_try_auth(struct merkle_tree_t *merkle_tree,
 	return results_table[auth_result].ret;
 }
 
+__attribute__((noinline))
 static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 				const pw_request_reset_auth_t *request,
 				uint16_t req_size,
@@ -1416,6 +1421,7 @@ static int pw_handle_reset_auth(struct merkle_tree_t *merkle_tree,
 	return ret;
 }
 
+__attribute__((noinline))
 static int pw_handle_get_log(const struct merkle_tree_t *merkle_tree,
 			     const pw_request_get_log_t *request,
 			     uint16_t req_size,
@@ -1471,6 +1477,7 @@ static int pw_handle_get_log(const struct merkle_tree_t *merkle_tree,
 	return EC_SUCCESS;
 }
 
+__attribute__((noinline))
 static int pw_handle_log_replay(const struct merkle_tree_t *merkle_tree,
 				const pw_request_log_replay_t *request,
 				uint16_t req_size,
