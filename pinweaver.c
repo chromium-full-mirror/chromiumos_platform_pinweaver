@@ -1837,7 +1837,9 @@ struct merkle_tree_t pw_merkle_tree;
 
 void pinweaver_init(void)
 {
-	load_merkle_tree(&pw_merkle_tree);
+	if (load_merkle_tree(&pw_merkle_tree) != EC_SUCCESS) {
+		memset(&pw_merkle_tree, 0, sizeof(pw_merkle_tree));
+	}
 	generate_ba_pk_blocked = 0;
 }
 
