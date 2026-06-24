@@ -186,7 +186,7 @@ int pinweaver_eal_rand_bytes(void *buf, size_t size)
 	return RAND_bytes(buf, size) == 1 ? 0 : -1;
 }
 
-uint64_t pinweaver_eal_seconds_since_boot()
+uint64_t pinweaver_eal_seconds_since_boot(void)
 {
 	struct sysinfo si;
 	if (sysinfo(&si))

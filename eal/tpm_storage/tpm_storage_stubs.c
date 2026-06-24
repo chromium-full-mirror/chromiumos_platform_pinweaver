@@ -14,7 +14,7 @@ int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree)
 	return 0;
 }
 
-int pinweaver_eal_storage_start()
+int pinweaver_eal_storage_start(void)
 {
 	/* TODO */
 	return 0;
