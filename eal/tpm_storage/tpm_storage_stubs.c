@@ -58,3 +58,8 @@ int pinweaver_eal_storage_initialize_owner()
 	/* TODO */
 	return 0;
 }
+
+void pinweaver_eal_clear_keys(void)
+{
+	/* Stub implementation. */
+}

@@ -474,3 +474,7 @@ int pinweaver_eal_generate_ecdh_points(const TPMS_ECC_POINT* pub_key,
 	PINWEAVER_EAL_INFO("%s: failed to generate points", __func__);
 	return -1;
 }
+
+void pinweaver_eal_clear_keys(void)
+{
+}

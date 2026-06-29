@@ -323,4 +323,6 @@ int pinweaver_eal_memcpy_s(
   return 0;
 }
 
+void pinweaver_eal_clear_keys(void) {}
+
 } // extern "C"

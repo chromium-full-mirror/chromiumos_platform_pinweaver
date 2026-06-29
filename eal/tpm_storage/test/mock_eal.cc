@@ -137,4 +137,8 @@ int pinweaver_eal_generate_ecdh_points(const TPMS_ECC_POINT *pub_key,
   return GetEal()->generate_ecdh_points(pub_key, ephemeral_point, z_point);
 }
 
+void pinweaver_eal_clear_keys(void) {
+  GetEal()->clear_keys();
+}
+
 } // extern "C"

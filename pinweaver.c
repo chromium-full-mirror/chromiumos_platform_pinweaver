@@ -1839,6 +1839,7 @@ void pinweaver_init(void)
 {
 	if (load_merkle_tree(&pw_merkle_tree) != EC_SUCCESS) {
 		memset(&pw_merkle_tree, 0, sizeof(pw_merkle_tree));
+		pinweaver_eal_clear_keys();
 	}
 	generate_ba_pk_blocked = 0;
 }
