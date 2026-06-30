@@ -414,6 +414,11 @@ int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
 	return EC_SUCCESS;
 }
 
+void pinweaver_eal_clear_keys(void)
+{
+	/* Cr50 EAL does not maintain in-memory keys that need clearing here. */
+}
+
 /*
  * Handle the VENDOR_CC_PINWEAVER command.
  */

@@ -241,4 +241,6 @@ int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
 		return g_data_provider->ConsumeIntegral<int>();
 	return 0;
 }
+
+void pinweaver_eal_clear_keys(void) {}
 }

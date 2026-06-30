@@ -1,4 +1,4 @@
-// Copyright 2021 The Chromium OS Authors. All rights reserved.
+// Copyright 2021 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -123,5 +123,7 @@ int pinweaver_eal_generate_ecdh_points(const TPMS_ECC_POINT *pub_key,
   z_point->y = Consume2B<TPM2B_ECC_PARAMETER>();
   return 0;
 }
+
+void pinweaver_eal_clear_keys(void) {}
 
 } // extern "C"

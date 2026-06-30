@@ -36,6 +36,11 @@ int pinweaver_eal_memcpy_s(
 int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree);
 
 /*
+ * Clear the derived wrap_key and hmac_key labels.
+ */
+void pinweaver_eal_clear_keys(void);
+
+/*
  * Functions for calculating SHA-256.
  * Returns 0 on success.
  */
