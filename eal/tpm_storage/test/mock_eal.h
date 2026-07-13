@@ -1,4 +1,4 @@
-// Copyright 2021 The Chromium OS Authors. All rights reserved.
+// Copyright 2021 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -37,6 +37,7 @@ public:
   virtual int generate_ecdh_points(const TPMS_ECC_POINT *pub_key,
                                    TPMS_ECC_POINT *ephemeral_point,
                                    TPMS_ECC_POINT *z_point) = 0;
+  virtual void clear_keys() = 0;
 };
 
 class MockEalInterface : public EalInterface {
@@ -68,6 +69,7 @@ public:
   MOCK_METHOD3(generate_ecdh_points,
                int(const TPMS_ECC_POINT *pub_key,
                    TPMS_ECC_POINT *ephemeral_point, TPMS_ECC_POINT *z_point));
+  MOCK_METHOD0(clear_keys, void());
 
   void set_past_generation(int generation) {
     this->past_generation_ = generation;

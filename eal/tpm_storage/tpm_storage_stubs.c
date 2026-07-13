@@ -1,4 +1,4 @@
-/* Copyright 2021 The Chromium OS Authors. All rights reserved.
+/* Copyright 2021 The ChromiumOS Authors
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -14,7 +14,7 @@ int pinweaver_eal_derive_keys(struct merkle_tree_t *merkle_tree)
 	return 0;
 }
 
-int pinweaver_eal_storage_start()
+int pinweaver_eal_storage_start(void)
 {
 	/* TODO */
 	return 0;
@@ -57,4 +57,9 @@ int pinweaver_eal_storage_initialize_owner()
 {
 	/* TODO */
 	return 0;
+}
+
+void pinweaver_eal_clear_keys(void)
+{
+	/* Stub implementation. */
 }

@@ -169,12 +169,12 @@ int pinweaver_eal_rand_bytes(void *buf, size_t size)
 	return !fips_rand_bytes(buf, size);
 }
 
-uint64_t pinweaver_eal_seconds_since_boot()
+uint64_t pinweaver_eal_seconds_since_boot(void)
 {
 	return get_seconds_since_cold_boot();
 }
 
-int pinweaver_eal_storage_start()
+int pinweaver_eal_storage_start(void)
 {
 	return 0;
 }
@@ -412,6 +412,11 @@ int pinweaver_eal_ecdh_derive(const struct pw_ba_ecc_pt_t *ecc_pt_in,
 	p256_to_bin(&self_pk_y, ecc_pt_out->y);
 
 	return EC_SUCCESS;
+}
+
+void pinweaver_eal_clear_keys(void)
+{
+	/* Cr50 EAL does not maintain in-memory keys that need clearing here. */
 }
 
 /*

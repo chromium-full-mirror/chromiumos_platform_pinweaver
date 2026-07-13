@@ -1,4 +1,4 @@
-/* Copyright 2021 The Chromium OS Authors. All rights reserved.
+/* Copyright 2021 The ChromiumOS Authors
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -186,7 +186,7 @@ int pinweaver_eal_rand_bytes(void *buf, size_t size)
 	return RAND_bytes(buf, size) == 1 ? 0 : -1;
 }
 
-uint64_t pinweaver_eal_seconds_since_boot()
+uint64_t pinweaver_eal_seconds_since_boot(void)
 {
 	struct sysinfo si;
 	if (sysinfo(&si))
@@ -473,4 +473,8 @@ int pinweaver_eal_generate_ecdh_points(const TPMS_ECC_POINT* pub_key,
 	}
 	PINWEAVER_EAL_INFO("%s: failed to generate points", __func__);
 	return -1;
+}
+
+void pinweaver_eal_clear_keys(void)
+{
 }
